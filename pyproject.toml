@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools"] #, "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+#[tool.setuptools_scm]
+#version_file = "locutus/_version.py"
+
+[project]
+name = "lucutus"
+authors = [
+    {name = "Eric Torstenson", email="eric.s.torstenson@vumc.org"}
+]
+description = "Research terminology management system."
+readme = "README.md"
+requires-python = ">3.7"
+keywords = ["Vocabulary", "Research Data", "Borg"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = ["marshmallow",
+                "flask",
+                "flask-restful",
+                "nanoid",
+                "PyYAML",
+                "rich"
+                ]
+
+dynamic = ["version"]
+
+[tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+
+
+#[project.scripts]
+#asdf = "locutus.module:function"
