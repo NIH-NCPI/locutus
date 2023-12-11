@@ -61,6 +61,7 @@ class JStoreCollection:
         # present in the data
         # pdb.set_trace()
         id = docid
+        # pdb.set_trace()
         if docid not in self.data and docid in self.aliases:
             id = self.aliases[docid]
 
@@ -70,13 +71,13 @@ class JStoreCollection:
         # we don't want to forcibly add this unless we want to actually use it.
         data_chunk = self.data.get(id)
         if data_chunk is None:
-            return {}
+            return {"id": id}
 
         return self.data[id]
 
     def add_aliases(self, aliases, id):
         for alias in aliases:
-            if alias not in self.aliases:
+            if alias is not None and alias not in self.aliases:
                 self.aliases[alias] = id
 
 
@@ -104,6 +105,11 @@ class JStore(StorageBase):
             data = json.load(f)
             # pdb.set_trace()
             collections = data.get("collections")
+            aliases = data.get("aliases")
+
+            if aliases is None:
+                aliases = {}
+
             # pdb.set_trace()
             if type(collections) is dict:
                 for collection in collections:
@@ -111,12 +117,20 @@ class JStore(StorageBase):
                         collection, data=collections[collection]
                     )
 
+            if type(aliases) is dict:
+                for alias in aliases:
+                    if not alias in self._collections:
+                        self._collections[alias] = JStoreCollection(alias)
+                    self._collections[alias].aliases = aliases[alias]
+
     def save(self):
         self.filename.parent.mkdir(exist_ok=True, parents=True)
         with self.filename.open("wt") as f:
-            data = {"collections": {}}  # self._collections}
+            data = {"collections": {}, "aliases": {}}  # self._collections}
+
             for collection in self._collections.keys():
                 data["collections"][collection] = self._collections[collection].data
+                data["aliases"][collection] = self._collections[collection].aliases
 
             json.dump(data, f, indent=2)
 

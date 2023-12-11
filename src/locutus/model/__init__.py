@@ -35,11 +35,11 @@ def build_object(resource):
 # reapply a pre-existing ID
 def get_id(resource):
     id = resource.id
-    if id is None:
-        perc = persistence()
+    perc = persistence()
+    keys = resource.keys()
 
+    if id is None:
         if perc is not None:
-            keys = resource.keys()
             assert keys is not None, "Incomplete Serializable Object-No Key Returned"
 
             doc = perc.collection(resource.resource_type).document(keys[0])
@@ -55,6 +55,9 @@ def get_id(resource):
         else:
             id = f"{type(resource)._id_prefix}-{generate()}"
 
+    else:
+        perc.collection(resource.resource_type).document(id, doc)
+        perc.collection(resource.resource_type).add_aliases(keys, id)
     return id
 
 

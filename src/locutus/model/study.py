@@ -4,6 +4,8 @@ from marshmallow import Schema, fields, post_load
 from locutus.model.datadictionary import DataDictionary
 from locutus.model.reference import Reference
 
+import pdb
+
 """
 A Study represents a research study which will likely contain one or more
 datasets which conform to a single data-dictionary. 
@@ -32,9 +34,6 @@ This is used when generating FHIR systems for identifiers.
 
 Data-Dictionary:
 This will be references to the data-dictionaries associated with the study
-
-
-
 
 """
 

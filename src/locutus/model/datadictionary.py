@@ -3,6 +3,8 @@ from marshmallow import Schema, fields, post_load
 
 from locutus.model.reference import Reference
 
+import pdb
+
 """
 A data-dictionary is a collection of tables that, together, describe the 
 complete data format for a study's datasets. 
@@ -36,12 +38,11 @@ class DataDictionary(Serializable):
         self.description = description
 
         self.tables = []
+        super().identify()
 
         if tables is not None:
             for t in tables:
                 self.tables.append(Reference(reference=t))
-
-        super().identify()
 
     def keys(self):
         return [self.name]
