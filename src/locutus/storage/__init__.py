@@ -71,7 +71,8 @@ class JStoreCollection:
         # we don't want to forcibly add this unless we want to actually use it.
         data_chunk = self.data.get(id)
         if data_chunk is None:
-            return {"id": id}
+            return {}
+            # return {"id": id}
 
         return self.data[id]
 

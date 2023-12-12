@@ -68,7 +68,7 @@ class Terminology(Serializable):
             for code in codes:
                 if type(code) is dict:
                     code = Coding(**code)
-                print(code)
+                # print(code)
                 code.system = self.url
                 self.codes.append(code)
         else:

@@ -4,13 +4,11 @@ import pdb
 from nanoid import generate
 from copy import deepcopy
 
-# By default, we'll use a dumb JSON cache for storage
-from locutus.storage import JStore
-
+from locutus import persistence
+import pdb
 
 """
 The application should set this to the desired 
-"""
 _datastore = None
 
 
@@ -25,6 +23,7 @@ def persistence(datastore=None):
         _datastore = JStore("~~tmp~~")
 
     return _datastore
+"""
 
 
 def build_object(resource):
@@ -82,7 +81,9 @@ class Serializable:
 
     def save(self):
         # commit the data to persistent storage
+        print(self.dump())
         persistence().collection(self.resource_type).document(self.id, data=self.dump())
+        persistence().save()
 
     def dump(self):
         # pdb.set_trace()
