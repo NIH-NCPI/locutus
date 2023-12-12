@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from locutus.api import persistence
+from locutus import persistence
 from locutus.model.table import Table as mTable
 
 
