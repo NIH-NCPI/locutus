@@ -56,6 +56,14 @@ class JStoreCollection:
 
         return docs
 
+    def delete(self, docid):
+        data = self.data.get(docid)
+
+        if data is not None:
+            del self.data[docid]
+
+        return data
+
     def document(self, docid, data=None):
         # Allow an alias be used in place of the ID if the ID isn't already
         # present in the data
