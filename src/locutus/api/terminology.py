@@ -1,5 +1,6 @@
-from flask_restful import Resource
-from locutus.api import persistence
+from flask_restful import Resource, reqparse
+from flask import request
+from locutus import persistence
 from locutus.model.terminology import Terminology as Term
 
 import pdb
@@ -10,7 +11,12 @@ class Terminologies(Resource):
         return [x.dump() for x in persistence().collection("Terminology").documents()]
 
     def post(self):
-        pass
+        term = request.get_json()
+        del term["resource_type"]
+
+        t = Term(**term)
+        t.save()
+        return t.dump()
 
 
 class Terminology(Resource):
@@ -19,7 +25,13 @@ class Terminology(Resource):
         t = persistence().collection("Terminology").document(id)
         return t
 
-    def put(self, term):
+    def put(self, id):
+        term = request.get_json()
+        print(term)
+        if "id" not in term:
+            term["id"] = id
+
+        del term["resource_type"]
         t = Term(**term)
         t.save()
 
