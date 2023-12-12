@@ -31,7 +31,6 @@ class Terminology(Resource):
 
     def put(self, id):
         term = request.get_json()
-        print(term)
         if "id" not in term:
             term["id"] = id
 
@@ -41,4 +40,9 @@ class Terminology(Resource):
         return t.dump(), 200, default_headers
 
     def delete(self, id):
-        pass
+        t = persistence().collection("Terminology").delete(id)
+
+        if t is not None:
+            persistence().save()
+
+        return t, 200, default_headers
