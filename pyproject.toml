@@ -19,6 +19,7 @@ classifiers = [
 ]
 dependencies = ["marshmallow",
                 "flask",
+                "flask-cors",
                 "flask-restful",
                 "nanoid",
                 "PyYAML",

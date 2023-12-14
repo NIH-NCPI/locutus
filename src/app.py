@@ -1,4 +1,6 @@
 from flask import Flask, request
+
+from flask_cors import CORS
 from flask_restful import Resource, Api
 
 from locutus import init_base_storage
@@ -12,10 +14,13 @@ from locutus.api.study import Study, Studies
 from locutus.api.datadictionary import DataDictionary, DataDictionaries
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
-
+# Terminology GET (all terminologies)/POST (new without an ID)
 api.add_resource(Terminologies, "/api/Terminology")
+# Terminology GET (by ID), PUT (with id, can be create if you have an ID
+# already), DELETE (by ID)
 api.add_resource(Terminology, "/api/Terminology/<string:id>")
 
 api.add_resource(Tables, "/api/Table")
@@ -26,6 +31,7 @@ api.add_resource(Study, "/api/Study/<string:id>")
 
 api.add_resource(DataDictionaries, "/api/DataDictionary")
 api.add_resource(DataDictionary, "/api/DataDictionary/<string:id>")
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")

@@ -2,6 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term
+from flask_cors import cross_origin
 from locutus.api import default_headers
 
 import pdb
@@ -15,9 +16,11 @@ class Terminologies(Resource):
             default_headers,
         )
 
+    @cross_origin(allow_headers=["Content-Type"])
     def post(self):
         term = request.get_json()
-        del term["resource_type"]
+        if "resource_type" in term:
+            del term["resource_type"]
 
         t = Term(**term)
         t.save()
@@ -34,11 +37,13 @@ class Terminology(Resource):
         if "id" not in term:
             term["id"] = id
 
-        del term["resource_type"]
+        if "resource_type" in term:
+            del term["resource_type"]
         t = Term(**term)
         t.save()
         return t.dump(), 200, default_headers
 
+    # @cross_origin()
     def delete(self, id):
         t = persistence().collection("Terminology").delete(id)
 
