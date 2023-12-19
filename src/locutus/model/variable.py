@@ -107,17 +107,16 @@ class StringVariable(Variable):
 class EnumerationVariable(Variable):
     data_type = Variable.DataType.ENUMERATION
 
-    def __init__(self, name="", description=None, values_url=None):
+    def __init__(self, name="", description=None, enumerations=None):
         super().__init__(name, description)
         self.data_type = Variable.DataType.ENUMERATION
-        self.values_url = values_url
-        self.enumerations = Reference(reference=values_url)
+        self.enumerations = Reference(reference=enumerations["reference"])
 
     class _Schema(Schema):
         name = fields.Str(required=True)
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
-        values_url = fields.URL()
+        enumerations = fields.Nested(Reference._Schema)
 
         # Do we want to enumerate these during default caching?
         # enumerations = fields.Nested(Reference._Schema)
