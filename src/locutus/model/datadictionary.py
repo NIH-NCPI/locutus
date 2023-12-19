@@ -51,9 +51,8 @@ class DataDictionary(Serializable):
         id = fields.Str()
         name = fields.Str(required=True)
         description = fields.Str()
-        # tables = fields.List(fields.Str)
+
         tables = fields.List(fields.Nested(Reference._Schema))
-        # tables = fields.List(fields.Nested(Table._Schema))
         resource_type = fields.Str()
 
         @post_load

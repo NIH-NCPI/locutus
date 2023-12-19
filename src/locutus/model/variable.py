@@ -118,9 +118,6 @@ class EnumerationVariable(Variable):
         data_type = fields.Enum(Variable.DataType)
         enumerations = fields.Nested(Reference._Schema)
 
-        # Do we want to enumerate these during default caching?
-        # enumerations = fields.Nested(Reference._Schema)
-
 
 class BooleanVariable(Variable):
     data_type = Variable.DataType.BOOLEAN
