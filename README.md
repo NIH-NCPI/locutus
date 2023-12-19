@@ -1,11 +1,13 @@
 # Locutus 
-Assimilating terminologies to perfect the findability of research data. 
+Locutus provides the backend for a web based terminology mapping tool in the very early stages of development. The goal of the application is to provide a collaborative environment to harmonize dataset terms with public ontologies such as MeSH, HPO and others. 
+
+There isn't much here at this time, but there are some example data based on a real research data-dictionary along with standard CRUD functionality. 
 
 Some example queries: 
 
 Terminologies: 
 * https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology 
-* https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/tm-hPS6FQr726VdQxRsENY-I (for a particular id)
+* https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/tm-DCQHVrWz6DEW5HOVoeJus (for a particular id)
 
 Table: 
 * https://locutus-l2xv5td7oq-uc.a.run.app/api/Table 
@@ -17,4 +19,3 @@ Study:
 DataDictionary: 
 * https://locutus-l2xv5td7oq-uc.a.run.app/api/DataDictionary
 
-- All your terms are belong to us -- Kats Terminologustumus
