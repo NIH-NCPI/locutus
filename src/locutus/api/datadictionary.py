@@ -29,12 +29,13 @@ class DataDictionary(Resource):
         t = persistence().collection("DataDictionary").document(id)
         return t
 
-    def put(self, study):
+    def put(self, id):
         dd = request.get_json()
         if "id" not in dd:
             dd["id"] = id
 
-        del dd["resource_type"]
+        if "resource_type" in dd:
+            del dd["resource_type"]
 
         d = DD(**dd)
         d.save()

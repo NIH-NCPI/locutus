@@ -29,12 +29,13 @@ class Study(Resource):
         t = persistence().collection("Study").document(id)
         return t, 200, default_headers
 
-    def put(self, study):
+    def put(self, id):
         sty = request.get_json()
         if "id" not in sty:
             sty["id"] = id
 
-        del sty["resource_type"]
+        if "resource_type" in sty:
+            del sty["resource_type"]
 
         study = mStudyTerm(**sty)
         study.save()
