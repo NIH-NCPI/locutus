@@ -15,9 +15,10 @@ class Studies(Resource):
 
     def post(self):
         sty = request.get_json()
-        del sty["resource_type"]
+        if "resource_type" in sty:
+            del sty["resource_type"]
 
-        study = sty(**sty)
+        study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
 
@@ -35,7 +36,7 @@ class Study(Resource):
 
         del sty["resource_type"]
 
-        study = sty(**sty)
+        study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
 

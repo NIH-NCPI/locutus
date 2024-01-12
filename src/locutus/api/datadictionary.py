@@ -1,4 +1,5 @@
 from flask_restful import Resource
+from flask import request
 from locutus import persistence
 from locutus.model.datadictionary import DataDictionary as DD
 from locutus.api import default_headers
@@ -14,9 +15,10 @@ class DataDictionaries(Resource):
 
     def post(self):
         dd = request.get_json()
-        del dd["resource_type"]
+        if "resource_type" in dd:
+            del dd["resource_type"]
 
-        d = dd(**dd)
+        d = DD(**dd)
         d.save()
         return d.dump(), 201, default_headers
 
@@ -34,7 +36,7 @@ class DataDictionary(Resource):
 
         del dd["resource_type"]
 
-        d = dd(**dd)
+        d = DD(**dd)
         d.save()
         return d.dump(), 201, default_headers
 
