@@ -15,7 +15,9 @@ class Tables(Resource):
 
     def post(self):
         tbl = request.get_json()
-        del tbl["resource_type"]
+
+        if "resource_type" in tbl:
+            del tbl["resource_type"]
 
         t = mTable(**tbl)
         t.save()
