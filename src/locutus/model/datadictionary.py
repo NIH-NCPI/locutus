@@ -42,7 +42,7 @@ class DataDictionary(Serializable):
 
         if tables is not None:
             for t in tables:
-                self.tables.append(Reference(reference=t))
+                self.tables.append(Reference(reference=t["reference"]))
 
     def keys(self):
         return [self.name]

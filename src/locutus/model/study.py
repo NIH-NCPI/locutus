@@ -57,7 +57,7 @@ class Study(Serializable):
         self.identifier_prefix = identifier_prefix
         self.title = title
         self.url = url
-        self.datadictionary = Reference(reference=datadictionary)
+        self.datadictionary = Reference(reference=datadictionary["reference"])
 
         super().identify()
 
