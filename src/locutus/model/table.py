@@ -41,7 +41,7 @@ class Table(Serializable):
         url=None,
         description=None,
         filename=None,
-        variables=None,
+        variables=[],
     ):
         super().__init__(id=id, collection_type="Table", resource_type="Table")
         self.id = id
