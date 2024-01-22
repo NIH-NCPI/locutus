@@ -4,11 +4,13 @@ from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.api import default_headers
 
+import pdb
+
 
 class Tables(Resource):
     def get(self):
         return (
-            [x.dump() for x in persistence().collection("Table").documents()],
+            [x.to_dict() for x in persistence().collection("Table").stream()],
             200,
             default_headers,
         )
@@ -27,8 +29,9 @@ class Tables(Resource):
 class Table(Resource):
     def get(self, id):
         # pdb.set_trace()
-        t = persistence().collection("Table").document(id)
-        return t
+        t = persistence().collection("Table").document(id).get()
+
+        return t.to_dict()
 
     def put(self, id):
         tbl = request.get_json()
@@ -42,9 +45,11 @@ class Table(Resource):
         return t.dump(), 200, default_headers
 
     def delete(self, id):
-        t = persistence().collection("Table").delete(id)
-
-        if t is not None:
-            persistence().save()
+        dref = persistence().collection("Table").document(id)
+        t = dref.get().to_dict()
+        print(f"{id} : {t}")
+        time_of_delete = dref.delete()
+        # if t is not None:
+        #    persistence().save()
 
         return t, 200, default_headers

@@ -4,11 +4,13 @@ from locutus import persistence
 from locutus.model.datadictionary import DataDictionary as DD
 from locutus.api import default_headers
 
+import pdb
+
 
 class DataDictionaries(Resource):
     def get(self):
         return (
-            [x.dump() for x in persistence().collection("DataDictionary").documents()],
+            [x.to_dict() for x in persistence().collection("DataDictionary").stream()],
             200,
             default_headers,
         )
@@ -26,8 +28,8 @@ class DataDictionaries(Resource):
 class DataDictionary(Resource):
     def get(self, id):
         # pdb.set_trace()
-        t = persistence().collection("DataDictionary").document(id)
-        return t
+        t = persistence().collection("DataDictionary").document(id).get()
+        return t.to_dict()
 
     def put(self, id):
         dd = request.get_json()
@@ -42,9 +44,12 @@ class DataDictionary(Resource):
         return d.dump(), 201, default_headers
 
     def delete(self, id):
-        t = persistence().collection("DataDictionary").delete(id)
+        dref = persistence().collection("DataDictionary").document(id)
+        t = dref.get().to_dict()
+        print(f"{id} : {t}")
+        time_of_delete = dref.delete()
 
-        if t is not None:
-            persistence().save()
+        # if t is not None:
+        #    persistence().save()
 
         return t, 200, default_headers

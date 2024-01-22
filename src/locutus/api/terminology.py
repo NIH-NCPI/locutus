@@ -11,7 +11,7 @@ import pdb
 class Terminologies(Resource):
     def get(self):
         return (
-            [x.dump() for x in persistence().collection("Terminology").documents()],
+            [x.to_dict() for x in persistence().collection("Terminology").stream()],
             200,
             default_headers,
         )
@@ -29,8 +29,8 @@ class Terminologies(Resource):
 
 class Terminology(Resource):
     def get(self, id):
-        t = persistence().collection("Terminology").document(id)
-        return t, 200, default_headers
+        t = persistence().collection("Terminology").document(id).get()
+        return t.to_dict(), 200, default_headers
 
     def put(self, id):
         term = request.get_json()
@@ -45,9 +45,9 @@ class Terminology(Resource):
 
     # @cross_origin()
     def delete(self, id):
-        t = persistence().collection("Terminology").delete(id)
+        dref = persistence().collection("Terminology").document(id)
+        t = dref.get().to_dict()
 
-        if t is not None:
-            persistence().save()
+        time_of_delete = dref.delete()
 
         return t, 200, default_headers
