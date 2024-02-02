@@ -5,6 +5,10 @@ from locutus.storage.firestore import persistence
 _persistence = None
 
 
+def fix_varname(varname):
+    return varname.strip().replace(" ", "_")
+
+
 """
 def persistence():
     global _persistence

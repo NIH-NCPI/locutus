@@ -10,6 +10,7 @@ from flask_restful import Resource, Api
 
 from locutus.api.terminology import Terminology, Terminologies
 from locutus.api.table import Table, Tables
+from locutus.api.table_load import TableLoader
 from locutus.api.study import Study, Studies
 from locutus.api.datadictionary import DataDictionary, DataDictionaries
 
@@ -25,6 +26,7 @@ api.add_resource(Terminology, "/api/Terminology/<string:id>")
 
 api.add_resource(Tables, "/api/Table")
 api.add_resource(Table, "/api/Table/<string:id>")
+api.add_resource(TableLoader, "/api/LoadTable")
 
 api.add_resource(Studies, "/api/Study")
 api.add_resource(Study, "/api/Study/<string:id>")
