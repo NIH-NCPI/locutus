@@ -40,10 +40,9 @@ def get_id(resource):
     if id is None:
         if perc is not None:
             assert keys is not None, "Incomplete Serializable Object-No Key Returned"
-
             doc = (
                 perc.collection(resource.resource_type)
-                .document(keys[0])
+                .document(keys[0].replace("/", "_"))
                 .get()
                 .to_dict()
             )
