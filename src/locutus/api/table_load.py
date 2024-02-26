@@ -35,7 +35,7 @@ class TableLoader(Resource):
 
             var = {"name": varData["variable_name"], "data_type": varData["data_type"]}
             if "description" in varData:
-                var["description"] = varData["data_type"]
+                var["description"] = varData["description"]
             if "min" in varData:
                 var["min"] = varData["min"]
             if "max" in varData:

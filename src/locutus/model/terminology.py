@@ -1,5 +1,6 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
+from locutus import persistence
 
 import pdb
 
@@ -45,6 +46,14 @@ class Coding:
             # pdb.set_trace()
             return Coding(**data)
 
+    def to_dict(self):
+        obj = {"code": self.code, "display": self.display}
+
+        if self.system is not None:
+            obj["system"] = self.system
+
+        return obj
+
 
 class Terminology(Serializable):
     _id_prefix = "tm"
@@ -78,6 +87,60 @@ class Terminology(Serializable):
 
     def keys(self):
         return [self.url, self.name]
+
+    def build_code_list(mapping):
+        codes = []
+        code_id = mapping["code"]
+
+        for coding in mapping["codes"]:
+            codes.append(Coding(**coding))
+
+        return codes
+
+    def mappings(self, code=None):
+        codes = {}
+        if code is None:
+            for mapping in (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection("mappings")
+                .stream()
+            ):
+                mapping = mapping.to_dict()
+
+                print(mapping)
+                code_id = mapping["code"]
+                codes[code_id] = Terminology.build_code_list(mapping)
+
+        else:
+            mapping = (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection("mappings")
+                .document(code)
+                .get()
+                .to_dict()
+            )
+            if mapping is not None:
+                print(mapping)
+                code_id = mapping["code"]
+                codes[code_id] = Terminology.build_code_list(mapping)
+            else:
+                codes[code] = []
+
+        return codes
+
+    def set_mapping(self, code, codings):
+        doc = {"code": code, "codes": []}
+
+        for coding in codings:
+            doc["codes"].append(coding.to_dict())
+
+        persistence().collection(self.resource_type).document(self.id).collection(
+            "mappings"
+        ).document(code).set(doc)
 
     class _Schema(Schema):
         id = fields.Str()
