@@ -3,6 +3,7 @@ from flask import request
 from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.api import default_headers
+from locutus.api.datadictionary import DataDictionaries
 
 import pdb
 
@@ -38,7 +39,8 @@ class Table(Resource):
         if "id" not in tbl:
             tbl["id"] = id
 
-        del tbl["resource_type"]
+        if "resource_type" in tbl:
+            del tbl["resource_type"]
 
         t = mTable(**tbl)
         t.save()
@@ -46,6 +48,10 @@ class Table(Resource):
 
     def delete(self, id):
         dref = persistence().collection("Table").document(id)
+
+        # Delete any references to the table from any data-dictionaries:
+        DataDictionaries().delete_table_references(id)
+
         t = dref.get().to_dict()
         print(f"{id} : {t}")
         time_of_delete = dref.delete()
@@ -53,3 +59,18 @@ class Table(Resource):
         #    persistence().save()
 
         return t, 200, default_headers
+
+
+class HarmonyCSV(Resource):
+    def get(self, id):
+        tbl = persistence().collection("Table").document(id).get().to_dict()
+
+        if "resource_type" in tbl:
+            del tbl["resource_type"]
+
+        t = mTable(**tbl)
+        try:
+            harmony = t.as_harmony()
+        except KeyError as e:
+            return {"message_to_user": str(e)}, 400, default_headers
+        return harmony, 200, default_headers

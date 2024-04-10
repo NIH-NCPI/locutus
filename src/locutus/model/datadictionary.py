@@ -44,6 +44,23 @@ class DataDictionary(Serializable):
             for t in tables:
                 self.tables.append(Reference(reference=t["reference"]))
 
+    def remove_table(self, table_id):
+        matching_references = []
+
+        treference = f"Table/{table_id}"
+
+        idx = 0
+        for tblref in self.tables:
+            if tblref.reference == treference:
+                matching_references.append(idx)
+            idx += 1
+
+        if len(matching_references) > 0:
+            for ref in matching_references:
+                del self.tables[ref]
+
+        return len(matching_references)
+
     def keys(self):
         return [self.name]
 

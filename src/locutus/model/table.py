@@ -61,6 +61,48 @@ class Table(Serializable):
 
         super().identify()
 
+    def build_harmony_row(self, local_coding, mapped_coding):
+
+        return {
+            "local code": local_coding.code,
+            "text": local_coding.display,
+            "table_name": self.name,
+            "parent_varname": "",  # I'm not sure if we can get this ATM
+            "local code system": local_coding.system,
+            "code": mapped_coding.code,
+            "display": mapped_coding.display,
+            "code system": mapped_coding.system,
+            "comment": "",
+        }
+
+    def as_harmony(self):
+        # Iterate over each table
+        harmony_mappings = []
+        for var in self.variables:
+            if var.data_type == Variable.DataType.ENUMERATION:
+                term = var.get_terminology()
+
+                # Capture a dictionary with code=>coding
+                codings = term.build_code_dict()
+
+                mappings = var.get_mappings()
+                for code in mappings:
+
+                    if code not in codings:
+                        allowed_codes = "'" + "','".join(codings.keys()) + "'"
+                        raise KeyError(
+                            f"The code, {code}, doesn't match any of the available codes: {allowed_codes}"
+                        )
+                    coding = codings[code]
+
+                    mapped_codings = mappings[code]
+
+                    for mc in mapped_codings:
+                        harmony_row = self.build_harmony_row(coding, mc)
+                        if harmony_row is not None:
+                            harmony_mappings.append(harmony_row)
+        return harmony_mappings
+
     def keys(self):
         return [self.url, self.name]
 
