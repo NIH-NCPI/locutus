@@ -58,7 +58,15 @@ class Coding:
 class Terminology(Serializable):
     _id_prefix = "tm"
 
-    def __init__(self, id=None, name=None, url=None, description=None, codes=None):
+    def __init__(
+        self,
+        id=None,
+        name=None,
+        url=None,
+        description=None,
+        codes=None,
+        resource_type=None,
+    ):
         super().__init__(
             id=id, collection_type="Terminology", resource_type="Terminology"
         )
@@ -88,6 +96,13 @@ class Terminology(Serializable):
     def keys(self):
         return [self.url, self.name]
 
+    def build_code_dict(self):
+        codings = {}
+        for code in self.codes:
+            codings[code.code] = code
+
+        return codings
+
     def build_code_list(mapping):
         codes = []
         code_id = mapping["code"]
@@ -109,7 +124,6 @@ class Terminology(Serializable):
             ):
                 mapping = mapping.to_dict()
 
-                print(mapping)
                 code_id = mapping["code"]
                 codes[code_id] = Terminology.build_code_list(mapping)
 
@@ -124,7 +138,6 @@ class Terminology(Serializable):
                 .to_dict()
             )
             if mapping is not None:
-                print(mapping)
                 code_id = mapping["code"]
                 codes[code_id] = Terminology.build_code_list(mapping)
             else:

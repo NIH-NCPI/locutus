@@ -17,3 +17,6 @@ class Reference(Serializable):
         @post_load
         def build_reference(self, data, **kwargs):
             return Reference(**data)
+
+    def reference_id(self):
+        return self.reference.split("/")[-1]
