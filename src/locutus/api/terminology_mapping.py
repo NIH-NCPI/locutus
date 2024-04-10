@@ -9,6 +9,7 @@ import pdb
 
 
 class TerminologyMapping(Resource):
+    @cross_origin()
     def get(self, id, code):
         term = persistence().collection("Terminology").document(id).get().to_dict()
         if "resource_type" in term:
@@ -40,6 +41,7 @@ class TerminologyMapping(Resource):
 
         return (response, 200, default_headers)
 
+    @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         mappings = request.get_json()["mappings"]
         codings = [Coding(**x) for x in mappings]

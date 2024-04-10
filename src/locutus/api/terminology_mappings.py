@@ -2,7 +2,7 @@ from flask_restful import Resource
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term
 from flask_cors import cross_origin
-from locutus.api import default_headers
+from locutus.api import default_headers, delete_collection
 import pdb
 
 """
@@ -59,7 +59,7 @@ it seem rather silly
 class TerminologyMappings(Resource):
     @classmethod
     def get_mappings(cls, id):
-        pdb.set_trace()
+
         termref = persistence().collection("Terminology").document(id)
         term = termref.get().to_dict()
 
@@ -86,6 +86,17 @@ class TerminologyMappings(Resource):
 
             return response
         return None
+
+    @classmethod
+    def delete(cls, id):
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("mappings")
+        )
+        mapping_count = delete_collection(mapref)
+
+        response = {"terminology_id": id, "mappings_removed": mapping_count}
+
+        return (response, 200, default_headers)
 
     @classmethod
     def get(cls, id):

@@ -9,6 +9,7 @@ default_headers = [
 def delete_collection(collection, batch_size=100):
     completed = False
     del_count = batch_size
+    total_deleted = 0
     while del_count > 0:
         del_count = 0
         docs = collection.list_documents(page_size=batch_size)
@@ -17,3 +18,6 @@ def delete_collection(collection, batch_size=100):
             print(f"Deleting doc #{del_count+1}:{doc.id}")
             doc.delete()
             del_count += 1
+            total_deleted += 1
+
+    return total_deleted
