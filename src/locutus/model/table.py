@@ -5,6 +5,8 @@ from locutus.model.variable import Variable
 
 import pdb
 
+import sys
+
 """
 A Table represents a collection of dataset "variables", typically organized
 as a list, such as one might find inside a CSV file. 
@@ -90,17 +92,18 @@ class Table(Serializable):
 
                     if code not in codings:
                         allowed_codes = "'" + "','".join(codings.keys()) + "'"
-                        raise KeyError(
-                            f"The code, {code}, doesn't match any of the available codes: {allowed_codes}"
+                        sys.stderr.write(
+                            f"WARNING: The code, {code}, from variable, {self.name}:{var.name}, doesn't match any of the available codes: {allowed_codes}\n"
                         )
-                    coding = codings[code]
+                    else:
+                        coding = codings[code]
 
-                    mapped_codings = mappings[code]
+                        mapped_codings = mappings[code]
 
-                    for mc in mapped_codings:
-                        harmony_row = self.build_harmony_row(coding, mc)
-                        if harmony_row is not None:
-                            harmony_mappings.append(harmony_row)
+                        for mc in mapped_codings:
+                            harmony_row = self.build_harmony_row(coding, mc)
+                            if harmony_row is not None:
+                                harmony_mappings.append(harmony_row)
         return harmony_mappings
 
     def keys(self):
