@@ -2,6 +2,8 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus.model.terminology import Terminology
 from locutus.model.reference import Reference
+from locutus import persistence
+from locutus.model.terminology import Terminology as Term
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -30,6 +32,16 @@ from marshmallow.exceptions import ValidationError
 from copy import deepcopy
 
 import pdb
+
+
+class InvalidVariableDefinition(Exception):
+    def __init__(self, varname, var_data):
+        self.var_name = varname
+        self.variable = var_data
+        super().__init__(self.message)
+
+    def message(self):
+        return f"An issue was found with the variable, {self.var_name}"
 
 
 class Variable:
@@ -79,7 +91,11 @@ class Variable:
         # print(cls._factory_workers)
         vardata = deepcopy(data)
         del vardata["data_type"]
-        return cls._factory_workers[data["data_type"].lower()](**vardata)
+        try:
+            return cls._factory_workers[data["data_type"].lower()](**vardata)
+        except:
+            print("An issue was encountered with the following data")
+            raise InvalidVariableDefinition(data["name"], data)
 
     @classmethod
     def _get_schema(cls):
@@ -111,6 +127,26 @@ class EnumerationVariable(Variable):
         super().__init__(name, description)
         self.data_type = Variable.DataType.ENUMERATION
         self.enumerations = Reference(reference=enumerations["reference"])
+
+    def get_mappings(self):
+        t = self.get_terminology()
+        mappings = t.mappings()
+
+        return mappings
+
+    def get_terminology(self):
+
+        terminology = (
+            persistence()
+            .collection("Terminology")
+            .document(self.enumerations.reference_id())
+            .get()
+            .to_dict()
+        )
+
+        t = Term(**terminology)
+
+        return t
 
     class _Schema(Schema):
         name = fields.Str(required=True)

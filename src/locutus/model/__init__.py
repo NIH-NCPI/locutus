@@ -40,22 +40,31 @@ def get_id(resource):
     if id is None:
         if perc is not None:
             assert keys is not None, "Incomplete Serializable Object-No Key Returned"
+            doc = (
+                perc.collection(resource.resource_type)
+                .document(keys[0].replace("/", "_"))
+                .get()
+                .to_dict()
+            )
+            if doc is not None:
+                if doc.get("id") is None:
+                    id = f"{type(resource)._id_prefix}-{generate()}"
+                    print(f"New ID ({keys[0]}): {id}")
 
-            doc = perc.collection(resource.resource_type).document(keys[0])
-            if doc is not None and doc.get("id") is None:
-                id = f"{type(resource)._id_prefix}-{generate()}"
-                print(f"New ID ({keys[0]}): {id}")
-                doc["id"] = id
-                perc.collection(resource.resource_type).document(id, doc)
-                perc.collection(resource.resource_type).add_aliases(keys, id)
-            else:
-                id = doc.get("id")
+                    # TBD
+                    # Do we really want to record the record at this time? It seems
+                    # a bit heavy in terms of side-effects for a get_id function...
+                    doc["id"] = id
+                    perc.collection(resource.resource_type).document(id).set(doc)
+                    perc.collection(resource.resource_type).add_aliases(keys, id)
+                else:
+                    id = doc.get("id")
 
-        else:
+        if id is None:
             id = f"{type(resource)._id_prefix}-{generate()}"
 
     else:
-        perc.collection(resource.resource_type).document(id, doc)
+        perc.collection(resource.resource_type).document(id).set(doc)
         perc.collection(resource.resource_type).add_aliases(keys, id)
     return id
 
@@ -81,12 +90,9 @@ class Serializable:
 
     def save(self):
         # commit the data to persistent storage
-        print(self.dump())
-        persistence().collection(self.resource_type).document(self.id, data=self.dump())
-        persistence().save()
+        persistence().collection(self.resource_type).document(self.id).set(self.dump())
 
     def dump(self):
-        # pdb.set_trace()
         return self.__class__._get_schema().dump(self)
 
     def load(self, resource):

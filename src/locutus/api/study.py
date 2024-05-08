@@ -8,16 +8,31 @@ from locutus.api import default_headers
 class Studies(Resource):
     def get(self):
         return (
-            [x.dump() for x in persistence().collection("Study").documents()],
+            [x.to_dict() for x in persistence().collection("Study").stream()],
             200,
             default_headers,
         )
 
     def post(self):
         sty = request.get_json()
-        del sty["resource_type"]
+        if "resource_type" in sty:
+            del sty["resource_type"]
 
-        study = sty(**sty)
+        return_code = 201
+        msg = ""
+
+        if "title" not in sty:
+            return_code = 400
+            msg = "Study Title Required"
+
+        if "name" not in sty:
+            return_code = 400
+            msg = "Study Name Required"
+
+        if return_code > 399:
+            return msg, return_code, default_headers
+
+        study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
 
@@ -25,24 +40,27 @@ class Studies(Resource):
 class Study(Resource):
     def get(self, id):
         # pdb.set_trace()
-        t = persistence().collection("Study").document(id)
-        return t, 200, default_headers
+        t = persistence().collection("Study").document(id).get()
+        return t.to_dict(), 200, default_headers
 
-    def put(self, study):
+    def put(self, id):
         sty = request.get_json()
         if "id" not in sty:
             sty["id"] = id
 
-        del sty["resource_type"]
+        if "resource_type" in sty:
+            del sty["resource_type"]
 
-        study = sty(**sty)
+        study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
 
     def delete(self, id):
-        t = persistence().collection("Study").delete(id)
-
-        if t is not None:
-            persistence().save()
+        dref = persistence().collection("Study").document(id)
+        t = dref.get().to_dict()
+        print(f"{id} : {t}")
+        time_of_delete = dref.delete()
+        # if t is not None:
+        #    persistence().save()
 
         return t, 200, default_headers

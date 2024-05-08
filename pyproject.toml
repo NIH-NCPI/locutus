@@ -23,7 +23,8 @@ dependencies = ["marshmallow",
                 "flask-restful",
                 "nanoid",
                 "PyYAML",
-                "rich"
+                "rich",
+                "firebase-admin"
                 ]
 
 dynamic = ["version"]

@@ -57,7 +57,10 @@ class Study(Serializable):
         self.identifier_prefix = identifier_prefix
         self.title = title
         self.url = url
-        self.datadictionary = Reference(reference=datadictionary)
+
+        self.datadictionary = []
+        if datadictionary is not None:
+            self.datadictionary = [Reference(dd["reference"]) for dd in datadictionary]
 
         super().identify()
 
@@ -74,7 +77,7 @@ class Study(Serializable):
         resource_type = fields.Str()
 
         # For now, we'll just cache the reference ID
-        datadictionary = fields.Nested(Reference._Schema)
+        datadictionary = fields.List(fields.Nested(Reference._Schema))
 
         @post_load
         def build_terminology(self, data, **kwargs):
