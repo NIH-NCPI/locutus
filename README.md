@@ -102,7 +102,7 @@ Create a new terminology. The new terminology should be sent in the body of the 
 ```
 When POSTing, the API will create an ID for new entry. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/<id>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]
 Actions relating to a specific terminology based on the ID
 #### GET
 Returns the terminology
@@ -181,7 +181,7 @@ WARNING: As of April 2024, deleting a Terminology does not remove it from
 tables that reference it. 
 
 ## Terminology Mappings
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/<id>/mapping
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/mapping
 #### GET
 Returns all mappings currently assigned to any code in the terminology. 
 
@@ -217,7 +217,7 @@ Returns all mappings currently assigned to any code in the terminology.
 #### DELETE
 Removes all mappings associated with all codes in the given terminology. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/<id>/mapping/<code>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/mapping/<code>
 #### GET
 Returns mappings for the specific code (from the terminology)
 
@@ -685,7 +685,7 @@ Create new table
 
 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table/<id>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table/[id]
 #### GET
 Return a specific table (with a given id)
 
@@ -956,7 +956,7 @@ at the given id, completely)
 Deletes the table from the database. This will remove all references to the table
 from any Data Dictionaries it is contained within. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table/<id>/harmony
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table/[id]/harmony
 #### GET
 Returns the harmony representation of all enumerations contained within the 
 table's variables. 
@@ -1027,11 +1027,11 @@ Creates a new table resource. The body must contain the resource itself.
 ]
 ```
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study/<id>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study/[id]
 #### GET
 Returns a study assocaited with the specified id. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study/<id>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study/[id]
 #### PUT
 Replaces the study at id with the resource contained in the body. 
 
@@ -1107,7 +1107,7 @@ Creates a new data dictionary resource (contents sent in body)
     }
 ]
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/DataDictionary/<id>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/DataDictionary/[id]
 #### GET
 Return a specific data dictionary with the given ID
 
