@@ -18,6 +18,20 @@ class Studies(Resource):
         if "resource_type" in sty:
             del sty["resource_type"]
 
+        return_code = 201
+        msg = ""
+
+        if "title" not in sty:
+            return_code = 400
+            msg = "Study Title Required"
+
+        if "name" not in sty:
+            return_code = 400
+            msg = "Study Name Required"
+
+        if return_code > 399:
+            return msg, return_code, default_headers
+
         study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
