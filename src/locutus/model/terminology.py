@@ -1,6 +1,7 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
+from locutus.api import delete_collection
 
 import pdb
 
@@ -111,6 +112,51 @@ class Terminology(Serializable):
             codes.append(Coding(**coding))
 
         return codes
+
+    def rename_code(self, original_code, new_code):
+        status = 200
+        for code in self.codes:
+            print(f"{self.name} - {code.code} == {original_code}")
+            if code.code == original_code:
+                code.code = new_code
+
+                print(f"After change, code list is:")
+                for c in self.codes:
+                    print(f"\t{c.code} - {c.display}")
+                self.save()
+                # Since we found a matching code, we'll pull the mappings and
+                # save those under the new code after deleting the old ones.
+
+                mappings = self.mappings(original_code)
+                if original_code in mappings and mappings[original_code] != []:
+                    self.set_mapping(new_code, mappings[original_code])
+                    self.delete_mappings(original_code)
+
+                return True
+        return False
+
+    def delete_mappings(self, code=None):
+        if code is not None:
+            tmref = (
+                persistence()
+                .collection("Terminology")
+                .document(self.id)
+                .collection("mappings")
+                .document(code)
+            )
+            print(f"Deleting mappings for code, {code}, from Terminology, {self.name}")
+            time_of_delete = tmref.delete()
+            return time_of_delete
+        else:
+            mapref = (
+                persistence()
+                .collection("Terminology")
+                .document(self.id)
+                .collection("mappings")
+            )
+            print(f"Deleting all mappings for Terminology, {self.name} ")
+            mapping_count = delete_collection(mapref)
+            return mapping_count
 
     def mappings(self, code=None):
         codes = {}

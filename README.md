@@ -217,7 +217,7 @@ Returns all mappings currently assigned to any code in the terminology.
 #### DELETE
 Removes all mappings associated with all codes in the given terminology. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/mapping/<code>
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/mapping/[code]
 #### GET
 Returns mappings for the specific code (from the terminology)
 
@@ -260,6 +260,61 @@ terminology.
 
 The response is a listing of all mappings for that terminology
 after the change. 
+
+### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/rename
+#### PATCH
+Renames code(s) with new names. 
+
+This PATCH method does not conform to the standard guidelines which permit 
+updates to any property within the resource. Instead it is intended solely
+for renaming codes inside a terminology. The body of the call will include
+simply an object whose key,value pairs relate to  "Old Code" to "New Code". 
+
+For Example: 
+```json
+{
+    "Female": "Woman"
+}
+```
+Will replace the code, *Female*, with *Woman*. This includes assigning all
+mappings from the code, *Female*, to the newly named code, *Woman*. The body
+object can contain more than one key/value pair which will indicate the intent
+to rename multiple codes in a single PATCH call. 
+
+If one or more of the "Old Code" entries doesn't exist in the terminology, 
+a 404 "Not Found" error is returned. 
+
+Upon completion, 200 is returned along with the full set of mappings for the 
+terminology. 
+```json
+{
+    "terminology": {
+        "Reference": "Terminology/tm-aIzCqJJkThKoxC2LiI6pP"
+    },
+    "codes": [
+        {
+            "code": "Male",
+            "mappings": [
+                {
+                    "code": "male",
+                    "display": "Male",
+                    "system": "http://hl7.org/fhir/administrative-gender"
+                }
+            ]
+        },
+        {
+            "code": "Woman",
+            "mappings": [
+                {
+                    "code": "female",
+                    "display": "Female",
+                    "system": "http://hl7.org/fhir/administrative-gender"
+                }
+            ]
+        }
+    ]
+}
+```
 
 ## Table
 ### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table

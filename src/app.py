@@ -10,7 +10,7 @@ import pdb
 # Once we are inside docker, the path will probably be a bit more complex
 # init_base_storage("test")
 
-from locutus.api.terminology import Terminology, Terminologies
+from locutus.api.terminology import Terminology, Terminologies, TerminologyRenameCode
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.api.table import Table, Tables, HarmonyCSV
@@ -34,6 +34,10 @@ api.add_resource(Terminology, "/api/Terminology/<string:id>")
 api.add_resource(TerminologyMappings, "/api/Terminology/<string:id>/mapping")
 api.add_resource(
     TerminologyMapping, "/api/Terminology/<string:id>/mapping/<string:code>"
+)
+api.add_resource(
+    TerminologyRenameCode,
+    "/api/Terminology/<string:id>/rename",
 )
 
 api.add_resource(Tables, "/api/Table")
