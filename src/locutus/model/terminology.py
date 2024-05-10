@@ -113,25 +113,32 @@ class Terminology(Serializable):
 
         return codes
 
-    def rename_code(self, original_code, new_code):
+    def rename_code(self, original_code, new_code, new_display):
         status = 200
         for code in self.codes:
             print(f"{self.name} - {code.code} == {original_code}")
             if code.code == original_code:
-                code.code = new_code
 
-                print(f"After change, code list is:")
-                for c in self.codes:
-                    print(f"\t{c.code} - {c.display}")
+                # It's not unreasonable we have only been asked to update the
+                # display, so no need to wastefully change all of the details
+                # about the code when the end result is the same
+                if original_code != new_code:
+                    code.code = new_code
+
+                    print(f"After change, code list is:")
+                    for c in self.codes:
+                        print(f"\t{c.code} - {c.display}")
+                    # Since we found a matching code, we'll pull the mappings and
+                    # save those under the new code after deleting the old ones.
+
+                    mappings = self.mappings(original_code)
+                    if original_code in mappings and mappings[original_code] != []:
+                        self.set_mapping(new_code, mappings[original_code])
+                        self.delete_mappings(original_code)
+
+                if new_display is not None:
+                    self.new_display = new_display
                 self.save()
-                # Since we found a matching code, we'll pull the mappings and
-                # save those under the new code after deleting the old ones.
-
-                mappings = self.mappings(original_code)
-                if original_code in mappings and mappings[original_code] != []:
-                    self.set_mapping(new_code, mappings[original_code])
-                    self.delete_mappings(original_code)
-
                 return True
         return False
 

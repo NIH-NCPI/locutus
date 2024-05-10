@@ -267,22 +267,34 @@ Renames code(s) with new names.
 
 This PATCH method does not conform to the standard guidelines which permit 
 updates to any property within the resource. Instead it is intended solely
-for renaming codes inside a terminology. The body of the call will include
-simply an object whose key,value pairs relate to  "Old Code" to "New Code". 
+for renaming codes inside a terminology. The body of the call will include will
+be an object with one or two keys, "code" and "display" (a valid rename must 
+have one of the two). Each of those keys will point to an object whose keys
+match a term within the current terminology. Those key's values represent the
+new value after the change. 
 
 For Example: 
 ```json
 {
-    "Female": "Woman"
+    "code": {
+        "Female": "Woman"
+    },
+    "display": {
+        "Female": "Woman"
+    }
 }
 ```
-Will replace the code, *Female*, with *Woman*. This includes assigning all
-mappings from the code, *Female*, to the newly named code, *Woman*. The body
-object can contain more than one key/value pair which will indicate the intent
-to rename multiple codes in a single PATCH call. 
+Will replace the code, *Female*, with *Woman* as well as update the display to 
+match. This includes assigning all mappings from the code, *Female*, to the 
+newly named code, *Woman*. The body object can contain more than one key/value 
+pair which will indicate the intent to rename multiple codes in a single PATCH 
+call. 
 
 If one or more of the "Old Code" entries doesn't exist in the terminology, 
 a 404 "Not Found" error is returned. 
+
+If the root object in the body is missing both the "code" and the "display",
+a 400 error is returned. 
 
 Upon completion, 200 is returned along with the full set of mappings for the 
 terminology. 

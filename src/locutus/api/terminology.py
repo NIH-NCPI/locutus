@@ -18,10 +18,41 @@ class TerminologyRenameCode(Resource):
         t = Term(**term)
 
         # pdb.set_trace()
-        for code in body:
-            if not t.rename_code(original_code=code, new_code=body[code]):
+        code_updates = body.get("code")
+        display_updates = body.get("display")
+
+        # We MUST have at least a code or a display component to be a valid
+        # PATCH
+        if code_updates is None and display_updates is None:
+            return (
+                "Must provide codes and/or displays to be PATCHed.",
+                400,
+                default_headers,
+            )
+
+        if code_updates is None:
+            code_updates = {}
+        if display_updates is None:
+            display_updates = {}
+
+        code_list = sorted(
+            list(set(list(code_updates.keys()) + list(display_updates.keys())))
+        )
+
+        for code in code_list:
+            original_code = code
+            new_code = code_updates.get(original_code)
+
+            if new_code is None:
+                new_code = original_code
+
+            if not t.rename_code(
+                original_code=original_code,
+                new_code=new_code,
+                new_display=display_updates.get(original_code),
+            ):
                 return (
-                    f"{code} was not found in the terminology.",
+                    f"{original_code} was not found in the terminology.",
                     404,
                     default_headers,
                 )
