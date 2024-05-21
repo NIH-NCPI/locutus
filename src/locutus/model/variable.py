@@ -38,7 +38,7 @@ class InvalidVariableDefinition(Exception):
     def __init__(self, varname, var_data):
         self.var_name = varname
         self.variable = var_data
-        super().__init__(self.message)
+        super().__init__(self.message())
 
     def message(self):
         return f"An issue was found with the variable, {self.var_name}"
