@@ -5,6 +5,19 @@ from locutus.api import delete_collection
 
 import pdb
 
+
+class CodeAlreadyPresent(Exception):
+    def __init__(self, code, terminology_id, existing_coding):
+        self.code = code
+        self.existing_coding = existing_coding
+        self.terminology_id = terminology_id
+
+        super().__init__(self.message())
+
+    def message(self):
+        return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
+
+
 """
 A terminology exists on its own within the project but can be referenced by 
 variables as part of their data-type construction. 
@@ -113,8 +126,35 @@ class Terminology(Serializable):
 
         return codes
 
+    def add_code(self, code, display):
+
+        for cc in self.codes:
+            if cc.code == code:
+                raise CodeAlreadyPresent(code, self.id, cc)
+
+        new_coding = Coding(code=code, display=display, system=self.url)
+        self.codes.append(new_coding)
+        self.save()
+
+    def remove_code(self, code):
+        code_found = False
+        for cc in self.codes:
+            if cc.code == code:
+                self.codes.remove(cc)
+                self.delete_mappings(code)
+                self.save()
+                code_found = True
+        if not code_found:
+            msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
+            print(msg)
+            raise KeyError(msg)
+
     def rename_code(self, original_code, new_code, new_display):
         status = 200
+
+        print(
+            f"Renaming Code, {original_code} to {new_code} with new display: {new_display}"
+        )
         for code in self.codes:
             print(f"{self.name} - {code.code} == {original_code}")
             if code.code == original_code:
@@ -137,7 +177,7 @@ class Terminology(Serializable):
                         self.delete_mappings(original_code)
 
                 if new_display is not None:
-                    self.new_display = new_display
+                    code.display = new_display
                 self.save()
                 return True
         return False

@@ -5,56 +5,6 @@ from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection
 import pdb
 
-"""
-Endpoint associated with GETting all mappings for a given terminology
-
-endpoint: ../Terminology/[terminology_id]/mapping
-method: GET
-response:
-    terminology: Reference to the Terminology associated with the request
-    codes: List of Mappings:
-        code: Code from the terminology
-        mappings: list of codings (code, display, system, etc)
-
-
-example call:
-    url: est3630:5000/api/Terminology/tm-43WDERlpYBSEAYXt9QCub/mapping/Male
-    input: 
-{
-    "terminology": {
-        "Reference": "Terminology/tm-43WDERlpYBSEAYXt9QCub"
-    },
-    "codes": [
-        {
-            "code": "Female",
-            "mappings": [
-                {
-                    "code": "female",
-                    "display": "Female",
-                    "system": "http://hl7.org/fhir/administrative-gender"
-                }
-            ]
-        },
-        {
-            "code": "Male",
-            "mappings": [
-                {
-                    "code": "male",
-                    "display": "Male",
-                    "system": "http://hl7.org/fhir/administrative-gender"
-                }
-            ]
-        }
-    ]
-}
-
-Notes:
-The terminology reference seems a bit redundant, so that may just go away. It
-seemed appropriate when I was planning things out, but seeing it here makes 
-it seem rather silly
-
-"""
-
 
 class TerminologyMappings(Resource):
     @classmethod

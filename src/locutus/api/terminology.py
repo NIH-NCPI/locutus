@@ -1,25 +1,52 @@
 from flask_restful import Resource
 from flask import request
 from locutus import persistence
-from locutus.model.terminology import Coding, Terminology as Term
+from locutus.model.terminology import CodeAlreadyPresent, Coding, Terminology as Term
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection
 
 import pdb
 
 
+class TerminologyEdit(Resource):
+    def put(self, id, code):
+        """Add a new code to an existing terminology."""
+        body = request.get_json()
+        display = body.get("display")
+
+        t = Term.get(id)
+
+        try:
+            t.add_code(code, display)
+        except CodeAlreadyPresent as e:
+            return str(e), 400, default_headers
+
+        return t.dump(), 201, default_headers
+
+    def delete(self, id, code):
+        """Remove a code from an existing terminology."""
+        t = Term.get(id)
+
+        try:
+            t.remove_code(code)
+        except KeyError as e:
+            return str(e), 404, default_headers
+
+        return t.dump(), 200, default_headers
+
+
 class TerminologyRenameCode(Resource):
     def patch(self, id):
         body = request.get_json()
-        term = persistence().collection("Terminology").document(id).get().to_dict()
-        if "resource_type" in term:
-            del term["resource_type"]
-
-        t = Term(**term)
-
-        # pdb.set_trace()
         code_updates = body.get("code")
         display_updates = body.get("display")
+
+        t = Term.get(id)
+
+        # pdb.set_trace()
+
+        print(f"Code Updates requested: {code_updates}")
+        print(f"Display Updates requested: {display_updates}")
 
         # We MUST have at least a code or a display component to be a valid
         # PATCH
@@ -57,20 +84,7 @@ class TerminologyRenameCode(Resource):
                     default_headers,
                 )
 
-        mappings = t.mappings()
-        response = {
-            "terminology": {
-                "Reference": f"Terminology/{t.id}",
-            },
-            "codes": [],
-        }
-        for code in mappings:
-            mapping = {"code": code, "mappings": []}
-            for coding in mappings[code]:
-                mapping["mappings"].append(coding.to_dict())
-
-            response["codes"].append(mapping)
-        return (response, 200, default_headers)
+        return t.dump(), 201, default_headers
 
 
 class Terminologies(Resource):
@@ -94,8 +108,7 @@ class Terminologies(Resource):
 
 class Terminology(Resource):
     def get(self, id):
-        t = persistence().collection("Terminology").document(id).get()
-        response = t.to_dict()
+        response = Term.get(id, return_instance=False)
 
         if response is not None:
             return response, 200, default_headers
