@@ -6,7 +6,7 @@ There isn't much here at this time, but there are some example data based on a r
 API Functionality: 
 
 ## Terminologies: 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology 
+### https://[APPURL]/api/Terminology 
 #### GET - Return all terminologies
 Returns all terminologies user is allowed access to. (as of Apr 2024, the user has 
 access too all terminologies)
@@ -102,7 +102,7 @@ Create a new terminology. The new terminology should be sent in the body of the 
 ```
 When POSTing, the API will create an ID for new entry. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]
+### https://[APPURL]/api/Terminology/[id]
 Actions relating to a specific terminology based on the ID
 #### GET
 Returns the terminology
@@ -180,8 +180,100 @@ have been assigned to the terminology.
 WARNING: As of April 2024, deleting a Terminology does not remove it from 
 tables that reference it. 
 
+## Terminology Edit
+For convenience, one can add and remove codes from a terminology using basic
+PUT and DELETE calls
+### https://[APPURL]/api/Terminology/[id]/code/[code]
+#### PUT
+Adds a new code (with a matching display) to the terminology. 
+
+```json
+{
+    "display": "New Code's Display"
+}
+
+Response will be the entire Terminology including the newly added code. 
+
+```json (response)
+{
+    "id": "tm-r5l1w5u-dJ0yNEkrkCcZu",
+    "name": "condition",
+    "url": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition",
+    "description": null,
+    "codes": [
+        {
+            "code": "Participant External ID",
+            "display": "Unique, de-identified identifier for the participant, assigned by data contributor. External IDs must be two steps removed from personal information in the study records.",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "Event ID",
+            "display": "Identifier for event (Visit, Survey completion, Sample collection, etc.) to which the Condition data are linked, if applicable. There may be multiple events linked to a Participant.",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "Measure Value",
+            "display": "Numeric value of Measure",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "Measure Unit",
+            "display": "Unit that is associated with Measure Value (e.g. kg, cm, %, x10^9/L, etc.)",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "newcode",
+            "display": "New Code's Display",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        }
+    ],
+    "resource_type": "Terminology"
+}
+```
+If the code exists already, the system fails with a 400 error. 
+
+#### DELETE
+Removes a code from the terminology (this will also remove all mappings for 
+that code)
+
+Return is the entire terminology minus the deleted code. 
+
+If the code doesn't exist, a 404 error is returned. 
+
+```json (response)
+{
+    "id": "tm-r5l1w5u-dJ0yNEkrkCcZu",
+    "name": "condition",
+    "url": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition",
+    "description": null,
+    "codes": [
+        {
+            "code": "Participant External ID",
+            "display": "Unique, de-identified identifier for the participant, assigned by data contributor. External IDs must be two steps removed from personal information in the study records.",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "Event ID",
+            "display": "Identifier for event (Visit, Survey completion, Sample collection, etc.) to which the Condition data are linked, if applicable. There may be multiple events linked to a Participant.",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "Measure Value",
+            "display": "Numeric value of Measure",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        },
+        {
+            "code": "Measure Unit",
+            "display": "Unit that is associated with Measure Value (e.g. kg, cm, %, x10^9/L, etc.)",
+            "system": "https://includedcc.org/fhir/CodeSystem/data-dictionary/condition/condition"
+        }
+    ],
+    "resource_type": "Terminology"
+}
+```
+
 ## Terminology Mappings
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/mapping
+### https://[APPURL]/api/Terminology/[id]/mapping
 #### GET
 Returns all mappings currently assigned to any code in the terminology. 
 
@@ -217,7 +309,7 @@ Returns all mappings currently assigned to any code in the terminology.
 #### DELETE
 Removes all mappings associated with all codes in the given terminology. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/mapping/[code]
+### https://[APPURL]/api/Terminology/[id]/mapping/[code]
 #### GET
 Returns mappings for the specific code (from the terminology)
 
@@ -261,7 +353,7 @@ terminology.
 The response is a listing of all mappings for that terminology
 after the change. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Terminology/[id]/rename
+### https://[APPURL]/api/Terminology/[id]/rename
 #### PATCH
 Renames code(s) with new names. 
 
@@ -329,7 +421,11 @@ terminology.
 ```
 
 ## Table
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table
+The following end points are available for manipulating tables within locutus. 
+For all relevant functions, any change to the table will result in a change
+to the underlying "shadow" terminology. 
+
+### https://[APPURL]/api/Table
 #### GET
 List all tables found in the database that the user can read.
 
@@ -752,7 +848,7 @@ Create new table
 
 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table/[id]
+### https://[APPURL]/api/Table/[id]
 #### GET
 Return a specific table (with a given id)
 
@@ -1018,12 +1114,45 @@ at the given id, completely)
 }
 ```
 
-
 #### DELETE
 Deletes the table from the database. This will remove all references to the table
 from any Data Dictionaries it is contained within. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Table/[id]/harmony
+
+### https://[APPURL]/api/Table/[id]/variable/[variable_name]
+#### PUT 
+Add a variable to an existing Table. The variable will be contained within the 
+requests body and should have all the necessary components for the given data 
+type. 
+
+If one were to want to add the race variable as an enumerated type to a new 
+table, you would pass the following:
+
+```json
+{
+    "enumerations": {
+        "reference": "Terminology/tm-uonGHeztn0SxCKrQzJTyc"
+    },
+    "description": "Race of Participant",
+    "data_type": "ENUMERATION",
+    "name": "Race"
+}
+```
+
+The entire table will be returned, including the new variable as a member of 
+the variables array. 
+
+If the variable already exists, a 400 error is returned. 
+
+#### DELETE
+Removes a variable from the table. 
+
+If successful, the entire table is returned (and the deletion should be 
+reflected in the response). 
+
+If the variable doesn't exist, then a 404 error is returned. 
+
+### https://[APPURL]/api/Table/[id]/harmony
 #### GET
 Returns the harmony representation of all enumerations contained within the 
 table's variables. 
@@ -1055,7 +1184,74 @@ table's variables.
 ]
 ```
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study
+### https://[APPURL]/api/Table/[id]/mapping
+Manage the mappings associated with the columns of a given table. 
+
+Technically, the underlying functionality is done at the terminology level
+and, as such, the behavior is identical to the matching terminology f
+functionality including body and responses. The only difference is that the
+end points themselves will be related to the table and it's ID. 
+
+#### GET
+Returns a list of all mappings from the table (See example of the matching 
+terminology endpoint for details.)
+
+#### DELETE
+Remove all mappings associated with codes from the table's shadow terminology. 
+
+### https://[APPURL]/api/Table/[id]/mapping/[code]
+#### GET
+Returns mappings for a specific code (from the shadow terminology)
+
+#### PUT
+Set mappings for a specific code inside the given shadow terminology. The body 
+must contain all codings (i.e. it replaces anything that may already be there)
+
+See corresponding endpoint for Terminology for more details. 
+
+#### DELETE
+Remove the mappings currently associated with a given code from the table's 
+shadow terminology. 
+
+### https://[APPURL]/api/Table/[id]/rename
+#### PATCH
+Renames variable(s) in a table (as well as update descriptions)
+
+This PATCH method does not conform to the standard guidelines which permit 
+updates to any property within the resource. Instead it is intended solely
+for renaming variables inside a table. The body of the call will include will
+be an object with one or two keys, "variable" and "description" (a valid rename 
+must have one of the two). Each of those keys will point to an object whose 
+keys match a term within the current table. Those key's values represent
+the new value after the change. 
+
+For Example: 
+```json
+{
+    "variable": {
+        "Female": "Woman"
+    },
+    "description": {
+        "Female": "Woman"
+    }
+}
+```
+Will replace the name, *Female*, with *Woman* as well as update the description
+to match. This includes assigning all mappings from the code, *Female* to the 
+newly named code, *Woman* within the table's shadow terminology. The body 
+object can contain more than one key/value pair which will indicate the intent 
+to rename multiple variables in a single PATCH call. 
+
+If one or more of the "Old Name" entries doesn't exist in the table, a 404 
+"Not Found" error is returned. 
+
+If the root object in the body is missing both the "variable" and the 
+"description", a 400 error is returned. 
+
+Upon completion, 200 is returned along with the full table definition. 
+
+
+### https://[APPURL]/api/Study
 #### GET 
 Returns all studies accessible by the user
 
@@ -1094,11 +1290,11 @@ Creates a new table resource. The body must contain the resource itself.
 ]
 ```
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study/[id]
+### https://[APPURL]/api/Study/[id]
 #### GET
 Returns a study assocaited with the specified id. 
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/Study/[id]
+### https://[APPURL]/api/Study/[id]
 #### PUT
 Replaces the study at id with the resource contained in the body. 
 
@@ -1123,7 +1319,7 @@ Deletes the study at the given id
 
   
 ## DataDictionary: 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/DataDictionary
+### https://[APPURL]/api/DataDictionary
 #### GET
 Returns all data dictionaries the user has access to
 
@@ -1174,7 +1370,7 @@ Creates a new data dictionary resource (contents sent in body)
     }
 ]
 
-### https://locutus-l2xv5td7oq-uc.a.run.app/api/DataDictionary/[id]
+### https://[APPURL]/api/DataDictionary/[id]
 #### GET
 Return a specific data dictionary with the given ID
 
