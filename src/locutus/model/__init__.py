@@ -84,6 +84,19 @@ class Serializable:
         # This is used to identify the resource type to the client
         self.resource_type = resource_type
 
+    @classmethod
+    def get(cls, id, return_instance=True):
+        """Pull instance from the database and (default) instantiate"""
+        resource = persistence().collection(cls.__name__).document(id).get().to_dict()
+
+        # Just in case we just need the dict representation as it is found in
+        # the database.
+        if not return_instance:
+            return resource
+
+        # pdb.set_trace()
+        return cls(**resource)
+
     def identify(self):
         if self.id is None:
             self.id = get_id(self)
@@ -128,5 +141,7 @@ class Serializable:
     @classmethod
     def build_object(cls, data):
         d = deepcopy(data)
-        del d["resource_type"]
+        print(f"ASDF: {d}")
+        if "resource_type" in d:
+            del d["resource_type"]
         return cls._factory_workers[data["resource_type"].lower()](**d)
