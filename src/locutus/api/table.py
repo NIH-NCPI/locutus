@@ -8,8 +8,93 @@ from locutus.api.datadictionary import DataDictionaries
 import pdb
 
 
+class TableRenameCode(Resource):
+    def patch(self, id):
+        body = request.get_json()
+        varname_updates = body.get("variable")
+        description_updates = body.get("description")
+
+        table = mTable.get(id)
+        print(f"Variable name updates requested: {varname_updates}")
+        print(f"Description updates requested: {description_updates}")
+
+        # We MUST have at least a code or a display component to be a valid
+        # PATCH
+        if varname_updates is None and description_updates is None:
+            return (
+                "Must provide variable names and/or descriptions to be PATCHed.",
+                400,
+                default_headers,
+            )
+
+        if varname_updates is None:
+            varname_updates = {}
+        if description_updates is None:
+            description_updates = {}
+
+        var_list = sorted(
+            list(set(list(varname_updates.keys()) + list(description_updates.keys())))
+        )
+
+        for var in var_list:
+            original_code = var
+            new_code = varname_updates.get(original_code)
+
+            if new_code is None:
+                new_code = original_code
+
+            if not table.rename_var(
+                original_varname=original_code,
+                new_varname=new_code,
+                new_description=description_updates.get(original_code),
+            ):
+                return (
+                    f"{original_code} was not found in the terminology.",
+                    404,
+                    default_headers,
+                )
+
+        return table.dump(), 201, default_headers
+
+
+class TableEdit(Resource):
+    def put(self, id, code):
+        """Add a new variable to an existing table"""
+
+        table = mTable.get(id)
+        body = request.get_json()
+
+        table.add_variable(
+            {
+                "name": code,
+                "description": body["description"],
+                "data_type": body["data_type"],
+            }
+        )
+        table.save()
+        return table.dump(), 201, default_headers
+
+    def delete(self, id, code):
+        """Add a new variable to an existing table"""
+
+        table = mTable.get(id)
+
+        try:
+            table.remove_variable(code)
+            table.save()
+        except KeyError as e:
+            return str(e), 404, default_headers
+
+        return table.dump(), 200, default_headers
+
+
 class Tables(Resource):
     def get(self):
+        """
+        TODO: Paginate these ResourceType/get calls
+        Technically, this will probably not get so big as to be a problem
+        but it's technically not wise to pull these into a single response.
+        We should plan on paginating this at some point."""
         return (
             [x.to_dict() for x in persistence().collection("Table").stream()],
             200,
@@ -30,9 +115,7 @@ class Tables(Resource):
 class Table(Resource):
     def get(self, id):
         # pdb.set_trace()
-        t = persistence().collection("Table").document(id).get()
-
-        return t.to_dict()
+        return mTable.get(id, return_instance=False)
 
     def put(self, id):
         tbl = request.get_json()
@@ -63,12 +146,8 @@ class Table(Resource):
 
 class HarmonyCSV(Resource):
     def get(self, id):
-        tbl = persistence().collection("Table").document(id).get().to_dict()
+        t = mTable.get(id)
 
-        if "resource_type" in tbl:
-            del tbl["resource_type"]
-
-        t = mTable(**tbl)
         try:
             harmony = t.as_harmony()
         except KeyError as e:

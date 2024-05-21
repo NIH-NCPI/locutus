@@ -1,7 +1,10 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
+from locutus import persistence
 
 from locutus.model.variable import Variable
+from locutus.model.reference import Reference
+from locutus.model.terminology import Terminology, CodeAlreadyPresent
 
 import pdb
 
@@ -30,6 +33,11 @@ which the table was defined.
 Description:
 An optional block of text that is used to provide context for understanding the
 table's purpose.
+
+
+Shadow Terminology: Each table must have a terminology which reflects each of 
+variables in the table as terms. This terminology must be changed to reflect
+the table with any changes. 
 """
 
 
@@ -44,6 +52,8 @@ class Table(Serializable):
         description=None,
         filename=None,
         variables=[],
+        terminology=None,
+        resource_type="Table",
     ):
         super().__init__(id=id, collection_type="Table", resource_type="Table")
         self.id = id
@@ -52,16 +62,114 @@ class Table(Serializable):
         self.filename = filename
         self.url = url
         self.variables = []
+        self._terminology = None
+
+        # For the time being, since old tables don't have them, we must create
+        # the shadow terminologies on the fly. If we do this, we need to save
+        # the table, but only after we've repopulated it with the corresponding
+        # variables.
+        added_terminology = False
+
+        # This represents the "shadow" terminology that reflects the variable
+        # names and descriptions associated with a given table.
+        if terminology:
+            # pdb.set_trace()
+            self.terminology = Reference(reference=terminology["reference"])
+        else:
+            print(f"This is the terminology as we received it: '{terminology}'")
+            # pdb.set_trace()
+            terminology = {
+                "name": name,
+                "url": f"{url}/{name}",
+                "codes": [],
+            }
+            t = Terminology(**terminology)
+            t.save()
+            print(
+                f"Creating Shadow Terminology for table: {self.name} -- Terminology ID: {t.id}"
+            )
+            self.terminology = Reference(f"Terminology/{t.id}", t)
+            added_terminology = True
 
         for var in variables:
-            if type(var) is dict:
-                v = Variable.deserialize(var)
-                # pdb.set_trace()
-                self.variables.append(v)
-            else:
-                self.variables.append(var)
+            self.add_variable(var)
 
         super().identify()
+
+        if added_terminology:
+            self.save()
+
+    def remove_variable(self, varname):
+        success = False
+        for var in self.variables:
+            print(f"{var.name} - {varname}")
+            if var.name == varname:
+                # TODO: How to handle deleting enumerated variables tables
+                # For now, I am not willing to handle enumerated variables
+                # differently, since it could result in unwittingly deleting
+                # something that is intended to remain. That is something
+                # real to address, though.
+                print(f"Removing variable '{varname}' from {self.name}.")
+                # pdb.set_trace()
+                self.variables.remove(var)
+                self.terminology.dereference().remove_code(var.name)
+                success = True
+                return
+        if not success:
+            msg = f"The table, '{self.name}' ({self.id}), has no code, '{varname}'"
+            print(msg)
+            raise KeyError(msg)
+
+    def rename_var(self, original_varname, new_varname, new_description):
+        status = 200
+
+        print(
+            f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
+        )
+
+        terms = self.terminology.dereference()
+        for var in self.variables:
+            print(f"{self.name} - {var.name} == {original_varname}")
+            if var.name == original_varname:
+
+                # It's not unreasonable we have only been asked to update the
+                # display, so no need to wastefully change all of the details
+                # about the code when the end result is the same
+                if original_varname != new_varname:
+                    var.name = new_varname
+
+                    print(f"After change, variable list is:")
+                    for v in self.variables:
+                        print(f"\t{v.name} - {v.description}")
+                    # Since we found a matching code, we'll pull the mappings and
+                    # save those under the new code after deleting the old ones.
+
+                    mappings = terms.mappings(original_varname)
+                    if (
+                        original_varname in mappings
+                        and mappings[original_varname] != []
+                    ):
+                        terms.set_mapping(new_varname, mappings[original_varname])
+                        self.delete_mappings(original_varname)
+
+                if new_description is not None:
+                    var.description = new_description
+                self.save()
+                return True
+        return False
+
+    def add_variable(self, variable):
+        v = variable
+        if type(variable) is dict:
+            v = Variable.deserialize(variable)
+            self.variables.append(v)
+        else:
+            self.variables.append(variable)
+
+        try:
+            self.terminology.dereference().add_code(code=v.name, display=v.description)
+        except CodeAlreadyPresent as e:
+            pass
 
     def build_harmony_row(self, local_coding, mapped_coding):
 
@@ -117,6 +225,7 @@ class Table(Serializable):
         description = fields.Str()
         variables = fields.List(fields.Nested(Variable._Schema))
         resource_type = fields.Str()
+        terminology = fields.Nested(Reference._Schema)
 
         @post_load
         def build_terminology(self, data, **kwargs):
