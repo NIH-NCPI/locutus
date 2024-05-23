@@ -16,7 +16,7 @@ class Reference(Serializable):
     def __init__(self, reference=None, instance=None):
         if type(reference) is not str:
             print(f"What sort of reference is this?\n{reference}")
-            pdb.set_trace()
+            # pdb.set_trace()
         else:
             print(f"The reference string is: {reference}")
         self.reference = reference

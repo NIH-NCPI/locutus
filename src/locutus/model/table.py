@@ -118,7 +118,7 @@ class Table(Serializable):
         if not success:
             msg = f"The table, '{self.name}' ({self.id}), has no code, '{varname}'"
             print(msg)
-            raise KeyError(msg)        
+            raise KeyError(msg)
 
     def rename_var(self, original_varname, new_varname, new_description):
         status = 200
@@ -162,11 +162,11 @@ class Table(Serializable):
         v = variable
 
         if type(variable) is dict:
-            pdb.set_trace()
             # For now, let's insure that the enumerations terminology is there or
             # create an empty one if not. This may need to be moved into the
             # variable itself.
-            if v["data_type"] == Variable.DataType.ENUMERATION:
+
+            if v["data_type"] == "ENUMERATION":
                 if "enumerations" not in v:
                     # Create an empty terminology and create a reference to that
                     # terminology
