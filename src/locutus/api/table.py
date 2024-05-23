@@ -4,6 +4,7 @@ from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.api import default_headers
 from locutus.api.datadictionary import DataDictionaries
+from copy import deepcopy
 
 import pdb
 
@@ -64,13 +65,10 @@ class TableEdit(Resource):
         table = mTable.get(id)
         body = request.get_json()
 
-        table.add_variable(
-            {
-                "name": code,
-                "description": body["description"],
-                "data_type": body["data_type"],
-            }
-        )
+        vardef = deepcopy(body)
+        vardef["name"] = code
+
+        table.add_variable(vardef)
         table.save()
         return table.dump(), 201, default_headers
 
