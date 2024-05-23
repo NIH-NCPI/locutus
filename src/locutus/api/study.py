@@ -35,6 +35,24 @@ class Studies(Resource):
         study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
+    
+    def delete_dd_references(self, id):
+        affected_ids = 0
+        for resource in persistence().collection("Study").stream():
+            resource = resource.to_dict()
+
+            if "resource_type" in resource:
+                del resource["resource_type"]
+            obj = mStudyTerm(**resource)
+
+            matched_references = obj.remove_dd(id)
+
+            if matched_references > 0:
+                obj.save()
+
+                affected_ids += 1
+
+        return affected_ids
 
 
 class Study(Resource):
