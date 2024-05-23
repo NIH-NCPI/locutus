@@ -118,7 +118,7 @@ class Table(Serializable):
         if not success:
             msg = f"The table, '{self.name}' ({self.id}), has no code, '{varname}'"
             print(msg)
-            raise KeyError(msg)        
+            raise KeyError(msg)
 
     def rename_var(self, original_varname, new_varname, new_description):
         status = 200
@@ -160,7 +160,27 @@ class Table(Serializable):
 
     def add_variable(self, variable):
         v = variable
+
         if type(variable) is dict:
+            # For now, let's insure that the enumerations terminology is there or
+            # create an empty one if not. This may need to be moved into the
+            # variable itself.
+
+            if v["data_type"] == "ENUMERATION":
+                if "enumerations" not in v:
+                    # Create an empty terminology and create a reference to that
+                    # terminology
+                    t = Terminology(
+                        name=v["name"],
+                        description=v.get("description"),
+                        url=f"{self.url}/{v['name']}",
+                    )
+                    t.save()
+
+                    reference = f"Terminology/{t.id}"
+                    v["enumerations"] = {"reference": reference}
+                    print(v)
+
             v = Variable.deserialize(variable)
             self.variables.append(v)
         else:

@@ -1200,6 +1200,10 @@ reflected in the response).
 
 If the variable doesn't exist, then a 404 error is returned.
 
+It should be noted that if you delete an enumerated variable, the terminology 
+referenced will not be deleted. The reason being that we can theoretically have
+many variables using the same terminology for similar variables. 
+
 ### https://[APPURL]/api/Table/[id]/harmony
 
 #### GET
