@@ -82,3 +82,12 @@ class Study(Resource):
         #    persistence().save()
 
         return t, 200, default_headers
+
+class StudyEdit(Resource):
+    def delete(self, id, dd_id):
+        study = mStudyTerm.get(id)
+        count = study.remove_dd(dd_id)
+        if count < 1:
+            return f"{dd_id} id is not found in Study, {study.name}.", 404, default_headers
+        study.save()
+        return study.dump(), 200, default_headers

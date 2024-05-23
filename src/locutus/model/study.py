@@ -50,6 +50,7 @@ class Study(Serializable):
         title=None,
         url="",
         datadictionary=None,
+        resource_type=None
     ):
         super().__init__(id=id, collection_type="Study", resource_type="Study")
         self.name = name

@@ -94,6 +94,7 @@ class Serializable:
         if not return_instance:
             return resource
 
+        print(resource)
         # pdb.set_trace()
         return cls(**resource)
 
