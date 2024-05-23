@@ -118,7 +118,7 @@ class Table(Serializable):
         if not success:
             msg = f"The table, '{self.name}' ({self.id}), has no code, '{varname}'"
             print(msg)
-            raise KeyError(msg)
+            raise KeyError(msg)        
 
     def rename_var(self, original_varname, new_varname, new_description):
         status = 200

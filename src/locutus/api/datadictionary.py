@@ -2,6 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.datadictionary import DataDictionary as DD
+from locutus.api.study import Studies
 from locutus.api import default_headers
 
 from flask_cors import cross_origin
@@ -75,6 +76,10 @@ class DataDictionary(Resource):
         dref = persistence().collection("DataDictionary").document(id)
         t = dref.get().to_dict()
         print(f"{id} : {t}")
+
+        # Delete any references to the data dictionary from any studies:
+        Studies().delete_dd_references(id)
+
         time_of_delete = dref.delete()
 
         # if t is not None:

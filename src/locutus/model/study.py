@@ -64,6 +64,24 @@ class Study(Serializable):
 
         super().identify()
 
+    def remove_dd(self, id):
+        matching_references = []
+
+        treference = f"DataDictionary/{id}"
+
+        idx = 0
+        for ref in self.datadictionary:
+            if ref.reference == treference:
+                matching_references.append(idx)
+            idx += 1
+
+        if len(matching_references) > 0:
+            for ref in matching_references:
+                del self.datadictionary[ref]
+
+        return len(matching_references)        
+
+
     def keys(self):
         return [self.title, self.url, self.name]
 
