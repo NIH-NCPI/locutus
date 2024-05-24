@@ -5,7 +5,6 @@ ENV FLASK_APP=src/app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 #ENV PORT=8080
 COPY src  ./src
-COPY db ./db
 COPY pyproject.toml . 
 COPY README.md .
 RUN pip install . 
