@@ -156,7 +156,6 @@ class Terminology(Serializable):
             f"Renaming Code, {original_code} to {new_code} with new display: {new_display}"
         )
         for code in self.codes:
-            print(f"{self.name} - {code.code} == {original_code}")
             if code.code == original_code:
 
                 # It's not unreasonable we have only been asked to update the
@@ -165,12 +164,8 @@ class Terminology(Serializable):
                 if original_code != new_code:
                     code.code = new_code
 
-                    print(f"After change, code list is:")
-                    for c in self.codes:
-                        print(f"\t{c.code} - {c.display}")
                     # Since we found a matching code, we'll pull the mappings and
                     # save those under the new code after deleting the old ones.
-
                     mappings = self.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
                         self.set_mapping(new_code, mappings[original_code])

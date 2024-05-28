@@ -95,7 +95,7 @@ class Variable:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
         except:
             print(data)
-            print("An issue was encountered with the following data")
+            print("ERROR: An issue was encountered with the following data")
             raise InvalidVariableDefinition(data["name"], data)
 
     @classmethod

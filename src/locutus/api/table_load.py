@@ -58,10 +58,9 @@ class TableLoader(Resource):
         try:
             for varData in tblData["csvContents"]:
                 if "data_type" not in varData:
-                    print(varData)
-                    print(varData["variable_name"])
-                    print(sorted(varData.keys()))
-
+                    print(
+                        f"The property, 'data_type', is missing from CSV row. {varData['variable_name']}"
+                    )
                 var = {
                     "name": varData["variable_name"],
                     "data_type": get_data_type(varData["data_type"]),

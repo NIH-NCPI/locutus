@@ -17,8 +17,7 @@ class Reference(Serializable):
         if type(reference) is not str:
             print(f"What sort of reference is this?\n{reference}")
             # pdb.set_trace()
-        else:
-            print(f"The reference string is: {reference}")
+
         self.reference = reference
 
         # Dumb, super short lived cache. If this object is expected to live
@@ -46,11 +45,9 @@ class Reference(Serializable):
         than a single block."""
         if self._reference is None:
             resource_type, id = self.reference.split("/")
-            print(f"Dererencing: '{self.reference}' -> {resource_type} & {id}")
             resource_raw = (
                 persistence().collection(resource_type).document(id).get().to_dict()
             )
-            print(f"Which results in \n{resource_raw}")
             self._reference = Serializable.build_object(resource_raw)
 
         return self._reference

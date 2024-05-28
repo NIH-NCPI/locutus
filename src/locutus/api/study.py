@@ -35,7 +35,7 @@ class Studies(Resource):
         study = mStudyTerm(**sty)
         study.save()
         return study.dump(), 201, default_headers
-    
+
     def delete_dd_references(self, id):
         affected_ids = 0
         for resource in persistence().collection("Study").stream():
@@ -76,18 +76,22 @@ class Study(Resource):
     def delete(self, id):
         dref = persistence().collection("Study").document(id)
         t = dref.get().to_dict()
-        print(f"{id} : {t}")
         time_of_delete = dref.delete()
         # if t is not None:
         #    persistence().save()
 
         return t, 200, default_headers
 
+
 class StudyEdit(Resource):
     def delete(self, id, dd_id):
         study = mStudyTerm.get(id)
         count = study.remove_dd(dd_id)
         if count < 1:
-            return f"{dd_id} id is not found in Study, {study.name}.", 404, default_headers
+            return (
+                f"{dd_id} id is not found in Study, {study.name}.",
+                404,
+                default_headers,
+            )
         study.save()
         return study.dump(), 200, default_headers

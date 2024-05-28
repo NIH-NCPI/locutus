@@ -76,7 +76,6 @@ class Table(Serializable):
             # pdb.set_trace()
             self.terminology = Reference(reference=terminology["reference"])
         else:
-            print(f"This is the terminology as we received it: '{terminology}'")
             # pdb.set_trace()
             terminology = {
                 "name": name,
@@ -102,7 +101,6 @@ class Table(Serializable):
     def remove_variable(self, varname):
         success = False
         for var in self.variables:
-            print(f"{var.name} - {varname}")
             if var.name == varname:
                 # TODO: How to handle deleting enumerated variables tables
                 # For now, I am not willing to handle enumerated variables
@@ -138,9 +136,6 @@ class Table(Serializable):
                 if original_varname != new_varname:
                     var.name = new_varname
 
-                    print(f"After change, variable list is:")
-                    for v in self.variables:
-                        print(f"\t{v.name} - {v.description}")
                     # Since we found a matching code, we'll pull the mappings and
                     # save those under the new code after deleting the old ones.
 
@@ -179,7 +174,6 @@ class Table(Serializable):
 
                     reference = f"Terminology/{t.id}"
                     v["enumerations"] = {"reference": reference}
-                    print(v)
 
             v = Variable.deserialize(variable)
             self.variables.append(v)
@@ -220,7 +214,7 @@ class Table(Serializable):
 
                     if code not in codings:
                         allowed_codes = "'" + "','".join(codings.keys()) + "'"
-                        sys.stderr.write(
+                        print(
                             f"WARNING: The code, {code}, from variable, {self.name}:{var.name}, doesn't match any of the available codes: {allowed_codes}\n"
                         )
                     else:

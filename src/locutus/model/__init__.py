@@ -49,7 +49,6 @@ def get_id(resource):
             if doc is not None:
                 if doc.get("id") is None:
                     id = f"{type(resource)._id_prefix}-{generate()}"
-                    print(f"New ID ({keys[0]}): {id}")
 
                     # TBD
                     # Do we really want to record the record at this time? It seems
@@ -94,7 +93,7 @@ class Serializable:
         if not return_instance:
             return resource
 
-        print(resource)
+        # print(resource)
         # pdb.set_trace()
         return cls(**resource)
 
@@ -142,7 +141,7 @@ class Serializable:
     @classmethod
     def build_object(cls, data):
         d = deepcopy(data)
-        print(f"ASDF: {d}")
+
         if "resource_type" in d:
             del d["resource_type"]
         return cls._factory_workers[data["resource_type"].lower()](**d)

@@ -16,8 +16,8 @@ class TableRenameCode(Resource):
         description_updates = body.get("description")
 
         table = mTable.get(id)
-        print(f"Variable name updates requested: {varname_updates}")
-        print(f"Description updates requested: {description_updates}")
+        # print(f"Variable name updates requested: {varname_updates}")
+        # print(f"Description updates requested: {description_updates}")
 
         # We MUST have at least a code or a display component to be a valid
         # PATCH
@@ -134,7 +134,6 @@ class Table(Resource):
         DataDictionaries().delete_table_references(id)
 
         t = dref.get().to_dict()
-        print(f"{id} : {t}")
         time_of_delete = dref.delete()
         # if t is not None:
         #    persistence().save()

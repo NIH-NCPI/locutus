@@ -13,9 +13,7 @@ def delete_collection(collection, batch_size=100):
     while del_count > 0:
         del_count = 0
         docs = collection.list_documents(page_size=batch_size)
-        print("Beginning to delete stuff")
         for doc in docs:
-            print(f"Deleting doc #{del_count+1}:{doc.id}")
             doc.delete()
             del_count += 1
             total_deleted += 1
