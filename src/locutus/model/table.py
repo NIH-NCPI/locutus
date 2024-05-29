@@ -127,7 +127,7 @@ class Table(Serializable):
 
         terms = self.terminology.dereference()
         for var in self.variables:
-            print(f"{self.name} - {var.name} == {original_varname}")
+            #print(f"{self.name} - {var.name} == {original_varname}")
             if var.name == original_varname:
 
                 # It's not unreasonable we have only been asked to update the
@@ -145,7 +145,7 @@ class Table(Serializable):
                         and mappings[original_varname] != []
                     ):
                         terms.set_mapping(new_varname, mappings[original_varname])
-                        self.delete_mappings(original_varname)
+                        terms.delete_mappings(original_varname)
 
                 if new_description is not None:
                     var.description = new_description
