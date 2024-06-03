@@ -13,11 +13,12 @@ class TerminologyEdit(Resource):
         """Add a new code to an existing terminology."""
         body = request.get_json()
         display = body.get("display")
+        description = body.get("description")
 
         t = Term.get(id)
 
         try:
-            t.add_code(code, display)
+            t.add_code(code, display, description)
         except CodeAlreadyPresent as e:
             return str(e), 400, default_headers
 
@@ -40,6 +41,7 @@ class TerminologyRenameCode(Resource):
         body = request.get_json()
         code_updates = body.get("code")
         display_updates = body.get("display")
+        description_updates = body.get("description")
 
         t = Term.get(id)
 
@@ -47,6 +49,7 @@ class TerminologyRenameCode(Resource):
 
         print(f"Code Updates requested: {code_updates}")
         print(f"Display Updates requested: {display_updates}")
+        print(f"Description updates requested: {description_updates}")
 
         # We MUST have at least a code or a display component to be a valid
         # PATCH
@@ -61,9 +64,17 @@ class TerminologyRenameCode(Resource):
             code_updates = {}
         if display_updates is None:
             display_updates = {}
+        if description_updates is None:
+            description_updates = {}
 
         code_list = sorted(
-            list(set(list(code_updates.keys()) + list(display_updates.keys())))
+            list(
+                set(
+                    list(code_updates.keys())
+                    + list(display_updates.keys())
+                    + list(description_updates.keys())
+                )
+            )
         )
 
         for code in code_list:
@@ -77,6 +88,7 @@ class TerminologyRenameCode(Resource):
                 original_code=original_code,
                 new_code=new_code,
                 new_display=display_updates.get(original_code),
+                new_description=description_updates.get(original_code),
             ):
                 return (
                     f"{original_code} was not found in the terminology.",

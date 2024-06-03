@@ -43,10 +43,11 @@ the "codes" array.
 
 
 class Coding:
-    def __init__(self, code, display="", system=None):
+    def __init__(self, code, display="", system=None, description=""):
         self.code = code
         self.display = display
         self.system = system
+        self.description = description
 
     class _Schema(Schema):
         code = fields.Str(
@@ -54,6 +55,7 @@ class Coding:
         )
         display = fields.Str()
         system = fields.URL()
+        description = fields.Str()
 
         @post_load
         def build_code(self, data, **kwargs):
@@ -62,6 +64,9 @@ class Coding:
 
     def to_dict(self):
         obj = {"code": self.code, "display": self.display}
+
+        if self.description != "":
+            obj["description"] = self.description
 
         if self.system is not None:
             obj["system"] = self.system
@@ -126,13 +131,15 @@ class Terminology(Serializable):
 
         return codes
 
-    def add_code(self, code, display):
+    def add_code(self, code, display, description=None):
 
         for cc in self.codes:
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
 
-        new_coding = Coding(code=code, display=display, system=self.url)
+        new_coding = Coding(
+            code=code, display=display, system=self.url, description=description
+        )
         self.codes.append(new_coding)
         self.save()
 
@@ -149,11 +156,11 @@ class Terminology(Serializable):
             print(msg)
             raise KeyError(msg)
 
-    def rename_code(self, original_code, new_code, new_display):
+    def rename_code(self, original_code, new_code, new_display, new_description=""):
         status = 200
 
         print(
-            f"Renaming Code, {original_code} to {new_code} with new display: {new_display}"
+            f"Renaming Code, {original_code} to {new_code} with new display: {new_display} and new description: {new_description}"
         )
         for code in self.codes:
             if code.code == original_code:
@@ -173,6 +180,9 @@ class Terminology(Serializable):
 
                 if new_display is not None:
                     code.display = new_display
+
+                if new_description != "":
+                    code.description = new_description
                 self.save()
                 return True
         return False
