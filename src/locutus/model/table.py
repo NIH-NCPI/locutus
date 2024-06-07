@@ -162,7 +162,7 @@ class Table(Serializable):
             # variable itself.
 
             if v["data_type"] == "ENUMERATION":
-                if "enumerations" not in v:
+                if "enumerations" not in v or len(v['enumerations']) < 1:
                     # Create an empty terminology and create a reference to that
                     # terminology
                     t = Terminology(
