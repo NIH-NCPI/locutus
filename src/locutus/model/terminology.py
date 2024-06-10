@@ -93,6 +93,7 @@ class Terminology(Serializable):
         self.name = name
         self.description = description
         self.url = url
+        self.codes = []
 
         # pdb.set_trace()
 
@@ -100,15 +101,12 @@ class Terminology(Serializable):
         # point, but we'll trust knuth for the time being and fix it when it is
         # clear that it is a bad idea.
         if codes is not None:
-            self.codes = []
             for code in codes:
                 if type(code) is dict:
                     code = Coding(**code)
                 # print(code)
                 code.system = self.url
                 self.codes.append(code)
-        else:
-            self.codes = None
 
         super().identify()
 
