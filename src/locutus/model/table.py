@@ -202,6 +202,26 @@ class Table(Serializable):
     def as_harmony(self):
         # Iterate over each table
         harmony_mappings = []
+        # pdb.set_trace()
+        if self.terminology is not None:
+            shadow = self.terminology.dereference()
+            table_mappings = shadow.mappings()
+            table_codings = shadow.build_code_dict()
+            for code in table_mappings:
+                if code not in table_codings:
+                    allowed_codes = "'" + "','".join(table_codings.keys()) + "'"
+                    print(
+                        f"WARNING: The code, {code}, from variable, {self.name}:{var.name}, doesn't match any of the available codes: {allowed_codes}\n"
+                    )
+                else:
+                    coding = table_codings[code]
+
+                    mapped_codings = table_mappings[code]
+
+                    for mc in mapped_codings:
+                        harmony_row = self.build_harmony_row(coding, mc)
+                        if harmony_row is not None:
+                            harmony_mappings.append(harmony_row)
         for var in self.variables:
             if var.data_type == Variable.DataType.ENUMERATION:
                 term = var.get_terminology()
