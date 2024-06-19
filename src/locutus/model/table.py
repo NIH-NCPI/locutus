@@ -127,7 +127,7 @@ class Table(Serializable):
 
         terms = self.terminology.dereference()
         for var in self.variables:
-            #print(f"{self.name} - {var.name} == {original_varname}")
+            # print(f"{self.name} - {var.name} == {original_varname}")
             if var.name == original_varname:
 
                 # It's not unreasonable we have only been asked to update the
@@ -153,6 +153,16 @@ class Table(Serializable):
                 return True
         return False
 
+    def _insert_variable(self, variable):
+        """If aa variable with the same name exists, replace it. Else append"""
+
+        for idx, var in enumerate(self.variables):
+            # pdb.set_trace()
+            if variable.name == var.name:
+                self.variables[idx] = variable
+                return True
+        self.variables.append(variable)
+
     def add_variable(self, variable):
         v = variable
 
@@ -162,7 +172,7 @@ class Table(Serializable):
             # variable itself.
 
             if v["data_type"] == "ENUMERATION":
-                if "enumerations" not in v or len(v['enumerations']) < 1:
+                if "enumerations" not in v or len(v["enumerations"]) < 1:
                     # Create an empty terminology and create a reference to that
                     # terminology
                     t = Terminology(
@@ -176,9 +186,9 @@ class Table(Serializable):
                     v["enumerations"] = {"reference": reference}
 
             v = Variable.deserialize(variable)
-            self.variables.append(v)
+            self._insert_variable(v)
         else:
-            self.variables.append(variable)
+            self._insert_variable(variable)
 
         try:
             self.terminology.dereference().add_code(code=v.name, display=v.description)
