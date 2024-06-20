@@ -4,6 +4,7 @@ from locutus.model.terminology import Terminology
 from locutus.model.reference import Reference
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term
+from locutus import clean_varname, strip_none
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -59,12 +60,16 @@ class Variable:
         BOOLEAN = 6
         ENUMERATION = 7
 
-    def __init__(self, name="", description=None):
+    def __init__(self, code="", name="", description=""):
         """Default variable type is a basic string"""
         # super().__init__(self, "Variable", self.__class__.__name__)
-        self.name = name
-        self.description = description
+        self.name = strip_none(name)
+        self.code = strip_none(code)
+        self.description = strip_none(description)
         self.data_type = None
+
+        if self.code == "" and self.name != "":
+            self.code = clean_varname(self.name)
 
     class _Schema(Schema):
         @post_load
@@ -110,13 +115,14 @@ class Variable:
 class StringVariable(Variable):
     data_type = Variable.DataType.STRING
 
-    def __init__(self, name="", description=None):
-        super().__init__(name, description)
+    def __init__(self, code="", name="", description=None):
+        super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.STRING
         data_type = fields.Enum(Variable.DataType)
 
     class _Schema(Schema):
         name = fields.Str(required=True)
+        code = fields.Str()
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
 
@@ -124,8 +130,8 @@ class StringVariable(Variable):
 class EnumerationVariable(Variable):
     data_type = Variable.DataType.ENUMERATION
 
-    def __init__(self, name="", description=None, enumerations=None):
-        super().__init__(name, description)
+    def __init__(self, code="", name="", description=None, enumerations=None):
+        super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.ENUMERATION
         self.enumerations = Reference(reference=enumerations["reference"])
 
@@ -165,6 +171,7 @@ class BooleanVariable(Variable):
 
     class _Schema(Schema):
         name = fields.Str(required=True)
+        code = fields.Str()
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
 
@@ -172,14 +179,17 @@ class BooleanVariable(Variable):
 class DateVariable(Variable):
     data_type = Variable.DataType.DATE
 
-    def __init__(self, name="", description=None, date=None, format="YYYY-MM-DD"):
-        super().__init__(name, description)
+    def __init__(
+        self, code="", name="", description=None, date=None, format="YYYY-MM-DD"
+    ):
+        super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.DATE
         self.date = datetime.strptime(date, format)
         self.format = format
 
     class _Schema(Schema):
         name = fields.Str(required=True)
+        code = fields.Str()
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
         date = fields.Date()
@@ -191,17 +201,19 @@ class DateTimeVariable(Variable):
 
     def __init__(
         self,
+        code="",
         name="",
-        description=None,
+        description="",
         datetime=None,
         format="YYYY-MM-DD %H:%M:%S",
     ):
-        super().__init__(name, description)
+        super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.DATETIME
         self.datetime = strptime(datetime, format)
         self.format = format
 
     class _Schema(Schema):
+        code = fields.Str()
         name = fields.Str(required=True)
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
@@ -212,8 +224,10 @@ class DateTimeVariable(Variable):
 class QuantityVariable(Variable):
     data_type = Variable.DataType.QUANTITY
 
-    def __init__(self, name="", description=None, min=None, max=None, units=None):
-        super().__init__(name, description)
+    def __init__(
+        self, code="", name="", description="", min=None, max=None, units=None
+    ):
+        super().__init__(code=code, name=name, description=description)
         self.units = units
         self.data_type = Variable.DataType.QUANTITY
 
@@ -221,6 +235,7 @@ class QuantityVariable(Variable):
         self.max = max
 
     class _Schema(Schema):
+        code = fields.Str()
         name = fields.Str(required=True)
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
@@ -233,8 +248,10 @@ class IntegerVariable(Variable):
     data_type = Variable.DataType.INTEGER
     _validation_helper = fields.Number()
 
-    def __init__(self, name="", description=None, min=None, max=None, units=None):
-        super().__init__(name, description)
+    def __init__(
+        self, code="", name="", description=None, min=None, max=None, units=None
+    ):
+        super().__init__(code=code, name=name, description=description)
         self.min = min
         self.max = max
         self.units = units
@@ -242,6 +259,7 @@ class IntegerVariable(Variable):
 
     class _Schema(Schema):
         name = fields.Str(required=True)
+        code = fields.Str()
         description = fields.Str()
         min = fields.Integer()
         max = fields.Integer()

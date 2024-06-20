@@ -1,6 +1,6 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
+from locutus import persistence, strip_none, clean_varname
 
 from locutus.model.variable import Variable
 from locutus.model.reference import Reference
@@ -47,6 +47,7 @@ class Table(Serializable):
     def __init__(
         self,
         id=None,
+        code="",
         name=None,
         url=None,
         description=None,
@@ -55,9 +56,15 @@ class Table(Serializable):
         terminology=None,
         resource_type="Table",
     ):
+
         super().__init__(id=id, collection_type="Table", resource_type="Table")
+
+        if strip_none(code) == "":
+            code = clean_varname(name)
+
         self.id = id
         self.name = name
+        self.code = code
         self.description = description
         self.filename = filename
         self.url = url
@@ -129,23 +136,22 @@ class Table(Serializable):
         for var in self.variables:
             # print(f"{self.name} - {var.name} == {original_varname}")
             if var.name == original_varname:
+                original_code = var.code
 
                 # It's not unreasonable we have only been asked to update the
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
                 if original_varname != new_varname:
                     var.name = new_varname
+                    var.code = clean_varname(var.name)
 
                     # Since we found a matching code, we'll pull the mappings and
                     # save those under the new code after deleting the old ones.
 
-                    mappings = terms.mappings(original_varname)
-                    if (
-                        original_varname in mappings
-                        and mappings[original_varname] != []
-                    ):
-                        terms.set_mapping(new_varname, mappings[original_varname])
-                        terms.delete_mappings(original_varname)
+                    mappings = terms.mappings(original_code)
+                    if original_code in mappings and mappings[original_code] != []:
+                        terms.set_mapping(new_varname, mappings[original_code])
+                        terms.delete_mappings(original_code)
 
                 if new_description is not None:
                     var.description = new_description
@@ -191,7 +197,7 @@ class Table(Serializable):
             self._insert_variable(variable)
 
         try:
-            self.terminology.dereference().add_code(code=v.name, display=v.description)
+            self.terminology.dereference().add_code(code=v.code, display=v.name)
         except CodeAlreadyPresent as e:
             pass
 
@@ -211,20 +217,20 @@ class Table(Serializable):
 
     def harmonize_mappings(self, codings, mappings, harmony_mappings, var_name=None):
         for code in mappings:
-                if code not in codings:
-                    allowed_codes = "'" + "','".join(codings.keys()) + "'"
-                    print(
-                        f"WARNING: The code, {code}, from variable, {self.name}:{var_name}, doesn't match any of the available codes: {allowed_codes}\n"
-                    )
-                else:
-                    coding = codings[code]
+            if code not in codings:
+                allowed_codes = "'" + "','".join(codings.keys()) + "'"
+                print(
+                    f"WARNING: The code, {code}, from variable, {self.name}:{var_name}, doesn't match any of the available codes: {allowed_codes}\n"
+                )
+            else:
+                coding = codings[code]
 
-                    mapped_codings = mappings[code]
+                mapped_codings = mappings[code]
 
-                    for mc in mapped_codings:
-                        harmony_row = self.build_harmony_row(coding, mc)
-                        if harmony_row is not None:
-                            harmony_mappings.append(harmony_row)
+                for mc in mapped_codings:
+                    harmony_row = self.build_harmony_row(coding, mc)
+                    if harmony_row is not None:
+                        harmony_mappings.append(harmony_row)
 
     def as_harmony(self):
         # Iterate over each table
@@ -250,6 +256,7 @@ class Table(Serializable):
 
     class _Schema(Schema):
         id = fields.Str()
+        code = fields.Str()
         name = fields.Str(required=True)
         url = fields.URL(required=True)
         filename = fields.Str()
