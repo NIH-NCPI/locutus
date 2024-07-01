@@ -157,6 +157,7 @@ class EnumerationVariable(Variable):
 
     class _Schema(Schema):
         name = fields.Str(required=True)
+        code = fields.Str()
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
         enumerations = fields.Nested(Reference._Schema)
