@@ -6,7 +6,9 @@ from locutus.model.terminology import Terminology as Term
 from locutus.api import default_headers
 from locutus.model.variable import Variable, InvalidVariableDefinition
 
-from locutus import fix_varname
+import rich
+
+from locutus import clean_varname
 
 import pdb
 
@@ -40,6 +42,8 @@ class TableLoader(Resource):
     def post(self):
         tblData = request.get_json()
 
+        # pdb.set_trace()
+
         tbl = {
             "name": tblData["name"],
             "url": tblData["url"],
@@ -61,8 +65,12 @@ class TableLoader(Resource):
                     print(
                         f"The property, 'data_type', is missing from CSV row. {varData['variable_name']}"
                     )
+
+                varname = varData["variable_name"]
+                code = clean_varname(varname)
                 var = {
-                    "name": varData["variable_name"],
+                    "code": code,
+                    "name": varname,
                     "data_type": get_data_type(varData["data_type"]),
                 }
                 if "description" in varData:
@@ -76,13 +84,11 @@ class TableLoader(Resource):
 
                 url = tblData["url"]
 
-                varname = fix_varname(varData["variable_name"])
-
                 if "enumerations" in varData and varData["enumerations"].strip() != "":
                     var["data_type"] = "ENUMERATION"
                     terminology = {
                         "name": varname,
-                        "url": f"{url}/{varname}",
+                        "url": f"{url}/{code}",
                         "codes": [],
                     }
 
@@ -99,6 +105,7 @@ class TableLoader(Resource):
 
                         terminology["codes"].append(term)
 
+                    rich.print(terminology)
                     t = Term(**terminology)
                     t.save()
                     var["enumerations"] = {"reference": f"Terminology/{t.id}"}
