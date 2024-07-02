@@ -154,7 +154,7 @@ class Terminology(Serializable):
             print(msg)
             raise KeyError(msg)
 
-    def rename_code(self, original_code, new_code, new_display, new_description=""):
+    def rename_code(self, original_code, new_code, new_display, new_description=None):
         status = 200
 
         print(
@@ -179,8 +179,9 @@ class Terminology(Serializable):
                 if new_display is not None:
                     code.display = new_display
 
-                if new_description != "":
+                if new_description is not None:
                     code.description = new_description
+
                 self.save()
                 return True
         return False
