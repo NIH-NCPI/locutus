@@ -181,6 +181,8 @@ class Terminology(Serializable):
 
                 if new_description != "":
                     code.description = new_description
+                else: code.description = ""
+
                 self.save()
                 return True
         return False
