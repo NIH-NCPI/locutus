@@ -117,11 +117,11 @@ class Table(Serializable):
                 print(f"Removing variable '{varname}' from {self.name}.")
                 # pdb.set_trace()
                 self.variables.remove(var)
-                self.terminology.dereference().remove_code(var.name)
+                self.terminology.dereference().remove_code(var.code)
                 success = True
                 return
         if not success:
-            msg = f"The table, '{self.name}' ({self.id}), has no code, '{varname}'"
+            msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{varname}'"
             print(msg)
             raise KeyError(msg)
 
