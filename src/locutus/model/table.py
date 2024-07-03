@@ -121,7 +121,7 @@ class Table(Serializable):
                 success = True
                 return
         if not success:
-            msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{varname}'"
+            msg = f"The table, '{self.name}' ({self.id}), has no code, '{varname}'"
             print(msg)
             raise KeyError(msg)
 
