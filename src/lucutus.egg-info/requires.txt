@@ -1,0 +1,8 @@
+marshmallow
+flask
+flask-cors
+flask-restful
+nanoid
+PyYAML
+rich
+firebase-admin

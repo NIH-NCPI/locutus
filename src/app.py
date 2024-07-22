@@ -20,7 +20,7 @@ from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.api.table import Table, Tables, HarmonyCSV, TableEdit, TableRenameCode
 from locutus.api.table_mappings import TableMappings, TableMapping
-from locutus.api.table_load import TableLoader
+from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.study import Study, Studies, StudyEdit
 from locutus.api.datadictionary import (
     DataDictionary,
@@ -64,7 +64,10 @@ api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")
 # GET/DELETE
 api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
 api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")
+# POST
 api.add_resource(TableLoader, "/api/LoadTable")
+# PUT (by ID)
+api.add_resource(TableLoader2, "/api/LoadTable/<string:id>")
 
 api.add_resource(Studies, "/api/Study")
 api.add_resource(Study, "/api/Study/<string:id>")
