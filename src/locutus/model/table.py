@@ -1,12 +1,17 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence, strip_none, clean_varname
+from flask import request
 
-from locutus.model.variable import Variable
+from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology, CodeAlreadyPresent
 
+from locutus.api import default_headers
+
+
 import pdb
+import rich
 
 import sys
 
