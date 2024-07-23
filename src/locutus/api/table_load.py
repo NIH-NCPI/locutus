@@ -57,10 +57,25 @@ class TableLoader(Resource):
         if "resource_type" in tblData:
             del tblData["resource_type"]
 
+        t = mTable(**tbl)
+        t.save()
+
         # Iterate over the csvContent to build up the list of variables and
         # optionally, the enumerations if that is appropriate.
+        return TableLoader.load_table(id=t.id, filename=t.filename, csvContents=tblData["csvContents"])
+    
+    @classmethod
+    def load_table(cls, id, filename, csvContents):
+        tbl = mTable.get(id)
+
+        if len(tbl.variables) > 0:
+            return {"message_to_user": "The table already has variables."}, 400, default_headers
+        
+        tbl.filename = filename
+        tbl.variables = []
+
         try:
-            for varData in tblData["csvContents"]:
+            for varData in csvContents:
                 if "data_type" not in varData:
                     print(
                         f"The property, 'data_type', is missing from CSV row. {varData['variable_name']}"
@@ -82,7 +97,7 @@ class TableLoader(Resource):
                 if "units" in varData and varData["units"].strip() != "":
                     var["units"] = varData["units"]
 
-                url = tblData["url"]
+                url = tbl.url
 
                 if "enumerations" in varData and varData["enumerations"].strip() != "":
                     var["data_type"] = "ENUMERATION"
@@ -109,18 +124,31 @@ class TableLoader(Resource):
                     t = Term(**terminology)
                     t.save()
                     var["enumerations"] = {"reference": f"Terminology/{t.id}"}
-
-                tbl["variables"].append(var)
-
-            try:
-                t = mTable(**tbl)
-            except InvalidVariableDefinition as e:
-                return (
+                # maybe do try except here to catch errors
+                try:
+                    tbl.add_variable(var)
+                except InvalidVariableDefinition as e:
+                    return (
                     {"message_to_user": e.message(), "data": e.variable},
                     400,
                     default_headers,
                 )
-            t.save()
-            return t.dump(), 201, default_headers
+            tbl.save()
+            return tbl.dump(), 201, default_headers
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
+    
+class TableLoader2(Resource):
+    def put(self, id):
+        tblData = request.get_json()
+
+        # pdb.set_trace()
+        tbl = mTable.get(id)
+      
+        # check if csvContents exist. Otherwise, return error
+        if not tblData.get("csvContents") or (len(tblData["csvContents"]) < 1):
+            return {"message_to_user": "No variables provided."}, 400, default_headers
+        else: 
+            return TableLoader.load_table(id, filename=tblData.get("filename", tbl.filename), csvContents=tblData.get("csvContents"))
+
+    
