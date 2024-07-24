@@ -2,11 +2,6 @@ __pycache__
 
 # Python env
 py3x
-
-# Management scripts
-deploy.sh
-runlocal.sh
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
