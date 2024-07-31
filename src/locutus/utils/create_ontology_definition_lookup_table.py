@@ -7,14 +7,14 @@ Jira ticket FD-1381
 import requests
 import pandas as pd
 from datetime import date
-from resources import (ONTOLOGY_API_LOOKUP_TABLE_PATH)
+from resources import (ONTOLOGY_API_LOOKUP_TABLE_PATH, OLS_ONTOLOGIES_URL)
 
 
 JIRA_ISSUES = ['fd1381']
 export_date = date.today()
 
 # Define the base API endpoint
-ols_base_url = "https://www.ebi.ac.uk/ols4/api/ontologies"
+ols_base_url = OLS_ONTOLOGIES_URL
 
 # Initialize an empty list to store the extracted data
 extracted_data = []

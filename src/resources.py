@@ -13,3 +13,6 @@ STORAGE_LOOKUP_PATH = os.path.join(STORAGE_PATH, 'lookup_tables')
 
 # File paths
 ONTOLOGY_API_LOOKUP_TABLE_PATH = os.path.join(STORAGE_LOOKUP_PATH, 'ontology_definition.csv')
+
+# API URLs
+OLS_ONTOLOGIES_URL = "https://www.ebi.ac.uk/ols4/api/ontologies"
