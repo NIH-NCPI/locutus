@@ -1,3 +1,9 @@
+"""
+Uses the ontology_definition.csv to create a document for each API 
+in the 'OntologyAPI' firestore collection.
+
+Jira ticket FD-1382
+"""
 
 import csv
 from google.cloud import firestore
@@ -7,6 +13,7 @@ from resources import (ONTOLOGY_API_LOOKUP_TABLE_PATH)
 # Initialize Firestore client
 db = firestore.Client()
 
+# Inserts data as a document into the specified collection
 def add_ontology_api(api_source, api_url, ontologies):
     # References a collection
     collection_title = 'OntologyAPI'
@@ -22,7 +29,7 @@ def add_ontology_api(api_source, api_url, ontologies):
     document_id = f"{api_source}_api"
 
     # Add a new document to the collection
-    # Adding a doc will create a collection if it does not already exist.
+    # Adding a doc will create a collection if it does not already exist
     ontology_api_ref.document(document_id).set(data)
 
     print(f"Created {document_id} document in the {collection_title} collection")
