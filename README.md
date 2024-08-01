@@ -457,6 +457,24 @@ terminology.
 }
 ```
 
+## Terminology Provenance
+Provenance is tracked for all changes to a terminology or one of the terms 
+associated with the terminology. This includes adding and removing codes, 
+editing code properties as well as adding and removing mappings. 
+
+### https://[APPURL]/api/Provenance/Terminology/[id]
+#### GET
+This endpoint will return changes to the terminology itself, including adding,
+editing and removing codes. 
+
+Please see the documentation for the Table provenance for more details.
+
+### https://[APPURL]/api/Provenance/Terminology/[id]/code/[code]
+This endpoint will return the provenance associated with the mappings of a 
+single code within the terminology. 
+
+Please see the documentation for the Table provenance for more details.
+
 ## Table
 
 The following end points are available for manipulating tables within locutus.
@@ -1314,6 +1332,123 @@ If the root object in the body is missing both the "variable" and the
 "description", a 400 error is returned.
 
 Upon completion, 200 is returned along with the full table definition.
+
+### https://[APPURL]/api/Provenance/Table/[id]
+#### GET
+Returns the provenance for the table itself. This includes information relating
+to adding, editing and removing variables. 
+
+Example results:
+```json
+{
+    "table": {
+        "Reference": "Table/tb-Fyf0T0ujF_-qOmWbPLGoN"
+    },
+    "provenance": {
+        "self": {
+            "target": "self",
+            "changes": [
+                {
+                    "target": "self",
+                    "action": "Add Term",
+                    "new_value": "junk",
+                    "timestamp": "2024-Aug-01 11:41AM",
+                    "editor": "eric.s.torstenson@vumc.org"
+                },
+                {
+                    "target": "self",
+                    "action": "Remove Term",
+                    "new_value": "junk",
+                    "timestamp": "2024-08-01 11:41AM",
+                    "editor": "eric.s.torstenson@vumc.org"
+                }
+            ]
+        }
+    }
+}
+```
+
+### https://[APPURL]/api/Provenance/Table/[id]/code/[code]
+#### GET
+To get the provenance of an individual variable inside a table, use this form
+of the endpoint URL, where code is the variable's underlying code. A special 
+variable has been created, ALL, which will return the provenance for all 
+variables in the table. 
+
+Example:
+```
+{
+    "table": {
+        "Reference": "Table/tb-Fyf0T0ujF_-qOmWbPLGoN"
+    },
+    "provenance": {
+        "junk": {
+            "target": "junk",
+            "changes": [
+                {
+                    "target": "junk",
+                    "action": "Remove Mapping",
+                    "timestamp": "2024-08-01 04:13PM",
+                    "old_value": "stuff",
+                    "editor": "eric.s.torstenson@vumc.org"
+                },
+                {
+                    "target": "junk",
+                    "action": "Add Mapping",,
+                    "timestamp": "2024-08-01 04:14PM",
+                    "new_value": "stuff",
+                    "old_value": "",
+                    "editor": "eric.s.torstenson@vumc.org"
+                },
+                {
+                    "target": "junk",
+                    "action": "Remove Mapping",
+                    "timestamp": "2024-08-01 04:16PM",
+                    "old_value": "stuff",
+                    "editor": "eric.s.torstenson@vumc.org"
+                }
+            ]
+        }
+    }
+}
+```
+
+For ALL variables, each variable will appear as keys within the provenance object. 
+
+A highly truncated example can be seen below. 
+```
+{
+    "table": {
+        "Reference": "Table/tb-Fyf0T0ujF_-qOmWbPLGoN"
+    },
+    "provenance": {
+        "junk": {
+            "target": "junk",
+            "changes": [
+                {
+                    "target": "junk",
+                    "action": "Remove Mapping",
+                    "timestamp": "2024-08-01 04:13PM",
+                    "old_value": "stuff",
+                    "editor": "eric.s.torstenson@vumc.org"
+                }]
+        },
+        "self": {
+            "target": "self",
+            "changes": [
+                {
+                    "target": "self",
+                    "action": "Remove Term",
+                    "new_value": "junk",
+                    "timestamp": "2024-08-01 11:41AM",
+                    "editor": "eric.s.torstenson@vumc.org"
+                }
+            ]
+        }
+    }
+}
+```
+
 
 ### https://[APPURL]/api/Study
 

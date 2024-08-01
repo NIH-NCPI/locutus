@@ -4,7 +4,7 @@ from locutus import persistence
 from locutus.model.terminology import Terminology as Term, Coding
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
-from locutus.api import default_headers
+from locutus.api import default_headers, get_editor
 import pdb
 
 
@@ -27,15 +27,13 @@ class TerminologyMapping(Resource):
         return (response, 200, default_headers)
 
     def delete(self, id, code):
-        tmref = (
-            persistence()
-            .collection("Terminology")
-            .document(id)
-            .collection("mappings")
-            .document(code)
-        )
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            return ("mappings DELETE requires an editor!", 400, default_headers)
 
-        time_of_delete = tmref.delete()
+        t = Term.get(id)
+        mapping_count = t.dereference().delete_mappings(editor=editor, code=code)
 
         response = TerminologyMappings.get_mappings(id)
 
@@ -43,7 +41,12 @@ class TerminologyMapping(Resource):
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
-        mappings = request.get_json()["mappings"]
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            return ("mappings DELETE requires an editor!", 400, default_headers)
+
+        mappings = body["mappings"]
         codings = [Coding(**x) for x in mappings]
 
         tref = persistence().collection("Terminology").document(id)
@@ -54,7 +57,7 @@ class TerminologyMapping(Resource):
 
         t = Term(**term)
 
-        t.set_mapping(code, codings)
+        t.set_mapping(code, codings, editor=editor)
 
         response = TerminologyMappings.get_mappings(t.id)
 

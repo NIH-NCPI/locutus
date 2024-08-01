@@ -60,6 +60,7 @@ class Table(Serializable):
         variables=[],
         terminology=None,
         resource_type="Table",
+        editor=None,
     ):
 
         super().__init__(id=id, collection_type="Table", resource_type="Table")
@@ -103,14 +104,15 @@ class Table(Serializable):
             added_terminology = True
 
         for var in variables:
-            self.add_variable(var)
+            # We definitely don't want to add provenance when we are reloading resources from the database
+            self.add_variable(var, editor=editor)
 
         super().identify()
 
         if added_terminology:
             self.save()
 
-    def remove_variable(self, varname):
+    def remove_variable(self, varname, editor):
         success = False
         for var in self.variables:
             if var.name == varname:
@@ -122,7 +124,7 @@ class Table(Serializable):
                 print(f"Removing variable '{varname}' from {self.name}.")
                 # pdb.set_trace()
                 self.variables.remove(var)
-                self.terminology.dereference().remove_code(var.code)
+                self.terminology.dereference().remove_code(code=var.code, editor=editor)
                 success = True
                 return
         if not success:
@@ -130,7 +132,7 @@ class Table(Serializable):
             print(msg)
             raise KeyError(msg)
 
-    def rename_var(self, original_varname, new_varname, new_description):
+    def rename_var(self, original_varname, new_varname, new_description, editor):
         status = 200
 
         print(
@@ -155,8 +157,10 @@ class Table(Serializable):
 
                     mappings = terms.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
-                        terms.set_mapping(new_varname, mappings[original_code])
-                        terms.delete_mappings(original_code)
+                        terms.set_mapping(
+                            new_varname, mappings[original_code], editor=editor
+                        )
+                        terms.delete_mappings(code=original_code, editor=editor)
 
                 if new_description is not None:
                     var.description = new_description
@@ -174,7 +178,7 @@ class Table(Serializable):
                 return True
         self.variables.append(variable)
 
-    def add_variable(self, variable):
+    def add_variable(self, variable, editor=None):
         v = variable
 
         if type(variable) is dict:
@@ -196,13 +200,16 @@ class Table(Serializable):
                     reference = f"Terminology/{t.id}"
                     v["enumerations"] = {"reference": reference}
 
+            # pdb.set_trace()
             v = Variable.deserialize(variable)
             self._insert_variable(v)
         else:
             self._insert_variable(variable)
 
         try:
-            self.terminology.dereference().add_code(code=v.code, display=v.name)
+            self.terminology.dereference().add_code(
+                code=v.code, display=v.name, editor=editor
+            )
         except CodeAlreadyPresent as e:
             pass
 
