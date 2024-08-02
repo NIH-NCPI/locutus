@@ -33,6 +33,7 @@ from locutus.api.datadictionary import (
     DataDictionaries,
     DataDictionaryTable,
 )
+from locutus.api.ontologies_search import Ontologies, Ontology
 
 app = Flask(__name__)
 CORS(app)
@@ -97,6 +98,10 @@ api.add_resource(
     TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<string:code>"
 )
 
+# Ontology GET (all ontologies)
+api.add_resource(Ontologies, "/api/Ontology")
+# Ontology GET (by ID)
+api.add_resource(Ontology, "/api/Ontology/<string:id>")
 
 @app.errorhandler(404)
 @cross_origin(allow_headers=["Content-Type"])
