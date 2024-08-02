@@ -21,6 +21,12 @@ from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.api.table import Table, Tables, HarmonyCSV, TableEdit, TableRenameCode
 from locutus.api.table_mappings import TableMappings, TableMapping
 from locutus.api.table_load import TableLoader, TableLoader2
+from locutus.api.provenance import (
+    TableProvenance,
+    TableVarProvenance,
+    TerminologyProvenance,
+    TerminologyCodeProvenance,
+)
 from locutus.api.study import Study, Studies, StudyEdit
 from locutus.api.datadictionary import (
     DataDictionary,
@@ -79,6 +85,16 @@ api.add_resource(DataDictionary, "/api/DataDictionary/<string:id>")
 # Currently, only DELETE
 api.add_resource(
     DataDictionaryTable, "/api/DataDictionary/<string:id>/Table/<string:table_id>"
+)
+
+api.add_resource(TerminologyProvenance, "/api/Provenance/Terminology/<string:id>")
+api.add_resource(
+    TerminologyCodeProvenance,
+    "/api/Provenance/Terminology/<string:id>/code/<string:code>",
+)
+api.add_resource(TableProvenance, "/api/Provenance/Table/<string:id>")
+api.add_resource(
+    TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<string:code>"
 )
 
 

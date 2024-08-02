@@ -2,7 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.table import Table as mTable
-from locutus.api import default_headers
+from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
 from copy import deepcopy
 
@@ -14,6 +14,10 @@ class TableRenameCode(Resource):
         body = request.get_json()
         varname_updates = body.get("variable")
         description_updates = body.get("description")
+
+        editor = get_editor(body)
+        if editor is None:
+            return ("table edit requires an editor!", 400, default_headers)
 
         table = mTable.get(id)
         # print(f"Variable name updates requested: {varname_updates}")
@@ -48,6 +52,7 @@ class TableRenameCode(Resource):
                 original_varname=original_code,
                 new_varname=new_code,
                 new_description=description_updates.get(original_code),
+                editor=editor,
             ):
                 return (
                     f"{original_code} was not found in the terminology.",
@@ -65,10 +70,14 @@ class TableEdit(Resource):
         table = mTable.get(id)
         body = request.get_json()
 
+        editor = get_editor(body)
+        if editor is None:
+            return ("table PUT requires an editor!", 400, default_headers)
+
         vardef = deepcopy(body)
         vardef["name"] = code
 
-        table.add_variable(vardef)
+        table.add_variable(vardef, editor=editor)
         table.save()
         return table.dump(), 201, default_headers
 
@@ -76,9 +85,14 @@ class TableEdit(Resource):
         """Add a new variable to an existing table"""
 
         table = mTable.get(id)
+        body = request.get_json()
+
+        editor = get_editor(body)
+        if editor is None:
+            return ("table edit requires an editor!", 400, default_headers)
 
         try:
-            table.remove_variable(code)
+            table.remove_variable(code, editor=editor)
             table.save()
         except KeyError as e:
             return str(e), 404, default_headers
@@ -102,6 +116,10 @@ class Tables(Resource):
     def post(self):
         tbl = request.get_json()
 
+        editor = get_editor(tbl)
+
+        if editor is None:
+            return ("table edit requires an editor!", 400, default_headers)
         if "resource_type" in tbl:
             del tbl["resource_type"]
 
@@ -117,6 +135,10 @@ class Table(Resource):
 
     def put(self, id):
         tbl = request.get_json()
+
+        if "editor" not in tbl:
+            return ("table PUT requires an editor!", 400, default_headers)
+
         if "id" not in tbl:
             tbl["id"] = id
 
@@ -128,6 +150,20 @@ class Table(Resource):
         return t.dump(), 200, default_headers
 
     def delete(self, id):
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor not in body:
+            return ("table DELETE  requires an editor!", 400, default_headers)
+
+        # This is a bit "out of band"
+        t = mTable.get(id)
+        t.terminology().dereference().add_provenance(
+            change_type=Terminology.ChangeType.RemoveTable,
+            target="self",
+            old_value=f"Table Name: {t.name}",
+            editor=editor,
+        )
+
         dref = persistence().collection("Table").document(id)
 
         # Delete any references to the table from any data-dictionaries:

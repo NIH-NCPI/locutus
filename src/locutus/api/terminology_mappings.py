@@ -1,8 +1,9 @@
 from flask_restful import Resource
+from flask import request
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term
 from flask_cors import cross_origin
-from locutus.api import default_headers, delete_collection
+from locutus.api import default_headers, delete_collection, get_editor
 import pdb
 
 
@@ -39,10 +40,13 @@ class TerminologyMappings(Resource):
 
     @classmethod
     def delete(cls, id):
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("mappings")
-        )
-        mapping_count = delete_collection(mapref)
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            return ("Terminology DELETE requires an editor!", 400, default_headers)
+
+        t = Term.get(id)
+        mapping_count = t.delete_mappings(editor=editor)
 
         response = {"terminology_id": id, "mappings_removed": mapping_count}
 

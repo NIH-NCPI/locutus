@@ -2,6 +2,9 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from locutus.api import delete_collection
+from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
+from datetime import datetime
+import time
 
 import pdb
 
@@ -77,6 +80,24 @@ class Coding:
 class Terminology(Serializable):
     _id_prefix = "tm"
 
+    class ChangeType(StrEnum):
+        Create = "Create Terminology"
+        AddTerm = "Add Term"
+        RemoveTerm = "Remove Term"
+        EditTerm = "Edit Term"
+        AddMapping = "Add Mapping"
+        RemoveMapping = "Remove Mapping"
+        RemoveAllMappings = "Remove All Mappings"
+        EditMapping = "Edit Mapping"
+        ApprovalRequested = "Approval Requested"
+        Approved = "Approved"
+        ApprovalDenied = "Approval Denied"
+
+    class MappingStatus(StrEnum):
+        AwaitingApproval = "Awaiting Approval"
+        Approved = "Approved"
+        Rejected = "Rejected"
+
     def __init__(
         self,
         id=None,
@@ -85,6 +106,7 @@ class Terminology(Serializable):
         description=None,
         codes=None,
         resource_type=None,
+        editor=None,
     ):
         super().__init__(
             id=id, collection_type="Terminology", resource_type="Terminology"
@@ -108,6 +130,13 @@ class Terminology(Serializable):
                 code.system = self.url
                 self.codes.append(code)
 
+                if editor:
+                    self.add_provenance(
+                        Terminology.ChangeType.AddTerm,
+                        editor=editor,
+                        target="self",
+                        new_value=code,
+                    )
         super().identify()
 
     def keys(self):
@@ -129,8 +158,7 @@ class Terminology(Serializable):
 
         return codes
 
-    def add_code(self, code, display, description=None):
-
+    def add_code(self, code, display, editor=None, description=None):
         for cc in self.codes:
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
@@ -141,20 +169,36 @@ class Terminology(Serializable):
         self.codes.append(new_coding)
         self.save()
 
-    def remove_code(self, code):
+        if editor:
+            self.add_provenance(
+                Terminology.ChangeType.AddTerm,
+                editor=editor,
+                target="self",
+                new_value=code,
+            )
+
+    def remove_code(self, code, editor):
         code_found = False
         for cc in self.codes:
             if cc.code == code:
                 self.codes.remove(cc)
-                self.delete_mappings(code)
+                self.delete_mappings(code=code, editor=editor)
                 self.save()
+                self.add_provenance(
+                    Terminology.ChangeType.RemoveTerm,
+                    editor=editor,
+                    target="self",
+                    new_value=code,
+                )
                 code_found = True
         if not code_found:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
             print(msg)
             raise KeyError(msg)
 
-    def rename_code(self, original_code, new_code, new_display, new_description=None):
+    def rename_code(
+        self, original_code, new_code, new_display, editor, new_description=None
+    ):
         status = 200
 
         print(
@@ -174,7 +218,7 @@ class Terminology(Serializable):
                     mappings = self.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
                         self.set_mapping(new_code, mappings[original_code])
-                        self.delete_mappings(original_code)
+                        self.delete_mappings(code=original_code, editor=editor)
 
                 if new_display is not None:
                     code.display = new_display
@@ -183,10 +227,17 @@ class Terminology(Serializable):
                     code.description = new_description
 
                 self.save()
+                self.add_provenance(
+                    change_type=Terminology.ChangeType.EditTerm,
+                    target=original_code,
+                    old_value=original_code,
+                    new_value=new_code,
+                    editor=editor,
+                )
                 return True
         return False
 
-    def delete_mappings(self, code=None):
+    def delete_mappings(self, editor, code=None):
         if code is not None:
             tmref = (
                 persistence()
@@ -195,8 +246,25 @@ class Terminology(Serializable):
                 .collection("mappings")
                 .document(code)
             )
-            print(f"Deleting mappings for code, {code}, from Terminology, {self.name}")
-            time_of_delete = tmref.delete()
+
+            mapping = tmref.get().to_dict()
+            time_of_delete = 0
+            if mapping is not None:
+                # This is not super helpful, but at least we get some detail about which mappings were removed
+                mapping = ",".join([x["code"] for x in mapping["codes"]])
+
+                time_of_delete = tmref.delete()
+                self.add_provenance(
+                    change_type=Terminology.ChangeType.RemoveMapping,
+                    target=code,
+                    old_value=mapping,
+                    editor=editor,
+                    timestamp=time_of_delete,
+                )
+            else:
+                print(
+                    f"Deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings to be deleted."
+                )
             return time_of_delete
         else:
             mapref = (
@@ -205,8 +273,14 @@ class Terminology(Serializable):
                 .document(self.id)
                 .collection("mappings")
             )
-            print(f"Deleting all mappings for Terminology, {self.name} ")
+
             mapping_count = delete_collection(mapref)
+            self.add_provenance(
+                change_type=Terminology.ChangeType.RemoveAllMappings,
+                target="self",
+                old_value=f"{mapping_count} codes",
+                editor=editor,
+            )
             return mapping_count
 
     def mappings(self, code=None):
@@ -242,15 +316,136 @@ class Terminology(Serializable):
 
         return codes
 
-    def set_mapping(self, code, codings):
-        doc = {"code": code, "codes": []}
+    def get_provenance(self, code=None):
+        prov = {}
 
-        for coding in codings:
-            doc["codes"].append(coding.to_dict())
+        if code is None:
+            for prv in (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection("provenance")
+                .stream()
+            ):
+
+                try:
+                    prv = prv.to_dict()
+
+                except:
+                    print(
+                        "Something other than a dict was encountered for provenance. This is not good."
+                    )
+                    print(prv)
+
+                id = prv["target"]
+                for change in prv["changes"]:
+                    if "timestamp" in change:
+                        if type(change["timestamp"]) is not str:
+                            change["timestamp"] = change["timestamp"].strftime(
+                                "%Y-%m-%d %I:%M%p"
+                            )
+                prov[id] = prv
+        else:
+            prv = (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection("provenance")
+                .document(code)
+                .get()
+                .to_dict()
+            )
+            if prv is not None and prv != {}:
+                id = prv["target"]
+
+                prov[id] = prv
+                for change in prv["changes"]:
+                    if "timestamp" in change:
+                        if type(change["timestamp"]) is not str:
+                            change["timestamp"] = change["timestamp"].strftime(
+                                "%Y-%m-%d %I:%M%p"
+                            )
+            else:
+                prov[code] = []
+        # pdb.set_trace()
+
+        return prov
+
+    def add_provenance(
+        self, change_type, editor, target=None, timestamp=None, **kwargs
+    ):
+        if target is None:
+            target = "self"
+        if timestamp is None:
+            timestamp = datetime.now()
+
+        timestamp = timestamp.strftime("%Y-%m-%d %I:%M%p")
+        # cur_prov = None
+        cur_prov = self.get_provenance(target)[target]
+        if cur_prov is None or type(cur_prov) is list:
+            cur_prov = {"target": target, "changes": []}
+
+        baseprov = {
+            "target": target,
+            "timestamp": timestamp,
+            "action": change_type,
+            "editor": editor,
+        }
+        prov = {**kwargs, **baseprov}
+
+        try:
+            cur_prov["changes"].append(prov)
+        except:
+            print(f"Current Provenance isn't what we expected: {cur_prov}")
+            # pdb.set_trace()
+
+        # pdb.set_trace()
 
         persistence().collection(self.resource_type).document(self.id).collection(
-            "mappings"
-        ).document(code).set(doc)
+            "provenance"
+        ).document(target).set(cur_prov)
+
+    # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
+
+    def set_mapping(self, code, codings, editor):
+        doc = {"code": code, "codes": []}
+
+        new_mappings = []
+        for coding in codings:
+            doc["codes"].append(coding.to_dict())
+            new_mappings.append(doc["codes"][-1]["code"])
+        new_mappings = ",".join(new_mappings)
+
+        tmref = (
+            persistence()
+            .collection(self.resource_type)
+            .document(self.id)
+            .collection("mappings")
+        )
+
+        old_mappings = ""
+        try:
+            assert code is not None
+            mapping = tmref.document(code).get().to_dict()
+        except:
+            mapping = None
+            print(f"weird mapping: {tmref.get()}")
+            pdb.set_trace()
+        change_type = Terminology.ChangeType.AddMapping
+        if mapping is not None:
+            # This is not super helpful, but at least we get some detail about which mappings were removed
+            old_mappings = ",".join([x["code"] for x in mapping["codes"]])
+            change_type = Terminology.ChangeType.EditMapping
+
+        self.add_provenance(
+            change_type=change_type,
+            target=code,
+            old_value=old_mappings,
+            new_value=new_mappings,
+            editor=editor,
+        )
+
+        tmref.document(code).set(doc)
 
     class _Schema(Schema):
         id = fields.Str()
@@ -263,60 +458,3 @@ class Terminology(Serializable):
         @post_load
         def build_terminology(self, data, **kwargs):
             return Terminology(**data)
-
-
-"""
-_term_data = {
-    1: Terminology(
-        name="Race",
-        url="https://includedcc.org/fhir/CodeSystem/data-dictionary/participant/race",
-        description="Race of Participant",
-        codes=[
-            Coding(code="American Indian or Alaska Native"),
-            Coding(code="Asian"),
-            Coding(code="Black or African American"),
-            Coding(code="More than one race"),
-            Coding(code="Native Hawaiian or Other Pacific Islander"),
-            Coding(code="Other"),
-            Coding(code="White"),
-            Coding(code="Prefer not to answer"),
-            Coding(code="Unknown"),
-            Coding(code="East Asian"),
-            Coding(code="Latin American"),
-            Coding(code="Middle Eastern or North African"),
-            Coding(code="South Asian"),
-        ],
-    ),
-    2: Terminology(
-        name="Sex",
-        url="https://includedcc.org/fhir/CodeSystem/data-dictionary/participant/sex",
-        description="Sex of Participant",
-        codes=[
-            Coding(code="Female"),
-            Coding(code="Male"),
-            Coding(code="Other"),
-            Coding(code="Unknown"),
-        ],
-    ),
-    3: Terminology(
-        name="Family Relationship",
-        url="https://includedcc.org/fhir/CodeSystem/data-dictionary/participant/family_relationship",
-        description="Relationship of Participant to proband",
-        codes=[
-            Coding(code="Proband"),
-            Coding(code="Father"),
-            Coding(code="Mother"),
-            Coding(code="Sibling"),
-            Coding(code="Other relative"),
-            Coding(code="Unrelated control"),
-        ],
-    ),
-}
-
-
-def terminologies(id=None):
-    if id is None:
-        terms = [v for k, v in _term_data.items()]
-        return terms
-    return _term_data[id]
-"""

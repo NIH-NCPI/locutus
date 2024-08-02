@@ -3,7 +3,7 @@ from flask import request
 from locutus import persistence
 from locutus.model.terminology import CodeAlreadyPresent, Coding, Terminology as Term
 from flask_cors import cross_origin
-from locutus.api import default_headers, delete_collection
+from locutus.api import default_headers, delete_collection, get_editor
 
 import pdb
 
@@ -15,10 +15,12 @@ class TerminologyEdit(Resource):
         display = body.get("display")
         description = body.get("description")
 
+        editor = get_editor(body)
+
         t = Term.get(id)
 
         try:
-            t.add_code(code, display, description)
+            t.add_code(code, display, description, editor)
         except CodeAlreadyPresent as e:
             return str(e), 400, default_headers
 
@@ -27,9 +29,11 @@ class TerminologyEdit(Resource):
     def delete(self, id, code):
         """Remove a code from an existing terminology."""
         t = Term.get(id)
+        body = request.get_json()
+        editor = get_editor(body)
 
         try:
-            t.remove_code(code)
+            t.remove_code(code, editor=editor)
         except KeyError as e:
             return str(e), 404, default_headers
 
@@ -39,6 +43,7 @@ class TerminologyEdit(Resource):
 class TerminologyRenameCode(Resource):
     def patch(self, id):
         body = request.get_json()
+        editor = get_editor(body)
         code_updates = body.get("code")
         display_updates = body.get("display")
         description_updates = body.get("description")
@@ -85,6 +90,7 @@ class TerminologyRenameCode(Resource):
                 new_code = original_code
 
             if not t.rename_code(
+                editor=editor,
                 original_code=original_code,
                 new_code=new_code,
                 new_display=display_updates.get(original_code),
@@ -110,8 +116,14 @@ class Terminologies(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def post(self):
         term = request.get_json()
+        body = request.get_json()
+        editor = get_editor(body)
         if "resource_type" in term:
             del term["resource_type"]
+        if editor:
+            self.add_provenance(
+                Terminology.ChangeType.CreateTerminology, editor=editor, target="self"
+            )
 
         t = Term(**term)
         t.save()

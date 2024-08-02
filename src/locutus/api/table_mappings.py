@@ -5,7 +5,7 @@ from locutus.model.table import Table
 from locutus.model.terminology import Terminology, Coding
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
-from locutus.api import default_headers, delete_collection
+from locutus.api import default_headers, delete_collection, get_editor
 
 
 class TableMappings(Resource):
@@ -33,18 +33,19 @@ class TableMappings(Resource):
 
     @classmethod
     def delete(cls, id):
+        body = request.get_json()
+
+        editor = get_editor(body)
+        if editor is None:
+            return ("mappings DELETE requires an editor!", 400, default_headers)
+
         table = Table.get(id)
-        term_id = table.terminology.reference_id()
+        mapping_count = table.terminology.dereference().delete_mappings(editor=editor)
 
-        mapref = (
-            persistence()
-            .collection("Terminology")
-            .document(term_id)
-            .collection("mappings")
-        )
-        mapping_count = delete_collection(mapref)
-
-        response = {"terminology_id": term_id, "mappings_removed": mapping_count}
+        response = {
+            "terminology_id": table.terminology.dereference().id,
+            "mappings_removed": mapping_count,
+        }
 
         return (response, 200, default_headers)
 
@@ -70,31 +71,34 @@ class TableMapping(Resource):
         return (response, 200, default_headers)
 
     def delete(self, id, code):
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            return ("mappings DELETE requires an editor!", 400, default_headers)
+
         table = Table.get(id)
-        term_id = table.terminology.reference_id()
-        tmref = (
-            persistence()
-            .collection("Terminology")
-            .document(term_id)
-            .collection("mappings")
-            .document(code)
+        mapping_count = table.terminology.dereference().delete_mappings(
+            editor=editor, code=code
         )
 
-        time_of_delete = tmref.delete()
-
-        response = TerminologyMappings.get_mappings(term_id)
+        response = TerminologyMappings.get_mappings(table.terminology.reference_id())
 
         return (response, 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            return ("mappings DELETE requires an editor!", 400, default_headers)
+
         mappings = request.get_json()["mappings"]
         codings = [Coding(**x) for x in mappings]
 
         table = Table.get(id)
         term = table.terminology.dereference()
 
-        term.set_mapping(code, codings)
+        term.set_mapping(code, codings, editor)
 
         response = TerminologyMappings.get_mappings(term.id)
 
