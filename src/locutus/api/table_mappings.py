@@ -43,7 +43,7 @@ class TableMappings(Resource):
         mapping_count = table.terminology.dereference().delete_mappings(editor=editor)
 
         response = {
-            "terminology_id": table.terminology.id,
+            "terminology_id": table.terminology.dereference().id,
             "mappings_removed": mapping_count,
         }
 
