@@ -332,7 +332,9 @@ class Terminology(Serializable):
                     prv = prv.to_dict()
 
                 except:
-                    print("\n\nUgh")
+                    print(
+                        "Something other than a dict was encountered for provenance. This is not good."
+                    )
                     print(prv)
 
                 id = prv["target"]
@@ -354,7 +356,6 @@ class Terminology(Serializable):
                 .to_dict()
             )
             if prv is not None and prv != {}:
-                print(f"Prov: {prv}")
                 id = prv["target"]
 
                 prov[id] = prv
@@ -393,16 +394,10 @@ class Terminology(Serializable):
         prov = {**kwargs, **baseprov}
 
         try:
-            print(
-                f"\n\nPROV: {target}\nThe number of changes so far: {len(cur_prov['changes'])} - {cur_prov['changes']}"
-            )
             cur_prov["changes"].append(prov)
-            print(
-                f"The number of changes after : {len(cur_prov['changes'])} - {cur_prov['changes']}"
-            )
         except:
             print(f"Current Provenance isn't what we expected: {cur_prov}")
-            pdb.set_trace()
+            # pdb.set_trace()
 
         # pdb.set_trace()
 
@@ -450,7 +445,6 @@ class Terminology(Serializable):
             editor=editor,
         )
 
-        print(f"\n\n---> Setting the mappings to {doc}")
         tmref.document(code).set(doc)
 
     class _Schema(Schema):
