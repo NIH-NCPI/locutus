@@ -52,27 +52,6 @@ class Ontologies:
 
             return Ontologies(**data)
 
-    def to_dict(self):
-        """
-        Converts the Ontologies instance to a dictionary.
-
-        Returns:
-            dict: A dictionary representation of the Ontologies instance.
-        """
-
-        obj = {"code": self.code, "title": self.title}
-
-        if self.version != "":
-            obj["version"] = self.version
-
-        if self.curie != "":
-            obj["curie"] = self.curie
-
-        if self.system is not None:
-            obj["system"] = self.system
-
-        return obj
-
 class OntologyAPI(Serializable):
     """
     Represents an API providing access to various ontologies.
@@ -171,7 +150,7 @@ class OntologyAPI(Serializable):
     @classmethod
     def _get_schema(cls):
         """
-        Get the schema for the OntologyAPI class.
+        Get the schema for the OntologyAPI class
 
         Returns:
             OntologyApiSchema: The schema for the OntologyAPI class.
