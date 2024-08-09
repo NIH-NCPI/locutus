@@ -170,12 +170,14 @@ class Terminology(Serializable):
         self.save()
 
         if editor:
+            # This adds provenance to the Terminology/Table itself
             self.add_provenance(
                 Terminology.ChangeType.AddTerm,
                 editor=editor,
                 target="self",
                 new_value=code,
             )
+            # This adds provenance to the code itself
             self.add_provenance(
                 Terminology.ChangeType.AddTerm,
                 editor=editor,
