@@ -10,10 +10,10 @@ class OntologyAPIs(Resource):
         """
         ontology_apis = persistence().collection("OntologyAPI").stream()
 
-        # Extract document IDs
-        api_ids = [doc.id for doc in ontology_apis]
+        # Fetch all OntologyAPI details from the database
+        api_details = [doc.to_dict() for doc in ontology_apis]
         
-        return api_ids, 200, default_headers
+        return api_details, 200, default_headers
 
 class OntologyAPI(Resource):
     def get(self, id):
