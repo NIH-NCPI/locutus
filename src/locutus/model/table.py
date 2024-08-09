@@ -61,6 +61,7 @@ class Table(Serializable):
         terminology=None,
         resource_type="Table",
         editor=None,
+        api_preference=None,
     ):
 
         super().__init__(id=id, collection_type="Table", resource_type="Table")
@@ -76,6 +77,7 @@ class Table(Serializable):
         self.url = url
         self.variables = []
         self._terminology = None
+        self.api_preference = api_preference if api_preference is not None else {}
 
         # For the time being, since old tables don't have them, we must create
         # the shadow terminologies on the fly. If we do this, we need to save
@@ -297,6 +299,15 @@ class Table(Serializable):
 
     def keys(self):
         return [self.url, self.name]
+    
+    def update_api_preference(self, api_preference):
+        """ Update API preference """
+        self.api_preference = api_preference
+        self.save()
+
+    def get_api_preference(self):
+        """ Get API preference"""
+        return self.api_preference
 
     class _Schema(Schema):
         id = fields.Str()
@@ -308,6 +319,7 @@ class Table(Serializable):
         variables = fields.List(fields.Nested(Variable._Schema))
         resource_type = fields.Str()
         terminology = fields.Nested(Reference._Schema)
+        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
         @post_load
         def build_terminology(self, data, **kwargs):

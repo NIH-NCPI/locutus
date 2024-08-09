@@ -60,13 +60,14 @@ class Variable:
         BOOLEAN = 6
         ENUMERATION = 7
 
-    def __init__(self, code="", name="", description=""):
+    def __init__(self, code="", name="", description="", api_preference=None):
         """Default variable type is a basic string"""
         # super().__init__(self, "Variable", self.__class__.__name__)
         self.name = strip_none(name)
         self.code = strip_none(code)
         self.description = strip_none(description)
         self.data_type = None
+        self.api_preference = api_preference if api_preference is not None else {}
 
         if self.code == "" and self.name != "":
             self.code = clean_varname(self.name)
@@ -125,6 +126,7 @@ class StringVariable(Variable):
         code = fields.Str()
         description = fields.Str()
         data_type = fields.Enum(Variable.DataType)
+        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
 class EnumerationVariable(Variable):

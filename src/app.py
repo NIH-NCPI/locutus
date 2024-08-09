@@ -18,7 +18,7 @@ from locutus.api.terminology import (
 )
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.api.table import Table, Tables, HarmonyCSV, TableEdit, TableRenameCode
+from locutus.api.table import Table, Tables, HarmonyCSV, TableEdit, TableRenameCode, ApiPreference
 from locutus.api.table_mappings import TableMappings, TableMapping
 from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.provenance import (
@@ -62,6 +62,9 @@ api.add_resource(
 )
 api.add_resource(Tables, "/api/Table")
 api.add_resource(Table, "/api/Table/<string:id>")
+
+# GET, PUT
+api.add_resource(ApiPreference, "/api/Table/<string:id>/onto/variable")
 
 # PUT, DELETE
 api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<string:code>")
