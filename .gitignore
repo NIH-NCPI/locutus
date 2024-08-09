@@ -3,3 +3,7 @@ __pycache__
 
 # Python env
 py3x
+
+# Management scripts
+deploy.sh
+runlocal.sh

@@ -176,6 +176,11 @@ class Terminology(Serializable):
                 target="self",
                 new_value=code,
             )
+            self.add_provenance(
+                Terminology.ChangeType.AddTerm,
+                editor=editor,
+                target=code,
+            )
 
     def remove_code(self, code, editor):
         code_found = False
@@ -227,6 +232,7 @@ class Terminology(Serializable):
                     code.description = new_description
 
                 self.save()
+                # avoid using add_provenance if code did NOT change
                 self.add_provenance(
                     change_type=Terminology.ChangeType.EditTerm,
                     target=original_code,
