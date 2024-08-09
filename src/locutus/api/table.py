@@ -78,6 +78,10 @@ class TableEdit(Resource):
         vardef["name"] = code
 
         table.add_variable(vardef, editor=editor)
+
+        if "api_preference" in body:
+            table.update_api_preference(body["api_preference"])
+
         table.save()
         return table.dump(), 201, default_headers
 
@@ -186,3 +190,28 @@ class HarmonyCSV(Resource):
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
         return harmony, 200, default_headers
+
+class ApiPreference(Resource):
+    def get(self, id):
+        variable = mTable.get(id, return_instance=True)
+        
+        api_preference = variable.get_api_preference()
+        
+        return api_preference
+
+    def put(self, id):
+        tbl = request.get_json()
+        
+        if not tbl:
+            return {"message": "Request body is required"}, 400
+        
+        if "editor" not in tbl:
+            return {"message": "Table PUT requires an editor!"}, 400
+        
+        variable = mTable.get(id, return_instance=True)
+        print(variable)
+        
+        variable.update_api_preference(tbl.get("api_preference", {}))
+        variable.save()
+
+        return {"message": "API/Ontology selections updated successfully"}, 200
