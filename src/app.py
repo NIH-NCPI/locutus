@@ -98,10 +98,11 @@ api.add_resource(
     TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<string:code>"
 )
 
-# Ontology GET (all ontologies)
+# GET Ontology All OntologyAPIs and ontology details 
 api.add_resource(OntologyAPIs, "/api/OntologyAPI")
-# Ontology GET (by ID)
+# GET (by ID) Single OntologyAPI and ontology details 
 api.add_resource(OntologyAPI, "/api/OntologyAPI/<string:id>")
+
 
 @app.errorhandler(404)
 @cross_origin(allow_headers=["Content-Type"])
