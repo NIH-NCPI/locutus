@@ -170,11 +170,18 @@ class Terminology(Serializable):
         self.save()
 
         if editor:
+            # This adds provenance to the Terminology/Table itself
             self.add_provenance(
                 Terminology.ChangeType.AddTerm,
                 editor=editor,
                 target="self",
                 new_value=code,
+            )
+            # This adds provenance to the code itself
+            self.add_provenance(
+                Terminology.ChangeType.AddTerm,
+                editor=editor,
+                target=code,
             )
 
     def remove_code(self, code, editor):
@@ -227,6 +234,7 @@ class Terminology(Serializable):
                     code.description = new_description
 
                 self.save()
+                # avoid using add_provenance if code did NOT change
                 self.add_provenance(
                     change_type=Terminology.ChangeType.EditTerm,
                     target=original_code,
