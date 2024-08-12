@@ -48,7 +48,6 @@ class OntologyAPI(Serializable):
     Represents an API providing access to various ontologies.
     Attributes:
         api_id (str): Unique identifier for the API.
-        api_source (str): Source of the API.
         api_url (str): The URL endpoint for the API.
         ontologies (list): A list of Ontologies objects.
         resource_type (str): The resource type.
@@ -57,14 +56,12 @@ class OntologyAPI(Serializable):
     def __init__(
         self,
         api_id=None,
-        api_source=None,
         api_url=None,
         ontologies=None,
         resource_type="OntologyAPI",
     ):
         super().__init__(id=api_id, collection_type="OntologyAPI", resource_type=resource_type)
         self.api_id = api_id
-        self.api_source = api_source
         self.api_url = api_url
         self.ontologies = []
 
@@ -81,7 +78,6 @@ class OntologyAPI(Serializable):
         """
         return {
             "api_id": self.api_id,
-            "api_source": self.api_source,
             "api_url": self.api_url,
             "ontologies": [Ontology.OntologySchema().dump(ontology) for ontology in self.ontologies]
         }
@@ -91,7 +87,6 @@ class OntologyAPI(Serializable):
         Marshmallow schema for serializing and deserializing OntologyAPI instances.
         """
         api_id = fields.Str()
-        api_source = fields.Str()
         api_url = fields.Str()
         ontologies = fields.List(fields.Nested(Ontology.OntologySchema))
 
