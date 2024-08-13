@@ -6,6 +6,7 @@ from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 
 import pdb
+import sys
 
 
 class TerminologyEdit(Resource):
@@ -18,9 +19,8 @@ class TerminologyEdit(Resource):
         editor = get_editor(body)
 
         t = Term.get(id)
-        # try adding code=code, etc.
         try:
-            t.add_code(code, display, description, editor)
+            t.add_code(code=code, display=display, description=description, editor=editor)
         except CodeAlreadyPresent as e:
             return str(e), 400, default_headers
 
