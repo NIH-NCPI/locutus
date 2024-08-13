@@ -5,7 +5,6 @@ from locutus.api import delete_collection
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
-import sys
 
 import pdb
 
@@ -245,7 +244,7 @@ class Terminology(Serializable):
                 new_values = ",".join(new_values)
 
                 self.save()
-                if old_values and new_values:
+                if new_values:
                     self.add_provenance(
                         change_type=Terminology.ChangeType.EditTerm,
                         target=original_code,

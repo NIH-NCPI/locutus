@@ -6,7 +6,6 @@ from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 
 import pdb
-import sys
 
 
 class TerminologyEdit(Resource):
