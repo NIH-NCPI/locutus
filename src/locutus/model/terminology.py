@@ -158,11 +158,10 @@ class Terminology(Serializable):
 
         return codes
 
-    def add_code(self, code, display, editor=None, description=None):
+    def add_code(self, code, display, description=None, editor=None):
         for cc in self.codes:
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
-
         new_coding = Coding(
             code=code, display=display, system=self.url, description=description
         )
@@ -207,10 +206,12 @@ class Terminology(Serializable):
         self, original_code, new_code, new_display, editor, new_description=None
     ):
         status = 200
-
         print(
             f"Renaming Code, {original_code} to {new_code} with new display: {new_display} and new description: {new_description}"
         )
+        old_values = []
+        new_values = []
+
         for code in self.codes:
             if code.code == original_code:
 
@@ -218,6 +219,8 @@ class Terminology(Serializable):
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
                 if original_code != new_code:
+                    old_values.append(f"code: {original_code}")
+                    new_values.append(f"code: {new_code}")
                     code.code = new_code
 
                     # Since we found a matching code, we'll pull the mappings and
@@ -227,22 +230,29 @@ class Terminology(Serializable):
                         self.set_mapping(new_code, mappings[original_code])
                         self.delete_mappings(code=original_code, editor=editor)
 
-                if new_display is not None:
+                if new_display is not None and code.display != new_display:
+                    old_values.append(f"display: {code.display}")
+                    new_values.append(f"display: {new_display}")
                     code.display = new_display
 
-                if new_description is not None:
+                if new_description is not None and code.description != new_description:
+                    old_values.append(f"description: {code.description}")
+                    new_values.append(f"description: {new_description}")
                     code.description = new_description
 
+                old_values = ",".join(old_values)
+                new_values = ",".join(new_values)
+
                 self.save()
-                # avoid using add_provenance if code did NOT change
-                self.add_provenance(
-                    change_type=Terminology.ChangeType.EditTerm,
-                    target=original_code,
-                    old_value=original_code,
-                    new_value=new_code,
-                    editor=editor,
-                )
-                return True
+                if new_values:
+                    self.add_provenance(
+                        change_type=Terminology.ChangeType.EditTerm,
+                        target=original_code,
+                        old_value=old_values,
+                        new_value=new_values,
+                        editor=editor,
+                    )
+                    return True
         return False
 
     def delete_mappings(self, editor, code=None):

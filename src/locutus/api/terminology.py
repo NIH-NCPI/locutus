@@ -18,9 +18,8 @@ class TerminologyEdit(Resource):
         editor = get_editor(body)
 
         t = Term.get(id)
-        # try adding code=code, etc.
         try:
-            t.add_code(code, display, description, editor)
+            t.add_code(code=code, display=display, description=description, editor=editor)
         except CodeAlreadyPresent as e:
             return str(e), 400, default_headers
 
