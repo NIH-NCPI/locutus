@@ -1652,3 +1652,87 @@ Replace resource with the body at the given ID
 #### DELETE
 
 Removes the specified data dictionary associated with the given ID
+
+
+## OntologyAPI:
+
+### https://[APPURL]/api/OntologyAPI
+
+#### GET
+
+Returns all availiable Ontology APIs and their details
+
+```json
+[
+    {
+        "api_id": "loinc",
+        "api_url": "https://loinc.regenstrief.org/searchapi/",
+        "ontologies": [
+            {
+                "ontology_code": "loinc",
+                "ontology_title": "Logical Observation Identifiers, Names and Codes (LOINC)",
+                "system": "https://loinc.regenstrief.org/searchapi/",
+                "curie": "",
+                "version": ""
+            }
+        ]
+    },
+    {
+        "api_id": "monarch",
+        "api_url": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
+        "ontologies": [
+            {
+                "ontology_code": "ecto",
+                "ontology_title": "Environmental Conditions, Treatments and Exposures Ontology",
+                "system": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
+                "curie": "ECTO",
+                "version": ""
+            }
+        ]
+    },
+    {
+        "api_id": "ols",
+        "api_url": "https://www.ebi.ac.uk/ols4/api/",
+        "ontologies": [
+            {
+                "ontology_code": "ngbo",
+                "ontology_title": " Next generation biobanking ontology(NGBO).",
+                "system": "https://www.ebi.ac.uk/ols4/api/",
+                "curie": "NGBO",
+                "version": "http://purl.obolibrary.org/obo/ngbo/2022-10-05/ngbo.owl"
+            },
+        ]
+    }      
+]
+```
+
+### https://[APPURL]/api/OntologyAPI/[API_ID]
+
+#### GET
+
+Returns the details for the Ontology API denoted by the API_ID
+
+```json
+[
+    {
+        "api_id": "loinc",
+        "api_url": "https://loinc.regenstrief.org/searchapi/",
+        "ontologies": [
+            {
+                "ontology_code": "loinc",
+                "ontology_title": "Logical Observation Identifiers, Names and Codes (LOINC)",
+                "system": "https://loinc.regenstrief.org/searchapi/",
+                "curie": "",
+                "version": ""
+            }
+        ]
+    },
+    200,
+    [
+        [
+            "Content-Type",
+            "application/fhir+json"
+        ]
+    ]
+]
+```
