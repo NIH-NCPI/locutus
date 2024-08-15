@@ -33,7 +33,7 @@ class TerminologyMapping(Resource):
             return ("mappings DELETE requires an editor!", 400, default_headers)
 
         t = Term.get(id)
-        mapping_count = t.dereference().delete_mappings(editor=editor, code=code)
+        mapping_count = t.delete_mappings(editor=editor, code=code)
 
         response = TerminologyMappings.get_mappings(id)
 
