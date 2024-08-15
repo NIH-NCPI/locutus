@@ -227,7 +227,7 @@ class Terminology(Serializable):
                     # save those under the new code after deleting the old ones.
                     mappings = self.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
-                        self.set_mapping(new_code, mappings[original_code])
+                        self.set_mapping(new_code, mappings[original_code], editor=editor)
                         self.delete_mappings(code=original_code, editor=editor)
 
                 if new_display is not None and code.display != new_display:
