@@ -3,7 +3,7 @@ from flask import request
 from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology as Term
-from locutus.api import default_headers
+from locutus.api import default_headers, get_editor
 from locutus.model.variable import Variable, InvalidVariableDefinition
 
 import rich
@@ -59,13 +59,14 @@ class TableLoader(Resource):
 
         t = mTable(**tbl)
         t.save()
+        editor = get_editor(tblData)
 
         # Iterate over the csvContent to build up the list of variables and
         # optionally, the enumerations if that is appropriate.
-        return TableLoader.load_table(id=t.id, filename=t.filename, csvContents=tblData["csvContents"])
+        return TableLoader.load_table(id=t.id, filename=t.filename, csvContents=tblData["csvContents"], editor=editor)
     
     @classmethod
-    def load_table(cls, id, filename, csvContents):
+    def load_table(cls, id, filename, csvContents, editor):
         tbl = mTable.get(id)
 
         if len(tbl.variables) > 0:
@@ -73,6 +74,11 @@ class TableLoader(Resource):
         
         tbl.filename = filename
         tbl.variables = []
+        
+        if len(csvContents) < 1:
+            change_type = Term.ChangeType.CreateTable
+        else:
+            change_type = Term.ChangeType.AddVariables
 
         try:
             for varData in csvContents:
@@ -134,6 +140,11 @@ class TableLoader(Resource):
                     default_headers,
                 )
             tbl.save()
+            tbl.terminology.dereference().add_provenance(
+                change_type=change_type,
+                target="self",
+                editor=editor,
+            )
             return tbl.dump(), 201, default_headers
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
@@ -144,11 +155,13 @@ class TableLoader2(Resource):
 
         # pdb.set_trace()
         tbl = mTable.get(id)
+        editor = get_editor(tblData)
+
       
         # check if csvContents exist. Otherwise, return error
         if not tblData.get("csvContents") or (len(tblData["csvContents"]) < 1):
             return {"message_to_user": "No variables provided."}, 400, default_headers
         else: 
-            return TableLoader.load_table(id, filename=tblData.get("filename", tbl.filename), csvContents=tblData.get("csvContents"))
+            return TableLoader.load_table(id, filename=tblData.get("filename", tbl.filename), csvContents=tblData.get("csvContents"), editor=editor)
 
     

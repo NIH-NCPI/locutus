@@ -82,6 +82,8 @@ class Terminology(Serializable):
 
     class ChangeType(StrEnum):
         Create = "Create Terminology"
+        CreateTable = "Create Table"
+        AddVariables = "Add Variables"
         AddTerm = "Add Term"
         RemoveTerm = "Remove Term"
         EditTerm = "Edit Term"
