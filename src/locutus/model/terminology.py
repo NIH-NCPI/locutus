@@ -226,7 +226,6 @@ class Terminology(Serializable):
                     old_values.append(f"code: {original_code}")
                     new_values.append(f"code: {new_code}")
                     code.code = new_code
-                    pdb.set_trace()
 
                     # Since we found a matching code, we'll pull the mappings and
                     # save those under the new code after deleting the old ones.
@@ -257,27 +256,19 @@ class Terminology(Serializable):
                         new_value=new_values,
                         editor=editor,
                     )
+                    self.add_provenance(
+                        change_type=Terminology.ChangeType.EditTerm,
+                        target="self",
+                        old_value=old_values,
+                        new_value=new_values,
+                        editor=editor,
+                    )
                     if original_code != new_code:
                         term_doc = persistence().collection(self.resource_type).document(self.id).collection(
                         "provenance"
                          )
                         prov = term_doc.document(original_code).get().to_dict()
                         prov["target"] = new_code
-                        """{ 
-                            
-                                'target': 'ATACseq1', #Change this to new_code
-                                'changes': [
-                                    {
-                                        'target': 'ATACseq1',
-                                        'timestamp': '2024-08-16 11:05AM',
-                                        'action': 'Edit Term',
-                                        'new_value': 'code: ATACseq',
-                                        'old_value': 'code: ATACseq1',
-                                        'editor': 'yelena.cox@vumc.org'
-                                    }
-                                ]
-                            }
-                        }"""
                         term_doc.document(new_code).set(prov)
                         term_doc.document(original_code).delete()
                     return True
