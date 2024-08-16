@@ -1,23 +1,22 @@
 from flask_restful import Resource
-from locutus import persistence
 from locutus.model.ontologies_search import OntologyAPI
 
-from locutus.api import default_headers
-
 class OntologyAPIs(Resource):
-    def get(self):
+    def get(self, api_id=None):
         """
-        Retrieve all available OntologyAPIs.
+        Retrieve details of all OntologyAPIs or a specific OntologyAPI by ID.
+        Args:
+            api_id (str): Unique identifier for a specific API. If None, 
+            returns all APIs.
+        Returns:
+            list: A dictionary representing a specific API if `api_id` is provided, 
+            or a list of dictionaries representing all APIs if `api_id` is None.
         """
-        api_details = OntologyAPI.get_all_api_ontologies()
-        return api_details, 200
-
-class OntologyAPIById(Resource):
-    def get(self, api_id):
-        """
-        Retrieve details of a specific OntologyAPI by ID.
-        """
-        result = OntologyAPI.get_ontologies_by_api_id(api_id)
-        if result is None:
-            return {"error": "Not found"}, 404
-        return result, 200
+        if api_id is None:
+            result = OntologyAPI.get_api_ontologies()
+            return result
+        else:
+            result = OntologyAPI.get_api_ontologies(api_id)
+            if not result:
+                return {"error": "Ontology API not found"}, 404
+            return result, 200
