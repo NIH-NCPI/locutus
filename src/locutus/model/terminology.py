@@ -8,6 +8,8 @@ import time
 
 import pdb
 
+from rich import print
+
 
 class CodeAlreadyPresent(Exception):
     def __init__(self, code, terminology_id, existing_coding):
@@ -216,7 +218,7 @@ class Terminology(Serializable):
 
         for code in self.codes:
             if code.code == original_code:
-
+                
                 # It's not unreasonable we have only been asked to update the
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
@@ -224,6 +226,7 @@ class Terminology(Serializable):
                     old_values.append(f"code: {original_code}")
                     new_values.append(f"code: {new_code}")
                     code.code = new_code
+                    pdb.set_trace()
 
                     # Since we found a matching code, we'll pull the mappings and
                     # save those under the new code after deleting the old ones.
@@ -254,6 +257,29 @@ class Terminology(Serializable):
                         new_value=new_values,
                         editor=editor,
                     )
+                    if original_code != new_code:
+                        term_doc = persistence().collection(self.resource_type).document(self.id).collection(
+                        "provenance"
+                         )
+                        prov = term_doc.document(original_code).get().to_dict()
+                        prov["target"] = new_code
+                        """{ 
+                            
+                                'target': 'ATACseq1', #Change this to new_code
+                                'changes': [
+                                    {
+                                        'target': 'ATACseq1',
+                                        'timestamp': '2024-08-16 11:05AM',
+                                        'action': 'Edit Term',
+                                        'new_value': 'code: ATACseq',
+                                        'old_value': 'code: ATACseq1',
+                                        'editor': 'yelena.cox@vumc.org'
+                                    }
+                                ]
+                            }
+                        }"""
+                        term_doc.document(new_code).set(prov)
+                        term_doc.document(original_code).delete()
                     return True
         return False
 
