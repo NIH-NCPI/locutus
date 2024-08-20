@@ -160,3 +160,19 @@ class Terminology(Resource):
         time_of_delete = dref.delete()
 
         return t, 200, default_headers
+
+class Filter(Resource):
+    def get(self, id):
+        """Retrieve the `api_preference` for a specific Terminology."""
+        terminology = Term.get(id)
+        
+        if terminology is None:
+            return {"message": f"Terminology with ID {id} not found."}, 404, default_headers
+
+        api_preference = terminology.api_preference  
+        
+        if api_preference is None:
+            return {"message": "No API preference set for this terminology."}, 404, default_headers
+
+        return api_preference, 200, default_headers
+    

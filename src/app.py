@@ -15,6 +15,7 @@ from locutus.api.terminology import (
     Terminologies,
     TerminologyRenameCode,
     TerminologyEdit,
+    Filter
 )
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
@@ -52,6 +53,9 @@ api.add_resource(
     TerminologyRenameCode,
     "/api/Terminology/<string:id>/rename",
 )
+# GET Ontology API preferences
+api.add_resource(Filter, "/api/Terminology/<string:id>/filter")
+
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly
 # other stuff in the future. )
@@ -63,11 +67,7 @@ api.add_resource(
 api.add_resource(Tables, "/api/Table")
 api.add_resource(Table, "/api/Table/<string:id>")
 
-# GET, PUT
-api.add_resource(ApiPreference, "/api/Table/<string:id>/onto/variable")
 
-# PUT, DELETE
-api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<string:code>")
 
 # GET/DELETE/PUT
 api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")

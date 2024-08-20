@@ -44,6 +44,37 @@ the "codes" array.
 """
 
 
+class OntologyAPISearchPreference:
+    """
+    Represents a recorded Ontology API Search Preference
+    Attributes:
+        api_preference (dict): The users preference for ontology api and 
+        ontology.
+    """
+
+    def __init__(self, api_preference=None):
+        self.api_preference = api_preference or {}
+
+    class _Schema(Schema):
+        """
+        Marshmallow schema for serializing and deserializing Ontologies instances.
+
+        api_preference = {'api1': ['onto1', 'onto2'], 
+                          'api2': ['onto3']}
+        """    
+        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
+
+        @post_load
+        def build_pref(self, data, **kwargs):
+            """
+            Builds an OntologyAPISearchPreference instance from deserialized data.
+            Args:
+                data (dict): The deserialized data.
+            Returns:
+                OntologyAPISearchPreference: An instance of the OntologyAPISearchPreference class.
+            """
+            return OntologyAPISearchPreference(**data)
+
 class Coding:
     def __init__(self, code, display="", system=None, description=""):
         self.code = code
@@ -106,6 +137,7 @@ class Terminology(Serializable):
         url=None,
         description=None,
         codes=None,
+        api_preference=None,
         resource_type=None,
         editor=None,
     ):
@@ -117,8 +149,7 @@ class Terminology(Serializable):
         self.description = description
         self.url = url
         self.codes = []
-
-        # pdb.set_trace()
+        self.api_preference = api_preference
 
         # This probably doesn't make sense, stashing the system in at this
         # point, but we'll trust knuth for the time being and fix it when it is
@@ -138,6 +169,7 @@ class Terminology(Serializable):
                         target="self",
                         new_value=code,
                     )
+
         super().identify()
 
     def keys(self):
@@ -487,6 +519,7 @@ class Terminology(Serializable):
         url = fields.URL(required=True)
         description = fields.Str()
         codes = fields.List(fields.Nested(Coding._Schema))
+        api_preference = fields.Dict(keys=fields.Str(), values=fields.Nested(OntologyAPISearchPreference._Schema))
         resource_type = fields.Str()
 
         @post_load
