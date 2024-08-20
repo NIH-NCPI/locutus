@@ -176,3 +176,23 @@ class Filter(Resource):
 
         return api_preference, 200, default_headers
     
+    @cross_origin(allow_headers=["Content-Type"])
+    def post(self, id):
+        """Create the `api_preference` for a specific Terminology."""
+        term = request.get_json()
+
+        if "api_preference" not in term:
+            return {"message": "api_preference is required"}, 400
+
+        api_preference = term["api_preference"]
+
+        terminology = Term.get(id)
+
+        if terminology is None:
+            return {"message": "Terminology not found"}, 404
+
+        terminology.api_preference = api_preference
+
+        terminology.save()
+
+        return terminology.dump(), 200, default_headers

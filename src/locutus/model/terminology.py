@@ -519,7 +519,7 @@ class Terminology(Serializable):
         url = fields.URL(required=True)
         description = fields.Str()
         codes = fields.List(fields.Nested(Coding._Schema))
-        api_preference = fields.Dict(keys=fields.Str(), values=fields.Nested(OntologyAPISearchPreference._Schema))
+        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
         resource_type = fields.Str()
 
         @post_load
