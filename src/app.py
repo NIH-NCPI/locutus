@@ -33,7 +33,7 @@ from locutus.api.datadictionary import (
     DataDictionaries,
     DataDictionaryTable,
 )
-from locutus.api.ontologies_search import OntologyAPIById, OntologyAPIs
+from locutus.api.ontologies_search import OntologyAPIs
 
 app = Flask(__name__)
 CORS(app)
@@ -99,9 +99,9 @@ api.add_resource(
 )
 
 # GET Ontology All OntologyAPIs and ontology details 
-api.add_resource(OntologyAPIs, "/api/OntologyAPI")
+api.add_resource(OntologyAPIs, "/api/OntologyAPI", endpoint='all_ontologies')
 # GET (by ID) Single OntologyAPI and ontology details 
-api.add_resource(OntologyAPIById, "/api/OntologyAPI/<string:api_id>")
+api.add_resource(OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint='ontology_by_id')
 
 
 @app.errorhandler(404)

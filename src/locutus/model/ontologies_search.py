@@ -1,7 +1,6 @@
 from . import Serializable
-from marshmallow import Schema, fields, post_load, ValidationError
+from marshmallow import Schema, fields, post_load
 from locutus import persistence
-from locutus.api import default_headers
 
 class Ontology:
     """
@@ -14,14 +13,14 @@ class Ontology:
         version (str): The version of the ontology.
     """
 
-    def __init__(self, ontology_code, ontology_title, system, curie="",  version=""):
+    def __init__(self, ontology_code, ontology_title, system, curie="", version=""):
         self.ontology_code = ontology_code
         self.ontology_title = ontology_title
         self.system = system
         self.curie = curie
         self.version = version
 
-    class OntologySchema(Schema):
+    class _Schema(Schema):
         """
         Marshmallow schema for serializing and deserializing Ontologies instances.
         """        
@@ -34,13 +33,12 @@ class Ontology:
         @post_load
         def build_ontology(self, data, **kwargs):
             """
-            Builds an Ontologies instance from deserialized data.
+            Builds an Ontology instance from deserialized data.
             Args:
                 data (dict): The deserialized data.
             Returns:
-                Ontologies: An instance of the Ontologies class.
+                Ontology: An instance of the Ontology class.
             """
-
             return Ontology(**data)
 
 class OntologyAPI(Serializable):
@@ -57,7 +55,6 @@ class OntologyAPI(Serializable):
         self,
         api_id=None,
         api_url=None,
-        ontologies=None,
         resource_type="OntologyAPI",
     ):
         super().__init__(id=api_id, collection_type="OntologyAPI", resource_type=resource_type)
@@ -65,30 +62,13 @@ class OntologyAPI(Serializable):
         self.api_url = api_url
         self.ontologies = []
 
-        if ontologies is not None:
-            for ontology in ontologies:
-                if isinstance(ontology, dict):
-                    ontology = Ontology(**ontology)
-                ontology.system = self.api_url
-                self.ontologies.append(ontology)
-
-    def to_dict(self):
-        """
-        Convert the OntologyAPI instance to a dictionary.
-        """
-        return {
-            "api_id": self.api_id,
-            "api_url": self.api_url,
-            "ontologies": [Ontology.OntologySchema().dump(ontology) for ontology in self.ontologies]
-        }
-
-    class OntologyApiSchema(Schema):
+    class _Schema(Schema):
         """
         Marshmallow schema for serializing and deserializing OntologyAPI instances.
         """
         api_id = fields.Str()
         api_url = fields.Str()
-        ontologies = fields.List(fields.Nested(Ontology.OntologySchema))
+        ontologies = fields.List(fields.Nested(Ontology._Schema))
 
         @post_load
         def build_ontology_api(self, data, **kwargs):
@@ -102,55 +82,22 @@ class OntologyAPI(Serializable):
             return OntologyAPI(**data)
 
     @classmethod
-    def _process_data(cls, data):
+    def get_api_ontologies(cls, api_id=None):
         """
-        Process and validate the API data.
+        Retrieve details of all OntologyAPIs or a specific OntologyAPI by ID.
+        Args:
+            api_id (str): Unique identifier for a specific API. If None, 
+            returns all APIs.
+        Returns:
+            processed_data: A list with a specific API if `api_id` is provided, 
+            or a list of dictionaries representing each API if `api_id` is None.
         """
-        # Ensure the data['ontologies'] field is a list
-        if 'ontologies' in data:
-            if isinstance(data['ontologies'], dict):
-                data['ontologies'] = list(data['ontologies'].values())
-            elif not isinstance(data['ontologies'], list):
-                data['ontologies'] = []
-
-        # Use Marshmallow to load and validate data
-        try:
-            api_instance = cls.OntologyApiSchema().load(data)
-            return api_instance.to_dict(), None
-        except ValidationError as e:
-            print("Validation error:", e.messages)
-            return None, {"error": "Invalid data format"}
-
-    @classmethod
-    def get_all_api_ontologies(cls):
-        """
-        Retrieve details of all OntologyAPIs.
-        """
-        ontology_apis = persistence().collection("OntologyAPI").stream()
-        all_apis = []
-
-        for doc in ontology_apis:
-            data = doc.to_dict()
-            processed_data, error = cls._process_data(data)
-            if processed_data:
-                all_apis.append(processed_data)
-            elif error:
-                print(error)
-
-        return all_apis
-
-    @classmethod
-    def get_ontologies_by_api_id(cls, api_id):
-        """
-        Retrieve details of a specific OntologyAPI by ID.
-        """
-        doc = persistence().collection("OntologyAPI").document(api_id).get()
-        if not doc.exists:
-            return {"error": "Ontology API not found"}, 404, default_headers
-
-        data = doc.to_dict()
-        processed_data, error = cls._process_data(data)
-        if processed_data:
-            return processed_data, 200, default_headers
-        elif error:
-            return error, 400, default_headers
+        if api_id:
+            processed_data = cls.get(api_id, return_instance=False)
+            if processed_data is None:
+                return None
+            return [processed_data]
+        else:
+            processed_data = [x.to_dict() for x in persistence().collection("OntologyAPI").stream()]
+            return processed_data
+        
