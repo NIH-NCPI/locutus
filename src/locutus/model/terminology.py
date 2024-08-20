@@ -8,7 +8,6 @@ import time
 
 import pdb
 
-
 class CodeAlreadyPresent(Exception):
     def __init__(self, code, terminology_id, existing_coding):
         self.code = code
@@ -216,7 +215,7 @@ class Terminology(Serializable):
 
         for code in self.codes:
             if code.code == original_code:
-
+                
                 # It's not unreasonable we have only been asked to update the
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
@@ -254,6 +253,21 @@ class Terminology(Serializable):
                         new_value=new_values,
                         editor=editor,
                     )
+                    self.add_provenance(
+                        change_type=Terminology.ChangeType.EditTerm,
+                        target="self",
+                        old_value=old_values,
+                        new_value=new_values,
+                        editor=editor,
+                    )
+                    if original_code != new_code:
+                        term_doc = persistence().collection(self.resource_type).document(self.id).collection(
+                        "provenance"
+                         )
+                        prov = term_doc.document(original_code).get().to_dict()
+                        prov["target"] = new_code
+                        term_doc.document(new_code).set(prov)
+                        term_doc.document(original_code).delete()
                     return True
         return False
 
