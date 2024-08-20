@@ -8,9 +8,6 @@ import time
 
 import pdb
 
-from rich import print
-
-
 class CodeAlreadyPresent(Exception):
     def __init__(self, code, terminology_id, existing_coding):
         self.code = code
