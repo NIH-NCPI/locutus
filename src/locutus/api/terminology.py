@@ -179,12 +179,12 @@ class Filter(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def post(self, id):
         """Create the `api_preference` for a specific Terminology."""
-        term = request.get_json()
+        body = request.get_json()
 
-        if "api_preference" not in term:
+        if "api_preference" not in body:
             return {"message": "api_preference is required"}, 400
 
-        api_preference = term["api_preference"]
+        api_preference = body["api_preference"]
 
         terminology = Term.get(id)
 
@@ -196,3 +196,43 @@ class Filter(Resource):
         terminology.save()
 
         return terminology.dump(), 200, default_headers
+    
+    def put(self, id):
+        """Add a new preference."""
+        body = request.get_json()
+        pref = body.get("api_preference")
+
+        editor = get_editor(body)
+
+        t = Term.get(id)
+        t.add_pref(api_preference=pref, editor=editor)
+
+        return t.dump(), 201, default_headers
+
+    def delete(self, id):
+        """
+        Remove a preference from a terminology.
+
+        Args:
+            id (str): The ID of the terminology.
+            pref_key (str): The API key representing the preference to remove.
+        """
+        body = request.get_json()
+        pref = body.get("api_preference")
+        editor = get_editor(body)
+
+        t = Term.get(id)
+
+        not_found_keys = []
+
+        # checks all pref keys(apis), will remove record if found
+        for pref_key in pref.keys():
+            try:
+                t.remove_pref(pref_key, editor=editor)
+            except KeyError:
+                not_found_keys.append(pref_key)
+
+        if not_found_keys:
+            return f"Preferences not found: {', '.join(not_found_keys)}", 404, default_headers
+
+        return t.dump(), 200, default_headers

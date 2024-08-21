@@ -53,7 +53,7 @@ api.add_resource(
     TerminologyRenameCode,
     "/api/Terminology/<string:id>/rename",
 )
-# GET/POST Ontology API preferences at Terminology level
+# GET/POST/PUT/DELETE Ontology API preferences at Terminology level
 api.add_resource(Filter, "/api/Terminology/<string:id>/filter")
 
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual

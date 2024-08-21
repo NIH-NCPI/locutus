@@ -19,6 +19,16 @@ class CodeAlreadyPresent(Exception):
     def message(self):
         return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
+class PrefAlreadyPresent(Exception):
+    def __init__(self, code, terminology_id, existing_coding):
+        self.code = code
+        self.existing_coding = existing_coding
+        self.terminology_id = terminology_id
+
+        super().__init__(self.message())
+
+    def message(self):
+        return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
 """
 A terminology exists on its own within the project but can be referenced by 
@@ -512,6 +522,28 @@ class Terminology(Serializable):
         )
 
         tmref.document(code).set(doc)
+
+    def add_pref(self, api_preference=None, editor=None):
+        """Update the internal dictionary with new preferences""" 
+        if api_preference is not None:
+            self.api_preference.update(api_preference)
+            self.save()
+
+    def remove_pref(self, pref_key, editor=None):
+        """
+        Removes a specific API preference from the api_preference dictionary.
+
+        Args:
+            api_key (str): The key representing the API preference to remove.
+            editor (str, optional): The user or process that is making the change.
+        """
+        if pref_key in self.api_preference:
+            removed_pref = self.api_preference.pop(pref_key)
+            self.save()
+        else:
+            msg = f"The terminology, '{self.name}' ({self.id}), has no API preference for key '{pref_key}'"
+            print(msg)
+            raise KeyError(msg)
 
     class _Schema(Schema):
         id = fields.Str()
