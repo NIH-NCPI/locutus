@@ -19,17 +19,6 @@ class CodeAlreadyPresent(Exception):
     def message(self):
         return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
-class PrefAlreadyPresent(Exception):
-    def __init__(self, code, terminology_id, existing_coding):
-        self.code = code
-        self.existing_coding = existing_coding
-        self.terminology_id = terminology_id
-
-        super().__init__(self.message())
-
-    def message(self):
-        return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
-
 """
 A terminology exists on its own within the project but can be referenced by 
 variables as part of their data-type construction. 
@@ -86,11 +75,12 @@ class OntologyAPISearchPreference:
             return OntologyAPISearchPreference(**data)
 
 class Coding:
-    def __init__(self, code, display="", system=None, description=""):
+    def __init__(self, code, display="", system=None, description="", api_preference=None):
         self.code = code
         self.display = display
         self.system = system
         self.description = description
+        self.api_preference = api_preference
 
     class _Schema(Schema):
         code = fields.Str(
@@ -99,6 +89,7 @@ class Coding:
         display = fields.Str()
         system = fields.URL()
         description = fields.Str()
+        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
         @post_load
         def build_code(self, data, **kwargs):
@@ -113,6 +104,9 @@ class Coding:
 
         if self.system is not None:
             obj["system"] = self.system
+
+        if self.api_preference is not None:
+            obj["api_preference"] = self.api_preference
 
         return obj
 
