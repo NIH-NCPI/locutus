@@ -162,9 +162,10 @@ class Table(Serializable):
                     mappings = terms.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
                         terms.set_mapping(
-                            new_varname, mappings[original_code], editor=editor
+                            var.code, mappings[original_code], editor=editor
                         )
                         terms.delete_mappings(code=original_code, editor=editor)
+                    terms.name = new_varname
 
                 if new_description is not None:
                     old_values.append(f"description: {var.description}")
