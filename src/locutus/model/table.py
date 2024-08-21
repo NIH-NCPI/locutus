@@ -138,6 +138,8 @@ class Table(Serializable):
         print(
             f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
         )
+        old_values = []
+        new_values = []
 
         terms = self.terminology.dereference()
         for var in self.variables:
@@ -149,6 +151,8 @@ class Table(Serializable):
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
                 if original_varname != new_varname:
+                    old_values.append(f"variable: {original_varname}")
+                    new_values.append(f"variable: {new_varname}")
                     var.name = new_varname
                     var.code = clean_varname(var.name)
 
@@ -163,9 +167,37 @@ class Table(Serializable):
                         terms.delete_mappings(code=original_code, editor=editor)
 
                 if new_description is not None:
+                    old_values.append(f"description: {var.description}")
+                    new_values.append(f"description: {new_description}")
                     var.description = new_description
+
+                old_values = ",".join(old_values)
+                new_values = ",".join(new_values)
+
                 self.save()
-                return True
+                if new_values:
+                    terminology = self.terminology.dereference()
+                    terminology.add_provenance(
+                        change_type=Terminology.ChangeType.EditTerm, 
+                        target=original_code,
+                        old_value=old_values,
+                        new_value=new_values,
+                        editor=editor
+                    )
+                    terminology.add_provenance(
+                        change_type=Terminology.ChangeType.EditTerm, 
+                        target="self",
+                        old_value=old_values,
+                        new_value=new_values,
+                        editor=editor
+                    )
+                    if original_varname != new_varname:
+                        term_doc = persistence().collection(terminology.resource_type).document(terminology.id).collection("provenance")
+                        prov = term_doc.document(original_code).get().to_dict()
+                        prov["target"] = var.code
+                        term_doc.document(var.code).set(prov)
+                        term_doc.document(original_code).delete()
+                return True 
         return False
 
     def _insert_variable(self, variable):
