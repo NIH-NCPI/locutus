@@ -128,6 +128,9 @@ class Terminology(Serializable):
         ApprovalRequested = "Approval Requested"
         Approved = "Approved"
         ApprovalDenied = "Approval Denied"
+        AddPreference = "Add API Ontology Preference"
+        EditPreference = "Edit API Ontology Preference"
+        RemovePreference = "Remove API Ontology Preference"
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -517,27 +520,118 @@ class Terminology(Serializable):
 
         tmref.document(code).set(doc)
 
-    def add_pref(self, api_preference=None, editor=None):
-        """Update the internal dictionary with new preferences""" 
-        if api_preference is not None:
-            self.api_preference.update(api_preference)
-            self.save()
-
-    def remove_pref(self, pref_key, editor=None):
+    def add_or_update_pref(self, api_preference=None, editor=None, code=None):
         """
-        Removes a specific API preference from the api_preference dictionary.
+        Add or update Ontology API preferences on the terminology and code level.
 
         Args:
-            api_key (str): The key representing the API preference to remove.
-            editor (str, optional): The user or process that is making the change.
+            api_preference (dict): The new preferences to add or update.
+            editor (str): The editor making the change.
+            code (str): The specific code to update, if provided.
         """
-        if pref_key in self.api_preference:
-            removed_pref = self.api_preference.pop(pref_key)
-            self.save()
+
+        if code is None:
+            # Add or update at the terminology level
+            
+            # If no existing preference then add the new preference. POST
+            # If existing preference then append the new preference. PUT
+            if not self.api_preference:
+                change_type = Terminology.ChangeType.AddPreference
+                self.api_preference = {}
+            else:
+                change_type = Terminology.ChangeType.EditPreference
+            
+            coding.api_preference.update(api_preference) 
+
+            self.add_provenance(
+                change_type=change_type,
+                new_value=self.api_preference,
+                editor=editor,
+                target="self",
+            )
         else:
-            msg = f"The terminology, '{self.name}' ({self.id}), has no API preference for key '{pref_key}'"
-            print(msg)
-            raise KeyError(msg)
+            # Add or update at the code level
+            code_found = False
+
+            # If no existing preference then add the new preference. POST
+            # If existing preference then append the new preference. PUT
+            for coding in self.codes:
+                if coding.code == code:
+                    if not coding.api_preference:
+                        change_type = Terminology.ChangeType.AddPreference
+                        coding.api_preference = {}
+                        
+                    else:
+                        change_type = Terminology.ChangeType.EditPreference
+
+                    coding.api_preference.update(api_preference)    
+
+                    self.add_provenance(
+                        change_type=change_type,
+                        new_value=coding.api_preference,
+                        editor=editor,
+                        target=code,
+                    )
+                    code_found = True
+                    break 
+            
+            if not code_found:
+                raise ValueError(f"Code {code} not found in the terminology.")
+
+        self.save()
+
+    def remove_pref(self, pref_key, editor=None, code=None):
+        """
+        Removes a specific API preference from the api_preference dictionary, 
+        either at the terminology level or the code level.
+
+        Args:
+            pref_key (str): The key representing the API preference to remove.
+            editor (str, optional): The user or process that is making the change.
+            code (str, optional): The specific code from which to remove the preference, if provided.
+        """
+        if code is None:
+            # Remove at the terminology level
+            if pref_key in self.api_preference:
+                removed_pref = {pref_key: self.api_preference.pop(pref_key)}
+                
+                self.add_provenance(
+                    change_type=Terminology.ChangeType.RemovePreference,
+                    old_value=removed_pref,
+                    new_value=None,
+                    editor=editor,
+                    target="self",
+                )
+                self.save()
+            else:
+                msg = f"The terminology, '{self.name}' ({self.id}), has no API preference for key '{pref_key}'"
+                print(msg)
+                raise KeyError(msg)
+        else:
+            # Remove at the code level
+            code_found = False
+            for coding in self.codes:
+                if coding.code == code:
+                    if pref_key in coding.api_preference:
+                        removed_pref = {pref_key: coding.api_preference.pop(pref_key)}
+                        
+                        self.add_provenance(
+                            change_type=Terminology.ChangeType.RemovePreference,
+                            old_value=removed_pref,
+                            new_value=None,
+                            editor=editor,
+                            target=code,
+                        )
+                        self.save()
+                        code_found = True
+                        break
+                    else:
+                        msg = f"The code '{code}' in terminology '{self.name}' ({self.id}) has no API preference for key '{pref_key}'"
+                        print(msg)
+                        raise KeyError(msg)
+
+            if not code_found:
+                raise ValueError(f"Code {code} not found in the terminology.")
 
     class _Schema(Schema):
         id = fields.Str()

@@ -205,7 +205,7 @@ class TerminologyFilter(Resource):
         editor = get_editor(body)
 
         t = Term.get(id)
-        t.add_pref(api_preference=pref, editor=editor)
+        t.add_or_update_pref(api_preference=pref, editor=editor)
 
         return t.dump(), 201, default_headers
 
@@ -221,21 +221,21 @@ class TerminologyFilter(Resource):
         pref = body.get("api_preference")
         editor = get_editor(body)
 
-        t = Term.get(id)
+        terminology = Term.get(id)
 
         not_found_keys = []
 
         # checks all pref keys(apis), will remove record if found
         for pref_key in pref.keys():
             try:
-                t.remove_pref(pref_key, editor=editor)
+                terminology.remove_pref(pref_key, editor=editor)
             except KeyError:
                 not_found_keys.append(pref_key)
 
         if not_found_keys:
             return f"Preferences not found: {', '.join(not_found_keys)}", 404, default_headers
 
-        return t.dump(), 200, default_headers
+        return terminology.dump(), 200, default_headers
     
 class CodeFilter(Resource):
     def get(self, id, code):
@@ -260,7 +260,7 @@ class CodeFilter(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def post(self, id, code):
         """
-        Update the `api_preference` for a specific code in a Terminology.
+        Add a `api_preference` for a specific code in a Terminology.
 
         Args:
             id (str): The ID of the terminology.
@@ -317,6 +317,8 @@ class CodeFilter(Resource):
 
         for coding in terminology.codes:
             if coding.code == code:
+                if not coding.api_preference:
+                    return {"message": f"No existing API preference found for code {code}. Use POST to add."}, 404
                 coding.api_preference = api_preference_code
                 code_found = True
                 break
@@ -324,7 +326,7 @@ class CodeFilter(Resource):
         if not code_found:
             return {"message": f"Code {code} not found in the Terminology."}, 404
         
-        terminology.add_pref(api_preference={code: api_preference_code}, editor=editor)
+        terminology.add_or_update_pref(api_preference=api_preference_code, editor=editor, code=code)
 
         return {"api_preference": coding.api_preference}, 201, default_headers
 
