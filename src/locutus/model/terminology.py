@@ -541,7 +541,7 @@ class Terminology(Serializable):
             else:
                 change_type = Terminology.ChangeType.EditPreference
             
-            coding.api_preference.update(api_preference) 
+            api_preference.update(api_preference) 
 
             self.add_provenance(
                 change_type=change_type,
