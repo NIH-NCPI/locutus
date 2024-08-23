@@ -456,6 +456,119 @@ terminology.
   ]
 }
 ```
+### https://[APPURL]/api/Terminology/[id]/filter
+
+#### GET
+
+Return the api search preference for the terminology (specified by id).
+Returns the api search preferences 
+
+```json
+
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter
+
+#### PUT
+
+Create a api search preference for the terminology (specified by id). 
+Request Body
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter
+
+#### POST
+
+Update the api search preference for the terminology (specified by id). 
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter
+
+#### DELETE
+
+Delete the api search preference for the terminology (specified by id).
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter/[code]
+
+#### GET
+
+Return the api search preference for the code within a specific terminology (specified by id).
+
+```json
+
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter/[code]
+
+#### PUT
+
+Create a api search preference for the code within a specific terminology (specified by id).
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter/[code]
+
+#### POST
+
+Update the api search preference for the code within a specific terminology (specified by id).
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter/[code]
+
+#### DELETE
+
+Delete the api search preference for the code within a specific terminology (specified by id).  
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+
 
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
@@ -1332,6 +1445,120 @@ If the root object in the body is missing both the "variable" and the
 "description", a 400 error is returned.
 
 Upon completion, 200 is returned along with the full table definition.
+
+### https://[APPURL]/api/Table/[id]/filter
+
+#### GET
+
+Return the api search preferences for a specific table (with a given id). 
+
+```json
+
+```
+
+### https://[APPURL]/api/Table/[id]/filter
+
+#### PUT
+
+Create a api search preference for a specific table (with a given id). 
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Table/[id]/filter
+
+#### POST
+
+Update the api search preferences for a specific table (with a given id). 
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Table/[id]/filter
+
+#### DELETE
+
+Delete the api search preferences for a specific table (with a given id). 
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Table/[id]/filter/[code]
+
+#### GET
+
+Return the api search preference for the variable (specified by code) within 
+a specific table (specified by id). 
+
+```json
+
+```
+
+### https://[APPURL]/api/Table/[id]/filter/[code]
+
+#### PUT
+
+Create a api search preference for the variable (specified by code) within 
+a specific table (specified by id). 
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Table/[id]/filter/[code]
+
+#### POST
+
+Update the api search preferences for the variable (specified by code) within 
+a specific table (specified by id). 
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
+
+### https://[APPURL]/api/Table/[id]/filter/[code]
+
+#### DELETE
+
+Delete the api search preference for the variable (specified by code) within 
+a specific table (specified by id).  
+
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+
+}
+```
 
 ### https://[APPURL]/api/Provenance/Table/[id]
 #### GET
