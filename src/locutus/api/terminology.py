@@ -170,7 +170,7 @@ class OntologyAPISearchPreferences(Resource):
             return {"message": f"Terminology with ID {id} not found."}, 404, default_headers
 
         if code:
-            # Logic for adding preference to a specific code
+            # Logic for getting preference to a specific code
             api_preference_code = None
             for coding in terminology.codes:
                 if coding.code == code:
@@ -182,7 +182,7 @@ class OntologyAPISearchPreferences(Resource):
 
             return api_preference_code, 200, default_headers
         else:
-            # Logic for adding preference to a specific terminology
+            # Logic for getting preference to a specific terminology
             api_preference = terminology.api_preference
             
             if api_preference is None:

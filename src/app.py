@@ -19,7 +19,8 @@ from locutus.api.terminology import (
 )
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.api.table import Table, Tables, HarmonyCSV, TableEdit, TableRenameCode, ApiPreference
+from locutus.api.table import (Table, Tables, HarmonyCSV, TableEdit, 
+    TableRenameCode, TableOntologyAPISearchPreferences)
 from locutus.api.table_mappings import TableMappings, TableMapping
 from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.provenance import (
@@ -73,13 +74,24 @@ api.add_resource(
 api.add_resource(Tables, "/api/Table")
 api.add_resource(Table, "/api/Table/<string:id>")
 
-
+# PUT, DELETE
+api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<string:code>")
 
 # GET/DELETE/PUT
 api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")
 # GET/DELETE
 api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
 api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")
+# GET/POST/PUT/DELETE Ontology API preferences at Table level
+api.add_resource(TableOntologyAPISearchPreferences,
+                 "/api/Table/<string:id>/filter",
+                 endpoint = 'onto_table_preferences')
+# GET/POST/PUT/DELETE Ontology API preferences at Variable level
+api.add_resource(TableOntologyAPISearchPreferences,
+                 "/api/Table/<string:id>/filter/<string:code>",
+                 endpoint = 'onto_var_preferences')
+
+
 # POST
 api.add_resource(TableLoader, "/api/LoadTable")
 # PUT (by ID)

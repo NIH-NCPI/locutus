@@ -61,7 +61,6 @@ class Table(Serializable):
         terminology=None,
         resource_type="Table",
         editor=None,
-        api_preference=None,
     ):
 
         super().__init__(id=id, collection_type="Table", resource_type="Table")
@@ -77,7 +76,6 @@ class Table(Serializable):
         self.url = url
         self.variables = []
         self._terminology = None
-        self.api_preference = api_preference if api_preference is not None else {}
 
         # For the time being, since old tables don't have them, we must create
         # the shadow terminologies on the fly. If we do this, we need to save
@@ -300,14 +298,25 @@ class Table(Serializable):
     def keys(self):
         return [self.url, self.name]
     
-    def update_api_preference(self, api_preference):
-        """ Update API preference """
-        self.api_preference = api_preference
-        self.save()
+    def remove_pref(self, api_preference=None, editor=None, code=None):
+        try:
+            print(f"Removing preference '{api_preference}' from variable '{code}'.")
+            self.terminology.dereference().remove_pref(pref_key=api_preference, editor=editor, code=code)
+            return
 
-    def get_api_preference(self):
-        """ Get API preference"""
-        return self.api_preference
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {str(e)}")
+            raise
+        
+    def add_or_update_pref(self, api_preference=None, editor=None, code=None):
+      
+        try:
+            print(f"Updating preference for variable '{code}'.")
+            self.terminology.dereference().add_or_update_pref(api_preference=api_preference, editor=editor, code=code)
+        
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {str(e)}")
+            raise
 
     class _Schema(Schema):
         id = fields.Str()
