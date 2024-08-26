@@ -464,7 +464,12 @@ Return the api search preference for the terminology (specified by id).
 Returns the api search preferences 
 
 ```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
 
+}
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/filter
@@ -487,13 +492,23 @@ Request Body
 #### POST
 
 Update the api search preference for the terminology (specified by id). 
-
+Define the api_preference 
 ```json
 {
     "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
+        "ex_api": [
+            "ex_onto",
+            "ex_onto2"
+        ]
+    },
+    "codes": [
+        
+    ],
+    "description": null,
+    "id": "tm-4rFpmPLohHdOb3fllr1l7",
+    "name": "Down_Syndrome_Status",
+    "resource_type": "Terminology",
+    "url": "www.test.com/Down_Syndrome_Status"
 }
 ```
 
@@ -503,14 +518,6 @@ Update the api search preference for the terminology (specified by id).
 
 Delete the api search preference for the terminology (specified by id).
 
-```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
-```
 
 ### https://[APPURL]/api/Terminology/[id]/filter/[code]
 
@@ -519,7 +526,12 @@ Delete the api search preference for the terminology (specified by id).
 Return the api search preference for the code within a specific terminology (specified by id).
 
 ```json
-
+{
+    "ex_api": [
+        "ex_onto",
+        "ex_onto2"
+    ]
+}
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/filter/[code]
@@ -531,9 +543,11 @@ Create a api search preference for the code within a specific terminology (speci
 ```json
 {
     "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
+        "ex_api": [
+            "ex_onto",
+            "ex_onto2"
+        ]
     }
-
 }
 
 ```
@@ -546,10 +560,20 @@ Update the api search preference for the code within a specific terminology (spe
 
 ```json
 {
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
+    "codes": [
+        {
+            "api_preference": {
+                "ex_api": [
+                    "ex_onto",
+                    "ex_onto2"
+                ]
+            },
+            "code": "T21",
+            "description": "",
+            "display": "Trisomy 21 (Down syndrome)",
+            "system": "www.test.com/Down_Syndrome_Status"
+        }
+    ],
 }
 ```
 
@@ -558,16 +582,6 @@ Update the api search preference for the code within a specific terminology (spe
 #### DELETE
 
 Delete the api search preference for the code within a specific terminology (specified by id).  
-
-```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
-```
-
 
 
 ## Terminology Provenance
@@ -1453,7 +1467,12 @@ Upon completion, 200 is returned along with the full table definition.
 Return the api search preferences for a specific table (with a given id). 
 
 ```json
-
+    "api_preference": {
+        "api_put6": [
+            "onto3",
+            "onto5"
+        ]
+    }
 ```
 
 ### https://[APPURL]/api/Table/[id]/filter
@@ -1478,12 +1497,12 @@ Create a api search preference for a specific table (with a given id).
 Update the api search preferences for a specific table (with a given id). 
 
 ```json
-{
     "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
+        "api_put6": [
+            "onto3",
+            "onto5"
+        ]
     }
-
-}
 ```
 
 ### https://[APPURL]/api/Table/[id]/filter
@@ -1492,14 +1511,6 @@ Update the api search preferences for a specific table (with a given id).
 
 Delete the api search preferences for a specific table (with a given id). 
 
-```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
-```
 
 ### https://[APPURL]/api/Table/[id]/filter/[code]
 
@@ -1509,7 +1520,12 @@ Return the api search preference for the variable (specified by code) within
 a specific table (specified by id). 
 
 ```json
-
+{
+    "api_put6": [
+        "onto3",
+        "onto5"
+    ]
+}
 ```
 
 ### https://[APPURL]/api/Table/[id]/filter/[code]
@@ -1522,9 +1538,11 @@ a specific table (specified by id).
 ```json
 {
     "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
+        "api_put6": [
+            "onto3",
+            "onto5"
+        ]
     }
-
 }
 ```
 
@@ -1536,12 +1554,22 @@ Update the api search preferences for the variable (specified by code) within
 a specific table (specified by id). 
 
 ```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
+"variables": [
+        {
+            "name": "Study Code",
+            "code": "study_code",
+            "description": "Unique identifer for the study, assigned by DCC",
+            "data_type": "ENUMERATION",
+            "enumerations": {
+                "reference": "Terminology/tm-bcOrPwPojdu_f8K3FT9-z"
+            },
+            "api_preference": {
+                "api_put6": [
+                    "onto3",
+                    "onto5"
+                ]
+            }
+        },
 ```
 
 ### https://[APPURL]/api/Table/[id]/filter/[code]
@@ -1551,14 +1579,6 @@ a specific table (specified by id).
 Delete the api search preference for the variable (specified by code) within 
 a specific table (specified by id).  
 
-```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
-```
 
 ### https://[APPURL]/api/Provenance/Table/[id]
 #### GET
