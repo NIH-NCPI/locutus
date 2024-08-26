@@ -456,43 +456,33 @@ terminology.
   ]
 }
 ```
+
 ### https://[APPURL]/api/Terminology/[id]/filter
 
 #### GET
 
 Return the api search preference for the terminology (specified by id).
-Returns the api search preferences 
+Returns the api search preferences at the Terminology level
 
 ```json
 {
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
+    "ex_api": [
+        "ex_onto",
+        "ex_onto2"
+    ]
 }
 ```
-
-### https://[APPURL]/api/Terminology/[id]/filter
 
 #### PUT
 
 Create a api search preference for the terminology (specified by id). 
-Request Body
-```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
-```
-
-### https://[APPURL]/api/Terminology/[id]/filter
+The request body and results will look very similar to the examples given 
+with the POST request for this endpoint.
 
 #### POST
 
 Update the api search preference for the terminology (specified by id). 
-Define the api_preference 
+Define the api_preference at the Terminology level.
 ```json
 {
     "api_preference": {
@@ -511,19 +501,18 @@ Define the api_preference
     "url": "www.test.com/Down_Syndrome_Status"
 }
 ```
-
-### https://[APPURL]/api/Terminology/[id]/filter
-
 #### DELETE
 
 Delete the api search preference for the terminology (specified by id).
-
+Checkout this endpoint's POST request to see an example of the data that 
+would be removed.
 
 ### https://[APPURL]/api/Terminology/[id]/filter/[code]
 
 #### GET
 
-Return the api search preference for the code within a specific terminology (specified by id).
+Return the api search preference for the code within a specific terminology
+(specified by id).
 
 ```json
 {
@@ -534,30 +523,17 @@ Return the api search preference for the code within a specific terminology (spe
 }
 ```
 
-### https://[APPURL]/api/Terminology/[id]/filter/[code]
-
 #### PUT
 
 Create a api search preference for the code within a specific terminology (specified by id).
-
-```json
-{
-    "api_preference": {
-        "ex_api": [
-            "ex_onto",
-            "ex_onto2"
-        ]
-    }
-}
-
-```
-
-### https://[APPURL]/api/Terminology/[id]/filter/[code]
+The request body and results will look very similar to the examples given 
+with the POST request for this endpoint.
 
 #### POST
 
-Update the api search preference for the code within a specific terminology (specified by id).
-
+Update the api search preference for the code within a specific terminology
+(specified by id).
+In the example below T21 was specified as the code.
 ```json
 {
     "codes": [
@@ -568,7 +544,7 @@ Update the api search preference for the code within a specific terminology (spe
                     "ex_onto2"
                 ]
             },
-            "code": "T21",
+            "code": "T21", 
             "description": "",
             "display": "Trisomy 21 (Down syndrome)",
             "system": "www.test.com/Down_Syndrome_Status"
@@ -577,12 +553,12 @@ Update the api search preference for the code within a specific terminology (spe
 }
 ```
 
-### https://[APPURL]/api/Terminology/[id]/filter/[code]
-
 #### DELETE
 
-Delete the api search preference for the code within a specific terminology (specified by id).  
-
+Delete the api search preference for the code within a specific terminology 
+(specified by id).  
+Checkout this endpoint's POST request to see an example of the data that 
+would be removed.
 
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
