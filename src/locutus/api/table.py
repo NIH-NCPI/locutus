@@ -213,12 +213,10 @@ class TableOntologyAPISearchPreferences(Resource):
             return api_preference_code, 200, default_headers
         else:
             # Logic for getting preference to a specific table
-            api_preference = t.api_preference
-            
-            if api_preference is None:
+            if t.api_preference is None:
                 return {"message": "No API preference set for this table."}, 404, default_headers
 
-            return api_preference, 200, default_headers
+            return t.api_preference, 200, default_headers
         
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Table or Variable."""

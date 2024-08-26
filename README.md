@@ -1465,52 +1465,58 @@ Upon completion, 200 is returned along with the full table definition.
 #### GET
 
 Return the api search preferences for a specific table (with a given id). 
-
+Below is an example result body
 ```json
-    "api_preference": {
-        "api_put6": [
-            "onto3",
-            "onto5"
-        ]
-    }
+{
+    "ex_api": [
+        "ontology1",
+        "onto2"
+    ]
+}
 ```
-
-### https://[APPURL]/api/Table/[id]/filter
 
 #### PUT
 
 Create a api search preference for a specific table (with a given id). 
-
-```json
-{
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
-
-}
-```
-
-### https://[APPURL]/api/Table/[id]/filter
+The request body and results will look very similar to the examples given 
+with the POST request for this endpoint.
 
 #### POST
 
 Update the api search preferences for a specific table (with a given id). 
-
-```json
+Request body example
+ ```json
+ {
     "api_preference": {
-        "api_put6": [
-            "onto3",
-            "onto5"
+        "ex_api": ["ontology1", "onto2"]
+    }
+}
+```
+The following JSON shows the api_preference is added at the table level.
+```json
+{
+    "id": "tb-Fyf0T0ujF_-qOmWbPLGoN",
+    "code": "participant_table",
+    "name": "Participant Table",
+    "url": "https://includedcc.org/fhir/CodeSystem/data-dictionary/participant",
+    "filename": "participant.csv",
+    "description": "The data-dictionary for participant demographics and basic participant level data",
+    "variables": [],
+    "resource_type": "Table",
+    "terminology": {},
+    "api_preference": {
+        "ex_api": [
+            "ontology1",
+            "onto2"
         ]
     }
+}
 ```
-
-### https://[APPURL]/api/Table/[id]/filter
-
 #### DELETE
 
 Delete the api search preferences for a specific table (with a given id). 
-
+Checkout this endpoint's POST request to see an example of the data that 
+would be removed.
 
 ### https://[APPURL]/api/Table/[id]/filter/[code]
 
@@ -1534,17 +1540,8 @@ a specific table (specified by id).
 
 Create a api search preference for the variable (specified by code) within 
 a specific table (specified by id). 
-
-```json
-{
-    "api_preference": {
-        "api_put6": [
-            "onto3",
-            "onto5"
-        ]
-    }
-}
-```
+The request body and results will look very similar to the examples given 
+with the POST request for this endpoint.
 
 ### https://[APPURL]/api/Table/[id]/filter/[code]
 
@@ -1552,6 +1549,15 @@ a specific table (specified by id).
 
 Update the api search preferences for the variable (specified by code) within 
 a specific table (specified by id). 
+Request body example
+```json
+{
+    "api_preference": {
+        "ex_api": ["ontology1", "onto2"]
+    }
+}
+```
+The following JSON shows the api_preference is added at the variable level.
 
 ```json
 "variables": [
@@ -1578,7 +1584,7 @@ a specific table (specified by id).
 
 Delete the api search preference for the variable (specified by code) within 
 a specific table (specified by id).  
-
+Checkout this endpoint's POST request to see an example of the data that 
 
 ### https://[APPURL]/api/Provenance/Table/[id]
 #### GET

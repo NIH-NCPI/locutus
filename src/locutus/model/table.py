@@ -61,6 +61,7 @@ class Table(Serializable):
         terminology=None,
         resource_type="Table",
         editor=None,
+        api_preference=None
     ):
 
         super().__init__(id=id, collection_type="Table", resource_type="Table")
@@ -76,6 +77,7 @@ class Table(Serializable):
         self.url = url
         self.variables = []
         self._terminology = None
+        self.api_preference = api_preference or {}
 
         # For the time being, since old tables don't have them, we must create
         # the shadow terminologies on the fly. If we do this, we need to save
