@@ -1552,6 +1552,7 @@ The following JSON shows the api_preference is added at the variable level.
                 ]
             }
         },
+]
 ```
 
 ### https://[APPURL]/api/Table/[id]/filter/[code]
