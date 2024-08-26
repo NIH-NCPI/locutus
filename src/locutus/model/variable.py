@@ -165,7 +165,6 @@ class EnumerationVariable(Variable):
         api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
-
 class BooleanVariable(Variable):
     data_type = Variable.DataType.BOOLEAN
 

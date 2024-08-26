@@ -19,6 +19,7 @@ class CodeAlreadyPresent(Exception):
     def message(self):
         return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
+
 """
 A terminology exists on its own within the project but can be referenced by 
 variables as part of their data-type construction. 
@@ -157,6 +158,7 @@ class Terminology(Serializable):
         self.url = url
         self.codes = []
         self.api_preference = api_preference
+        # pdb.set_trace()
 
         # This probably doesn't make sense, stashing the system in at this
         # point, but we'll trust knuth for the time being and fix it when it is
@@ -176,7 +178,6 @@ class Terminology(Serializable):
                         target="self",
                         new_value=code,
                     )
-
         super().identify()
 
     def keys(self):

@@ -4,7 +4,6 @@ from locutus import persistence
 from locutus.model.terminology import CodeAlreadyPresent, Terminology as Term
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
-from copy import deepcopy
 import pdb
 
 
