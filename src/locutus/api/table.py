@@ -2,6 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.table import Table as mTable
+from locutus.model.terminology import Terminology
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
 from copy import deepcopy
@@ -199,22 +200,28 @@ class TableOntologyAPISearchPreferences(Resource):
         if t is None:
             return {"message": f"Terminology with ID {id} not found."}, 404, default_headers
 
-        if code:
+        if code is not None:
             # Logic for getting preference to a specific code
+            variable_found = False
             api_preference_code = None
+
             for t_var in t.variables:
                 if t_var.code == code:
+                    variable_found = True
                     api_preference_code = t_var.api_preference
                     break
 
+            if not variable_found:
+                return {"message": f"Variable with code '{code}' not found in the table."}, 404, default_headers
+            
             if api_preference_code is None:
-                return {"message": "No API preference set for this code in the table."}, 404, default_headers
+                return {}, 200, default_headers
 
             return api_preference_code, 200, default_headers
         else:
             # Logic for getting preference to a specific table
             if t.api_preference is None:
-                return {"message": "No API preference set for this table."}, 404, default_headers
+                return {}, 200, default_headers
 
             return t.api_preference, 200, default_headers
         
@@ -232,7 +239,7 @@ class TableOntologyAPISearchPreferences(Resource):
         if t is None:
             return {"message": "Table not found"}, 404
 
-        if code:
+        if code is not None:
             # Logic for adding preference to a specific variable
             code_found = False
 
@@ -263,7 +270,7 @@ class TableOntologyAPISearchPreferences(Resource):
         if t is None:
             return {"message": "Table not found"}, 404
 
-        if code:
+        if code is not None:
             # Logic for updating preference for a specific code
             code_found = False
 
@@ -298,7 +305,7 @@ class TableOntologyAPISearchPreferences(Resource):
         if t is None:
             return {"message": "Table not found."}, 404
 
-        if code:
+        if code is not None:
             # Logic for removing preference from a specific code
             code_found = False
 
