@@ -161,146 +161,66 @@ class Terminology(Resource):
         return t, 200, default_headers
 
 class OntologyAPISearchPreferences(Resource):
-    def get(self, id, code=None):
-        """Retrieve the `api_preference` for a specific Terminology or Code."""
-        terminology = Term.get(id)
-        
-        if terminology is None:
-            return {"message": f"Terminology with ID {id} not found."}, 404, default_headers
+    def get(self, id=None, code=None):
+        t = Term.get(id)
 
-        if code:
-            # Logic for getting preference to a specific code
-            api_preference_code = None
-            for coding in terminology.codes:
-                if coding.code == code:
-                    api_preference_code = coding.api_preference
-                    break
+        pref = t.get_preference(code=code)
+        response = {
+            "terminology": {"Reference": f"Terminology/{t.id}"},
+            "onto_api_preference": pref,
+        }
 
-            if api_preference_code is None:
-                return {"message": "No API preference set for this code in the terminology."}, 404, default_headers
-
-            return api_preference_code, 200, default_headers
-        else:
-            # Logic for getting preference to a specific terminology
-            api_preference = terminology.api_preference
-            
-            if api_preference is None:
-                return {"message": "No API preference set for this terminology."}, 404, default_headers
-
-            return api_preference, 200, default_headers
+        return (response, 200, default_headers)
         
     @cross_origin(allow_headers=["Content-Type"])
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
-
+        t = Term.get(id)
         if "api_preference" not in body:
             return {"message": "api_preference is required"}, 400
 
         api_preference = body["api_preference"]
 
-        terminology = Term.get(id)
+        t.add_or_update_prefs(api_preference=api_preference, code=code)
+        response = {
+            "terminology": {"Reference": f"Terminology/{t.id}"},
+            "onto_api_preference": api_preference,
+        }
 
-        if terminology is None:
-            return {"message": "Terminology not found"}, 404
-
-        if code:
-            # Logic for adding preference to a specific code
-            code_found = False
-
-            for coding in terminology.codes:
-                if coding.code == code:
-                    coding.api_preference = api_preference
-                    code_found = True
-                    break
-
-            if not code_found:
-                return {"message": f"Code {code} not found in the Terminology."}, 404
-
-        else:
-            # Logic for adding preference to the entire terminology
-            terminology.api_preference = api_preference
-
-        terminology.save()
-
-        return terminology.dump(), 200, default_headers
+        return (response, 200, default_headers)
 
     def put(self, id, code=None):
-        """Add or update an `api_preference` for a specific Terminology or Code."""
+        """Update an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
-        api_preference = body.get("api_preference")
-        editor = get_editor(body)
+        t = Term.get(id)
+        if "api_preference" not in body:
+            return {"message": "api_preference is required"}, 400
 
-        terminology = Term.get(id)
-        if terminology is None:
-            return {"message": "Terminology not found"}, 404
+        api_preference = body["api_preference"]
 
-        if code:
-            # Logic for updating preference for a specific code
-            code_found = False
+        t.add_or_update_prefs(api_preference=api_preference, code=code)
+        response = {
+            "terminology": {"Reference": f"Terminology/{t.id}"},
+            "onto_api_preference": api_preference,
+        }
 
-            for coding in terminology.codes:
-                if coding.code == code:
-                    if not coding.api_preference:
-                        return {"message": f"No existing API preference found for code {code}. Use POST to add."}, 404
-                    coding.api_preference = api_preference
-                    code_found = True
-                    break
-
-            if not code_found:
-                return {"message": f"Code {code} not found in the Terminology."}, 404
-            
-            terminology.add_or_update_pref(api_preference=api_preference, editor=editor, code=code)
-
-            return {"api_preference": coding.api_preference}, 201, default_headers
-
-        else:
-            # Logic for updating preference for the entire terminology
-            terminology.add_or_update_pref(api_preference=api_preference, editor=editor)
-
-            return terminology.dump(), 201, default_headers
+        return (response, 200, default_headers)
 
     def delete(self, id, code=None):
         """Remove an `api_preference` from a specific Terminology or Code."""
-        body = request.get_json()
-        pref = body.get("api_preference")
-        editor = get_editor(body)
+        t = Term.get(id)
 
-        terminology = Term.get(id)
-        if terminology is None:
-            return {"message": "Terminology not found."}, 404
+        t.delete_prefs(code=code)
 
         if code:
-            # Logic for removing preference from a specific code
-            code_found = False
-
-            for coding in terminology.codes:
-                if coding.code == code:
-                    code_found = True
-
-                    for pref_key in pref.keys():
-                        if pref_key in coding.api_preference:
-                            coding.api_preference.pop(pref_key)
-                        else:
-                            return {"message": f"Preference key '{pref_key}' not found in the code {code}."}, 404
-                    break
-
-            if not code_found:
-                return {"message": f"Code {code} not found in the Terminology."}, 404
-
+            message = f"Preferences for code '{code}' in Terminology '{t.id}' have been deleted."
         else:
-            # Logic for removing preference from the entire terminology
-            not_found_keys = []
+            message = f"Preferences for the Terminology '{t.id}' have been deleted."
+            
+        response = {
+            "message": message,
+            "terminology": {"Reference": f"Terminology/{t.id}"}
+        }
 
-            for pref_key in pref.keys():
-                try:
-                    terminology.remove_pref(pref_key, editor=editor)
-                except KeyError:
-                    not_found_keys.append(pref_key)
-
-            if not_found_keys:
-                return f"Preferences not found: {', '.join(not_found_keys)}", 404, default_headers
-
-        terminology.save()
-
-        return terminology.dump(), 200, default_headers
+        return (response, 200, default_headers)

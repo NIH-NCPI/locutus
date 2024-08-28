@@ -5,7 +5,7 @@ from locutus.api import delete_collection
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
-
+import logging
 import pdb
 
 class CodeAlreadyPresent(Exception):
@@ -76,12 +76,11 @@ class OntologyAPISearchPreference:
             return OntologyAPISearchPreference(**data)
 
 class Coding:
-    def __init__(self, code, display="", system=None, description="", api_preference=None):
+    def __init__(self, code, display="", system=None, description=""):
         self.code = code
         self.display = display
         self.system = system
         self.description = description
-        self.api_preference = api_preference
 
     class _Schema(Schema):
         code = fields.Str(
@@ -90,7 +89,6 @@ class Coding:
         display = fields.Str()
         system = fields.URL()
         description = fields.Str()
-        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
         @post_load
         def build_code(self, data, **kwargs):
@@ -106,8 +104,6 @@ class Coding:
         if self.system is not None:
             obj["system"] = self.system
 
-        if self.api_preference is not None:
-            obj["api_preference"] = self.api_preference
 
         return obj
 
@@ -129,9 +125,6 @@ class Terminology(Serializable):
         ApprovalRequested = "Approval Requested"
         Approved = "Approved"
         ApprovalDenied = "Approval Denied"
-        AddPreference = "Add API Ontology Preference"
-        EditPreference = "Edit API Ontology Preference"
-        RemovePreference = "Remove API Ontology Preference"
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -145,7 +138,6 @@ class Terminology(Serializable):
         url=None,
         description=None,
         codes=None,
-        api_preference=None,
         resource_type=None,
         editor=None,
     ):
@@ -157,7 +149,6 @@ class Terminology(Serializable):
         self.description = description
         self.url = url
         self.codes = []
-        self.api_preference = api_preference
         # pdb.set_trace()
 
         # This probably doesn't make sense, stashing the system in at this
@@ -521,118 +512,86 @@ class Terminology(Serializable):
 
         tmref.document(code).set(doc)
 
-    def add_or_update_pref(self, api_preference=None, editor=None, code=None):
-        """
-        Add or update Ontology API preferences on the terminology and code level.
-
-        Args:
-            api_preference (dict): The new preferences to add or update.
-            editor (str): The editor making the change.
-            code (str): The specific code to update, if provided.
-        """
+    def get_preference(self, code=None ):
+        pref = {}
 
         if code is None:
-            # Add or update at the terminology level
-            
-            # If no existing preference then add the new preference. POST
-            # If existing preference then append the new preference. PUT
-            if not self.api_preference:
-                change_type = Terminology.ChangeType.AddPreference
-                self.api_preference = {}
-            else:
-                change_type = Terminology.ChangeType.EditPreference
-            
-            api_preference.update(api_preference) 
+            for prv in (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection('onto_api_preference')
+                .stream()
+            ):
+                try:
+                    prv = prv.to_dict()
 
-            self.add_provenance(
-                change_type=change_type,
-                new_value=self.api_preference,
-                editor=editor,
-                target="self",
-            )
-        else:
-            # Add or update at the code level
-            code_found = False
-
-            # If no existing preference then add the new preference. POST
-            # If existing preference then append the new preference. PUT
-            for coding in self.codes:
-                if coding.code == code:
-                    if not coding.api_preference:
-                        change_type = Terminology.ChangeType.AddPreference
-                        coding.api_preference = {}
-                        
-                    else:
-                        change_type = Terminology.ChangeType.EditPreference
-
-                    coding.api_preference.update(api_preference)    
-
-                    self.add_provenance(
-                        change_type=change_type,
-                        new_value=coding.api_preference,
-                        editor=editor,
-                        target=code,
-                    )
-                    code_found = True
-                    break 
-            
-            if not code_found:
-                raise ValueError(f"Code {code} not found in the terminology.")
-
-        self.save()
-
-    def remove_pref(self, pref_key, editor=None, code=None):
-        """
-        Removes a specific API preference from the api_preference dictionary, 
-        either at the terminology level or the code level.
-
-        Args:
-            pref_key (str): The key representing the API preference to remove.
-            editor (str, optional): The user or process that is making the change.
-            code (str, optional): The specific code from which to remove the preference, if provided.
-        """
-        if code is None:
-            # Remove at the terminology level
-            if pref_key in self.api_preference:
-                removed_pref = {pref_key: self.api_preference.pop(pref_key)}
+                except TypeError as e:
+                    raise TypeError(
+                        "Encountered an issue converting to a dictionary."
+                    ) from e
                 
-                self.add_provenance(
-                    change_type=Terminology.ChangeType.RemovePreference,
-                    old_value=removed_pref,
-                    new_value=None,
-                    editor=editor,
-                    target="self",
-                )
-                self.save()
-            else:
-                msg = f"The terminology, '{self.name}' ({self.id}), has no API preference for key '{pref_key}'"
-                print(msg)
-                raise KeyError(msg)
+                id = "self" # Use "self", since no specific code was provided
+                pref[id] = prv
         else:
-            # Remove at the code level
-            code_found = False
-            for coding in self.codes:
-                if coding.code == code:
-                    if pref_key in coding.api_preference:
-                        removed_pref = {pref_key: coding.api_preference.pop(pref_key)}
-                        
-                        self.add_provenance(
-                            change_type=Terminology.ChangeType.RemovePreference,
-                            old_value=removed_pref,
-                            new_value=None,
-                            editor=editor,
-                            target=code,
-                        )
-                        self.save()
-                        code_found = True
-                        break
-                    else:
-                        msg = f"The code '{code}' in terminology '{self.name}' ({self.id}) has no API preference for key '{pref_key}'"
-                        print(msg)
-                        raise KeyError(msg)
+            prv = (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection('onto_api_preference')
+                .document(code)
+                .get()
+                .to_dict()
+            )
+            if prv is not None and prv != {}:
+                id = code 
+                pref[id] = prv
+            else:
+                pref[code] = {}
+        # pdb.set_trace()
 
-            if not code_found:
-                raise ValueError(f"Code {code} not found in the terminology.")
+        return pref
+    
+    def add_or_update_prefs(self, api_preference, code=None):
+        if code is None:
+            code = "self"
+
+        try:
+            # get current preferences, default to empty dict
+            cur_pref = self.get_preference(code=code).get(code, {})
+
+            # Add or update the preferences for the given API
+            cur_pref["api_preferences"] = api_preference
+
+            # Save the updated preferences back to the Firestore sub-collection
+            persistence().collection(self.resource_type).document(self.id) \
+                .collection("onto_api_preference").document(code).set(cur_pref)
+            
+        except Exception as e:
+            logging.error(f"An error occurred while updating preferences: {e}")
+            raise
+
+    def delete_prefs(self, code=None):
+        if code is None:
+            code = "self" 
+
+        try:
+            # Define the collection reference
+            collection_ref = persistence().collection(self.resource_type) \
+                .document(self.id).collection("onto_api_preference")
+            
+            doc_ref = collection_ref.document(code)
+            doc_snapshot = doc_ref.get()
+            
+            if doc_snapshot.exists:
+                # Delete the document if it exists
+                doc_ref.delete()
+
+        except Exception as e:
+            logging.error(f"An error occurred while deleting preferences for code '{code}': {e}")
+            raise
+
+
 
     class _Schema(Schema):
         id = fields.Str()
@@ -640,7 +599,6 @@ class Terminology(Serializable):
         url = fields.URL(required=True)
         description = fields.Str()
         codes = fields.List(fields.Nested(Coding._Schema))
-        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
         resource_type = fields.Str()
 
         @post_load

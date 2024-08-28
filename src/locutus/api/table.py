@@ -78,11 +78,6 @@ class TableEdit(Resource):
         vardef = deepcopy(body)
         vardef["name"] = code
 
-        table.add_variable(vardef, editor=editor)
-
-        if "api_preference" in body:
-            table.update_api_preference(body["api_preference"])
-
         table.save()
         return table.dump(), 201, default_headers
 
@@ -193,149 +188,150 @@ class HarmonyCSV(Resource):
         return harmony, 200, default_headers
 
 class TableOntologyAPISearchPreferences(Resource):
-    def get(self, id, code=None):
-        """Retrieve the `api_preference` for a specific Terminology or Code."""
-        t = mTable.get(id)
+    pass
+    # def get(self, id, code=None):
+    #     """Retrieve the `api_preference` for a specific Terminology or Code."""
+    #     t = mTable.get(id)
         
-        if t is None:
-            return {"message": f"Terminology with ID {id} not found."}, 404, default_headers
+    #     if t is None:
+    #         return {"message": f"Terminology with ID {id} not found."}, 404, default_headers
 
-        if code is not None:
-            # Logic for getting preference to a specific code
-            variable_found = False
-            api_preference_code = None
+    #     if code is not None:
+    #         # Logic for getting preference to a specific code
+    #         variable_found = False
+    #         api_preference_code = None
 
-            for t_var in t.variables:
-                if t_var.code == code:
-                    variable_found = True
-                    api_preference_code = t_var.api_preference
-                    break
+    #         for t_var in t.variables:
+    #             if t_var.code == code:
+    #                 variable_found = True
+    #                 api_preference_code = t_var.api_preference
+    #                 break
 
-            if not variable_found:
-                return {"message": f"Variable with code '{code}' not found in the table."}, 404, default_headers
+    #         if not variable_found:
+    #             return {"message": f"Variable with code '{code}' not found in the table."}, 404, default_headers
             
-            if api_preference_code is None:
-                return {}, 200, default_headers
+    #         if api_preference_code is None:
+    #             return {}, 200, default_headers
 
-            return api_preference_code, 200, default_headers
-        else:
-            # Logic for getting preference to a specific table
-            if t.api_preference is None:
-                return {}, 200, default_headers
+    #         return api_preference_code, 200, default_headers
+    #     else:
+    #         # Logic for getting preference to a specific table
+    #         if t.api_preference is None:
+    #             return {}, 200, default_headers
 
-            return t.api_preference, 200, default_headers
+    #         return t.api_preference, 200, default_headers
         
-    def post(self, id, code=None):
-        """Create or add an `api_preference` for a specific Table or Variable."""
-        body = request.get_json()
+#     def post(self, id, code=None):
+#         """Create or add an `api_preference` for a specific Table or Variable."""
+#         body = request.get_json()
 
-        if "api_preference" not in body:
-            return {"message": "api_preference is required"}, 400
+#         if "api_preference" not in body:
+#             return {"message": "api_preference is required"}, 400
 
-        api_preference = body["api_preference"]
+#         api_preference = body["api_preference"]
 
-        t = mTable.get(id)
+#         t = mTable.get(id)
 
-        if t is None:
-            return {"message": "Table not found"}, 404
+#         if t is None:
+#             return {"message": "Table not found"}, 404
 
-        if code is not None:
-            # Logic for adding preference to a specific variable
-            code_found = False
+#         if code is not None:
+#             # Logic for adding preference to a specific variable
+#             code_found = False
 
-            for t_var in t.variables:
-                if t_var.code == code:
-                    t_var.api_preference = api_preference
-                    code_found = True
-                    break
+#             for t_var in t.variables:
+#                 if t_var.code == code:
+#                     t_var.api_preference = api_preference
+#                     code_found = True
+#                     break
 
-            if not code_found:
-                return {"message": f"Code {code} not found in the Table."}, 404
+#             if not code_found:
+#                 return {"message": f"Code {code} not found in the Table."}, 404
 
-        else:
-            # Logic for adding preference to the entire table
-            t.api_preference = api_preference
+#         else:
+#             # Logic for adding preference to the entire table
+#             t.api_preference = api_preference
 
-        t.save()
+#         t.save()
 
-        return t.dump(), 200, default_headers
+#         return t.dump(), 200, default_headers
 
-    def put(self, id, code=None):
-        """Add or update an `api_preference` for a specific Table or Code."""
-        body = request.get_json()
-        api_preference = body.get("api_preference")
-        editor = get_editor(body)
+#     def put(self, id, code=None):
+#         """Add or update an `api_preference` for a specific Table or Code."""
+#         body = request.get_json()
+#         api_preference = body.get("api_preference")
+#         editor = get_editor(body)
 
-        t = mTable.get(id)
-        if t is None:
-            return {"message": "Table not found"}, 404
+#         t = mTable.get(id)
+#         if t is None:
+#             return {"message": "Table not found"}, 404
 
-        if code is not None:
-            # Logic for updating preference for a specific code
-            code_found = False
+#         if code is not None:
+#             # Logic for updating preference for a specific code
+#             code_found = False
 
-            for t_var in t.variables:
-                if t_var.code == code:
-                    if not t_var.api_preference:
-                        return {"message": f"No existing API preference found for code {code}. Use POST to add."}, 404
-                    t_var.api_preference = api_preference
-                    code_found = True
-                    break
+#             for t_var in t.variables:
+#                 if t_var.code == code:
+#                     if not t_var.api_preference:
+#                         return {"message": f"No existing API preference found for code {code}. Use POST to add."}, 404
+#                     t_var.api_preference = api_preference
+#                     code_found = True
+#                     break
 
-            if not code_found:
-                return {"message": f"Code {code} not found in the Table."}, 404
+#             if not code_found:
+#                 return {"message": f"Code {code} not found in the Table."}, 404
             
-            t.add_or_update_pref(api_preference=api_preference, editor=editor, code=code)
+#             t.add_or_update_pref(api_preference=api_preference, editor=editor, code=code)
 
-            return {"api_preference": t_var.api_preference}, 201, default_headers
+#             return {"api_preference": t_var.api_preference}, 201, default_headers
 
-        else:
-            # Logic for updating preference for the entire table
-            t.add_or_update_pref(api_preference=api_preference, editor=editor)
+#         else:
+#             # Logic for updating preference for the entire table
+#             t.add_or_update_pref(api_preference=api_preference, editor=editor)
 
-            return t.dump(), 201, default_headers
+#             return t.dump(), 201, default_headers
 
-    def delete(self, id, code=None):
-        """Remove an `api_preference` from a specific Table or Code."""
-        body = request.get_json()
-        pref = body.get("api_preference")
-        editor = get_editor(body)
+#     def delete(self, id, code=None):
+#         """Remove an `api_preference` from a specific Table or Code."""
+#         body = request.get_json()
+#         pref = body.get("api_preference")
+#         editor = get_editor(body)
 
-        t = mTable.get(id)
-        if t is None:
-            return {"message": "Table not found."}, 404
+#         t = mTable.get(id)
+#         if t is None:
+#             return {"message": "Table not found."}, 404
 
-        if code is not None:
-            # Logic for removing preference from a specific code
-            code_found = False
+#         if code is not None:
+#             # Logic for removing preference from a specific code
+#             code_found = False
 
-            for t_var in t.variables:
-                if t_var.code == code:
-                    code_found = True
+#             for t_var in t.variables:
+#                 if t_var.code == code:
+#                     code_found = True
 
-                    for pref_key in pref.keys():
-                        if pref_key in t_var.api_preference:
-                            t.remove_pref(api_preference=pref_key, editor=editor, code=code)
-                        else:
-                            return {"message": f"Preference key '{pref_key}' not found in the code {code}."}, 404
-                    break
+#                     for pref_key in pref.keys():
+#                         if pref_key in t_var.api_preference:
+#                             t.remove_pref(api_preference=pref_key, editor=editor, code=code)
+#                         else:
+#                             return {"message": f"Preference key '{pref_key}' not found in the code {code}."}, 404
+#                     break
 
-            if not code_found:
-                return {"message": f"Code {code} not found in the Table."}, 404
+#             if not code_found:
+#                 return {"message": f"Code {code} not found in the Table."}, 404
 
-        else:
-            # Logic for removing preference from the entire table
-            not_found_keys = []
+#         else:
+#             # Logic for removing preference from the entire table
+#             not_found_keys = []
 
-            for pref_key in pref.keys():
-                try:
-                    t.remove_pref(pref_key, editor=editor)
-                except KeyError:
-                    not_found_keys.append(pref_key)
+#             for pref_key in pref.keys():
+#                 try:
+#                     t.remove_pref(pref_key, editor=editor)
+#                 except KeyError:
+#                     not_found_keys.append(pref_key)
 
-            if not_found_keys:
-                return f"Preferences not found: {', '.join(not_found_keys)}", 404, default_headers
+#             if not_found_keys:
+#                 return f"Preferences not found: {', '.join(not_found_keys)}", 404, default_headers
 
-        t.save()
+#         t.save()
 
-        return t.dump(), 200, default_headers
+#         return t.dump(), 200, default_headers
