@@ -535,7 +535,7 @@ class Terminology(Serializable):
             cur_pref = self.get_preference(code=code).get(code, {})
 
             # Add or update the preferences for the given API
-            cur_pref["api_preferences"] = api_preference
+            cur_pref["api_preference"] = api_preference
 
             # Save the updated preferences back to the Firestore sub-collection
             persistence().collection(self.resource_type).document(self.id) \
@@ -547,7 +547,7 @@ class Terminology(Serializable):
 
     def remove_pref(self, code=None):
         if code is None:
-            code = "self" 
+            code = "self"
 
         try:
             # Define the collection reference

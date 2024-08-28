@@ -166,12 +166,8 @@ class OntologyAPISearchPreferences(Resource):
         t = Term.get(id)
 
         pref = t.get_preference(code=code)
-        response = {
-            "terminology": {"Reference": f"Terminology/{t.id}"},
-            "onto_api_preference": pref,
-        }
 
-        return (response, 200, default_headers)
+        return (pref, 200, default_headers)
         
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
