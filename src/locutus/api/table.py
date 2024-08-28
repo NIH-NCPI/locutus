@@ -78,6 +78,7 @@ class TableEdit(Resource):
         vardef = deepcopy(body)
         vardef["name"] = code
 
+        table.add_variable(vardef, editor=editor)
         table.save()
         return table.dump(), 201, default_headers
 

@@ -104,7 +104,6 @@ class Coding:
         if self.system is not None:
             obj["system"] = self.system
 
-
         return obj
 
 
@@ -149,6 +148,7 @@ class Terminology(Serializable):
         self.description = description
         self.url = url
         self.codes = []
+        
         # pdb.set_trace()
 
         # This probably doesn't make sense, stashing the system in at this

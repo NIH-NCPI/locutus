@@ -1,9 +1,10 @@
 from flask_restful import Resource
 from flask import request
 from locutus import persistence
-from locutus.model.terminology import CodeAlreadyPresent, Terminology as Term
+from locutus.model.terminology import CodeAlreadyPresent, Coding, Terminology as Term
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
+
 import pdb
 
 
