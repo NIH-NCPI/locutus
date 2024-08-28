@@ -44,37 +44,6 @@ the "codes" array.
 """
 
 
-class OntologyAPISearchPreference:
-    """
-    Represents a recorded Ontology API Search Preference
-    Attributes:
-        api_preference (dict): The users preference for ontology api and 
-        ontology.
-    """
-
-    def __init__(self, api_preference=None):
-        self.api_preference = api_preference or {}
-
-    class _Schema(Schema):
-        """
-        Marshmallow schema for serializing and deserializing Ontologies instances.
-
-        api_preference = {'api1': ['onto1', 'onto2'], 
-                          'api2': ['onto3']}
-        """    
-        api_preference = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
-
-        @post_load
-        def build_pref(self, data, **kwargs):
-            """
-            Builds an OntologyAPISearchPreference instance from deserialized data.
-            Args:
-                data (dict): The deserialized data.
-            Returns:
-                OntologyAPISearchPreference: An instance of the OntologyAPISearchPreference class.
-            """
-            return OntologyAPISearchPreference(**data)
-
 class Coding:
     def __init__(self, code, display="", system=None, description=""):
         self.code = code
@@ -148,7 +117,7 @@ class Terminology(Serializable):
         self.description = description
         self.url = url
         self.codes = []
-        
+
         # pdb.set_trace()
 
         # This probably doesn't make sense, stashing the system in at this
