@@ -172,7 +172,6 @@ class OntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
         
-    @cross_origin(allow_headers=["Content-Type"])
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
@@ -182,7 +181,7 @@ class OntologyAPISearchPreferences(Resource):
 
         api_preference = body["api_preference"]
 
-        t.add_or_update_prefs(api_preference=api_preference, code=code)
+        t.add_or_update_pref(api_preference=api_preference, code=code)
         response = {
             "terminology": {"Reference": f"Terminology/{t.id}"},
             "onto_api_preference": api_preference,
@@ -199,7 +198,7 @@ class OntologyAPISearchPreferences(Resource):
 
         api_preference = body["api_preference"]
 
-        t.add_or_update_prefs(api_preference=api_preference, code=code)
+        t.add_or_update_pref(api_preference=api_preference, code=code)
         response = {
             "terminology": {"Reference": f"Terminology/{t.id}"},
             "onto_api_preference": api_preference,
@@ -211,13 +210,8 @@ class OntologyAPISearchPreferences(Resource):
         """Remove an `api_preference` from a specific Terminology or Code."""
         t = Term.get(id)
 
-        t.delete_prefs(code=code)
+        message = t.remove_pref(code=code)
 
-        if code:
-            message = f"Preferences for code '{code}' in Terminology '{t.id}' have been deleted."
-        else:
-            message = f"Preferences for the Terminology '{t.id}' have been deleted."
-            
         response = {
             "message": message,
             "terminology": {"Reference": f"Terminology/{t.id}"}

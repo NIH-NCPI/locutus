@@ -298,27 +298,30 @@ class Table(Serializable):
     def keys(self):
         return [self.url, self.name]
     
-    def remove_pref(self, api_preference=None, editor=None, code=None):
-        pass
-        # try:
-        #     print(f"Removing preference '{api_preference}' from variable '{code}'.")
-        #     self.terminology.dereference().remove_pref(pref_key=api_preference, editor=editor, code=code)
-        #     return
-
-        # except Exception as e:
-        #     print(f"An error occurred while updating preferences: {str(e)}")
-        #     raise
+    def get_preference(self, code=None):
+        """Retrieve preferences from the terminology."""
+        try:
+            pref = self.terminology.dereference().get_preference(code=code)
+            return pref
+        except Exception as e:
+            print(f"An error occurred while retrieving preferences: {str(e)}")
+            raise
         
-    def add_or_update_pref(self, api_preference=None, editor=None, code=None):
-        pass
-        # try:
-        #     print(f"Updating preference for variable '{code}'.")
-        #     self.terminology.dereference().add_or_update_pref(api_preference=api_preference, editor=editor, code=code)
+    def add_or_update_pref(self, api_preference, code=None):
+        try:
+            self.terminology.dereference().add_or_update_pref(api_preference=api_preference, code=code)
         
-        # except Exception as e:
-        #     print(f"An error occurred while updating preferences: {str(e)}")
-        #     raise
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {str(e)}")
+            raise
 
+    def remove_pref(self, code=None):
+        try:
+            message = self.terminology.dereference().remove_pref(code=code)
+            return message
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {str(e)}")
+            raise
     class _Schema(Schema):
         id = fields.Str()
         code = fields.Str()

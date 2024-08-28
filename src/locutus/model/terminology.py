@@ -5,7 +5,7 @@ from locutus.api import delete_collection
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
-import logging
+
 import pdb
 
 class CodeAlreadyPresent(Exception):
@@ -512,47 +512,52 @@ class Terminology(Serializable):
 
         tmref.document(code).set(doc)
 
-    def get_preference(self, code=None ):
+    def get_preference(self, code=None):
         pref = {}
 
-        if code is None:
-            for prv in (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection('onto_api_preference')
-                .stream()
-            ):
-                try:
-                    prv = prv.to_dict()
-
-                except TypeError as e:
-                    raise TypeError(
-                        "Encountered an issue converting to a dictionary."
-                    ) from e
-                
-                id = "self" # Use "self", since no specific code was provided
-                pref[id] = prv
-        else:
-            prv = (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection('onto_api_preference')
-                .document(code)
-                .get()
-                .to_dict()
-            )
-            if prv is not None and prv != {}:
-                id = code 
-                pref[id] = prv
+        try:
+            # If no specific code is provided, get all preferences
+            if code is None:
+                for prv in (
+                    persistence()
+                    .collection(self.resource_type)
+                    .document(self.id)
+                    .collection('onto_api_preference')
+                    .stream()
+                ):
+                    try:
+                        prv_dict = prv.to_dict()
+                        id = "self"  # Use "self" for unspecific code retrieval
+                        pref[id] = prv_dict
+                    except TypeError as e:
+                        raise TypeError(
+                            "Encountered an issue converting a document to a dictionary."
+                        ) from e
+            
+            # If a specific code is provided, get only that preference
             else:
-                pref[code] = {}
-        # pdb.set_trace()
+                prv = (
+                    persistence()
+                    .collection(self.resource_type)
+                    .document(self.id)
+                    .collection('onto_api_preference')
+                    .document(code)
+                    .get()
+                )
+                
+                if prv.exists:
+                    pref[code] = prv.to_dict() or {}
+                else:
+                    pref[code] = {}
+        
+        except Exception as e:
+            print(f"An error occurred while retrieving preferences: {str(e)}")
+            raise
 
         return pref
+
     
-    def add_or_update_prefs(self, api_preference, code=None):
+    def add_or_update_pref(self, api_preference, code=None):
         if code is None:
             code = "self"
 
@@ -568,10 +573,10 @@ class Terminology(Serializable):
                 .collection("onto_api_preference").document(code).set(cur_pref)
             
         except Exception as e:
-            logging.error(f"An error occurred while updating preferences: {e}")
+            print(f"An error occurred while updating preferences: {e}")
             raise
 
-    def delete_prefs(self, code=None):
+    def remove_pref(self, code=None):
         if code is None:
             code = "self" 
 
@@ -586,11 +591,17 @@ class Terminology(Serializable):
             if doc_snapshot.exists:
                 # Delete the document if it exists
                 doc_ref.delete()
+                message = f"Successfully deleted preferences for code '{code}'."
+            else:
+                message = f"No preferences found to delete for code '{code}'."
 
         except Exception as e:
-            logging.error(f"An error occurred while deleting preferences for code '{code}': {e}")
+            message = f"An error occurred while deleting preferences for code '{code}': {e}"
             raise
 
+        print(message)
+
+        return message
 
 
     class _Schema(Schema):
