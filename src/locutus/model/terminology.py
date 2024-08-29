@@ -481,6 +481,98 @@ class Terminology(Serializable):
 
         tmref.document(code).set(doc)
 
+    def get_preference(self, code=None):
+        pref = {}
+
+        try:
+            # If no specific code is provided, get all preferences
+            if code is None:
+                for prv in (
+                    persistence()
+                    .collection(self.resource_type)
+                    .document(self.id)
+                    .collection('onto_api_preference')
+                    .stream()
+                ):
+                    try:
+                        prv_dict = prv.to_dict()
+                        id = "self"  # Use "self" for unspecific code retrieval
+                        pref[id] = prv_dict
+                    except TypeError as e:
+                        raise TypeError(
+                            "Encountered an issue converting a document to a dictionary."
+                        ) from e
+            
+            # If a specific code is provided, get only that preference
+            else:
+                prv = (
+                    persistence()
+                    .collection(self.resource_type)
+                    .document(self.id)
+                    .collection('onto_api_preference')
+                    .document(code)
+                    .get()
+                )
+                
+                if prv.exists:
+                    pref[code] = prv.to_dict() or {}
+                else:
+                    pref[code] = {}
+        
+        except Exception as e:
+            print(f"An error occurred while retrieving preferences: {str(e)}")
+            raise
+
+        return pref
+
+    
+    def add_or_update_pref(self, api_preference, code=None):
+        if code is None:
+            code = "self"
+
+        try:
+            # get current preferences, default to empty dict
+            cur_pref = self.get_preference(code=code).get(code, {})
+
+            # Add or update the preferences for the given API
+            cur_pref["api_preference"] = api_preference
+
+            # Save the updated preferences back to the Firestore sub-collection
+            persistence().collection(self.resource_type).document(self.id) \
+                .collection("onto_api_preference").document(code).set(cur_pref)
+            
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {e}")
+            raise
+
+    def remove_pref(self, code=None):
+        if code is None:
+            code = "self"
+
+        try:
+            # Define the collection reference
+            collection_ref = persistence().collection(self.resource_type) \
+                .document(self.id).collection("onto_api_preference")
+            
+            doc_ref = collection_ref.document(code)
+            doc_snapshot = doc_ref.get()
+            
+            if doc_snapshot.exists:
+                # Delete the document if it exists
+                doc_ref.delete()
+                message = f"Successfully deleted preferences for code '{code}'."
+            else:
+                message = f"No preferences found to delete for code '{code}'."
+
+        except Exception as e:
+            message = f"An error occurred while deleting preferences for code '{code}': {e}"
+            raise
+
+        print(message)
+
+        return message
+
+
     class _Schema(Schema):
         id = fields.Str()
         name = fields.Str(required=True)

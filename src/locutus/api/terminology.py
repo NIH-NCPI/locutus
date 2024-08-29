@@ -160,3 +160,58 @@ class Terminology(Resource):
         time_of_delete = dref.delete()
 
         return t, 200, default_headers
+
+class OntologyAPISearchPreferences(Resource):
+    def get(self, id=None, code=None):
+        t = Term.get(id)
+
+        pref = t.get_preference(code=code)
+
+        return (pref, 200, default_headers)
+        
+    def post(self, id, code=None):
+        """Create or add an `api_preference` for a specific Terminology or Code."""
+        body = request.get_json()
+        t = Term.get(id)
+        if "api_preference" not in body:
+            return {"message": "api_preference is required"}, 400
+
+        api_preference = body["api_preference"]
+
+        t.add_or_update_pref(api_preference=api_preference, code=code)
+        response = {
+            "terminology": {"Reference": f"Terminology/{t.id}"},
+            "onto_api_preference": api_preference,
+        }
+
+        return (response, 200, default_headers)
+
+    def put(self, id, code=None):
+        """Update an `api_preference` for a specific Terminology or Code."""
+        body = request.get_json()
+        t = Term.get(id)
+        if "api_preference" not in body:
+            return {"message": "api_preference is required"}, 400
+
+        api_preference = body["api_preference"]
+
+        t.add_or_update_pref(api_preference=api_preference, code=code)
+        response = {
+            "terminology": {"Reference": f"Terminology/{t.id}"},
+            "onto_api_preference": api_preference,
+        }
+
+        return (response, 200, default_headers)
+
+    def delete(self, id, code=None):
+        """Remove an `api_preference` from a specific Terminology or Code."""
+        t = Term.get(id)
+
+        message = t.remove_pref(code=code)
+
+        response = {
+            "message": message,
+            "terminology": {"Reference": f"Terminology/{t.id}"}
+        }
+
+        return (response, 200, default_headers)

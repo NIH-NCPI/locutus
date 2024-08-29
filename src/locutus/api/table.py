@@ -2,6 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.table import Table as mTable
+from locutus.model.terminology import Terminology
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
 from copy import deepcopy
@@ -186,3 +187,61 @@ class HarmonyCSV(Resource):
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
         return harmony, 200, default_headers
+
+class TableOntologyAPISearchPreferences(Resource):
+    def get(self, id, code=None):
+        t = mTable.get(id)
+
+        try:
+            pref = t.get_preference(code=code)
+        except KeyError as e:
+            return {"message_to_user": str(e)}, 400, default_headers
+        
+        return pref, 200, default_headers
+        
+    def post(self, id, code=None):
+        """Create or add an `api_preference` for a specific Table or code."""
+        body = request.get_json()
+        t = mTable.get(id)
+        if "api_preference" not in body:
+            return {"message": "api_preference is required"}, 400
+
+        api_preference = body["api_preference"]
+
+        t.add_or_update_pref(api_preference=api_preference, code=code)
+        response = {
+            "table": {"Reference": f"Table/{t.id}"},
+            "onto_api_preference": api_preference,
+        }
+
+        return (response, 200, default_headers)
+
+    def put(self, id, code=None):
+        """Update an `api_preference` for a specific Table or code."""
+        body = request.get_json()
+        t = mTable.get(id)
+        if "api_preference" not in body:
+            return {"message": "api_preference is required"}, 400
+
+        api_preference = body["api_preference"]
+
+        t.add_or_update_pref(api_preference=api_preference, code=code)
+        response = {
+            "table": {"Reference": f"Table/{t.id}"},
+            "onto_api_preference": api_preference,
+        }
+
+        return (response, 200, default_headers)
+
+    def delete(self, id, code=None):
+        """Remove an `api_preference` from a specific Table or code."""
+        t = mTable.get(id)
+
+        message = t.remove_pref(code=code)
+
+        response = {
+            "message": message,
+            "table": {"Reference": f"Table/{t.id}"}
+        }
+
+        return (response, 200, default_headers)

@@ -457,6 +457,103 @@ terminology.
 }
 ```
 
+### https://[APPURL]/api/Terminology/[id]/filter
+
+<h4 id="term_id_filter_get">GET</h4>
+
+Return the api search preference for the terminology (specified by id).<br>
+Returns the api search preferences at the Terminology("self") level. <br> Expected return example below.
+
+```json
+{
+    "self": {
+        "api_preference": {
+            "ex_api": [
+                "ontology1",
+                "onto2"
+            ]
+        }
+    }
+}
+```
+
+#### PUT
+
+Update a api search preference for the terminology (specified by id). <br> 
+See the [POST request](#term_id_filter_post) for this endpoint for a 
+request body example
+
+<h4 id="term_id_filter_post">POST</h4>
+
+Create the api search preference for the terminology (specified by id). <br> 
+Request body example:
+ ```json
+ {
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+}
+```
+
+#### DELETE
+
+Delete the api search preference for the terminology (specified by id). <br> 
+This is the expected result after removing preferences with the URL without specifying a code.
+```json
+
+{}
+
+```
+
+### https://[APPURL]/api/Terminology/[id]/filter/[code]
+
+<h4 id="term_id_filter_code_get">GET</h4>
+
+Return the api search preference for the code within a specific terminology
+(specified by id).<br> 
+The response below would be the result of specifying 'T21' as the `code` in the request.
+
+```json
+{
+    "T21": {
+        "api_preference": {
+            "ex_api": [
+                "ex_onto",
+                "ex_onto2"
+            ]
+        }
+    }
+}
+```
+
+#### PUT
+
+Create a api search preference for the code within a specific terminology (specified by id). <br> 
+See [POST request](#term_id_filter_code_post) for an example request body.
+
+<h4 id="term_id_filter_code_post">POST</h4>
+
+Update the api search preference for the code within a specific terminology (specified by id). <br> 
+In the example below T21 was specified as the code.<br> Check out the [GET request](#term_id_filter_code_get) of this endpoint for a visual of the created preference.
+Request body example:
+ ```json
+ {
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+}
+```
+
+#### DELETE
+
+Delete the api search preference for the code within a specific terminology (specified by id).  <br> \
+This is the expected result after removing preferences with the URL code specifying 'T21'.
+```json
+{
+    "T21": {}
+}
+```
+
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
 associated with the terminology. This includes adding and removing codes, 
@@ -1333,6 +1430,104 @@ If the root object in the body is missing both the "variable" and the
 
 Upon completion, 200 is returned along with the full table definition.
 
+### https://[APPURL]/api/Table/[id]/filter
+
+<h4 id="table_id_filter_get">GET</h4>
+
+Return the api search preferences for a specific table (with a given id). <br> 
+Returns the api search preferences at the Table("self") level.
+Below is an example result body. 
+```json
+{
+    "self": {
+        "api_preference": {
+            "ex_api": [
+                "ontology1",
+                "onto2"
+            ]
+        }
+    }
+}
+```
+
+#### PUT
+
+Create a api search preference for a specific table (with a given id). <br> 
+See the [POST request](#table_id_filter_post) an example request body for this endpoint.
+
+<h4 id="table_id_filter_post">POST</h4>
+
+Update the api search preferences for a specific table (with a given id). <br>
+Request body example:
+ ```json
+{
+    "api_preference": {
+        "ex_api": ["ontology1", "onto2"]
+    }
+}
+```
+
+#### DELETE
+
+Delete the api search preferences for a specific table (with a given id). An example of the data after removal shown below.
+```json
+{}
+```
+
+### https://[APPURL]/api/Table/[id]/filter/[code]
+
+<h4 id="table_id_filter_code_get">GET</h4>
+
+Return the api search preference for the variable (specified by code) within 
+a specific table (specified by id). <br> 
+The response below would be the result of specifying 'study_code' as the `code` 
+in the request.
+```json
+{
+    "study_code": {
+        "api_preference": {
+            "ex_api": [
+                "ontology1",
+                "onto2"
+            ]
+        }
+    }
+}
+```
+
+#### PUT
+
+Update a api search preference for the variable (specified by code) within 
+a specific table (specified by id). 
+See the [POST request](#table_id_filter_code_post) for an example request body. 
+
+<h4 id="table_id_filter_code_post">POST</h4>
+
+Create the api search preferences for the variable (specified by code) within 
+a specific table (specified by id). <br>
+Specifying 'study_code' as the `code` in the request will add this preference
+to the variable as seen in this endpoints [GET request](#table_id_filter_code_get). <br>
+Request body example:
+```json
+{
+    "api_preference": {
+        "ex_api": ["ex_onto", "ex_onto2"]
+    }
+}
+```
+
+
+#### DELETE
+
+Delete the api search preference for the variable (specified by code) within 
+a specific table (specified by id).  
+This is the expected result after removing preferences with the URL code specifying
+'study_code'.
+```json
+{
+    "study_code": {}
+}
+```
 ### https://[APPURL]/api/Provenance/Table/[id]
 #### GET
 Returns the provenance for the table itself. This includes information relating

@@ -15,10 +15,12 @@ from locutus.api.terminology import (
     Terminologies,
     TerminologyRenameCode,
     TerminologyEdit,
+    OntologyAPISearchPreferences
 )
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.api.table import Table, Tables, HarmonyCSV, TableEdit, TableRenameCode
+from locutus.api.table import (Table, Tables, HarmonyCSV, TableEdit, 
+    TableRenameCode, TableOntologyAPISearchPreferences)
 from locutus.api.table_mappings import TableMappings, TableMapping
 from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.provenance import (
@@ -52,6 +54,15 @@ api.add_resource(
     TerminologyRenameCode,
     "/api/Terminology/<string:id>/rename",
 )
+# GET/POST/PUT/DELETE Ontology API preferences at Terminology level
+api.add_resource(OntologyAPISearchPreferences,
+                 "/api/Terminology/<string:id>/filter",
+                 endpoint = 'onto_terminology_preferences')
+# GET/POST/PUT/DELETE Ontology API preferences at Code level
+api.add_resource(OntologyAPISearchPreferences,
+                 "/api/Terminology/<string:id>/filter/<string:code>",
+                 endpoint = 'onto_code_preferences')
+
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly
 # other stuff in the future. )
@@ -71,6 +82,16 @@ api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")
 # GET/DELETE
 api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
 api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")
+# GET/POST/PUT/DELETE Ontology API preferences at Table level
+api.add_resource(TableOntologyAPISearchPreferences,
+                 "/api/Table/<string:id>/filter",
+                 endpoint = 'onto_table_preferences')
+# GET/POST/PUT/DELETE Ontology API preferences at Variable level
+api.add_resource(TableOntologyAPISearchPreferences,
+                 "/api/Table/<string:id>/filter/<string:code>",
+                 endpoint = 'onto_var_preferences')
+
+
 # POST
 api.add_resource(TableLoader, "/api/LoadTable")
 # PUT (by ID)
