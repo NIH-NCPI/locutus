@@ -1860,6 +1860,7 @@ Returns all availiable Ontology APIs and their details
 ```json
 [
     {
+        "api_name": "LOINC API",
         "api_id": "loinc",
         "api_url": "https://loinc.regenstrief.org/searchapi/",
         "ontologies": [
@@ -1873,6 +1874,7 @@ Returns all availiable Ontology APIs and their details
         ]
     },
     {
+        "api_name": "Monarch API",
         "api_id": "monarch",
         "api_url": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
         "ontologies": [
@@ -1886,6 +1888,7 @@ Returns all availiable Ontology APIs and their details
         ]
     },
     {
+        "api_name": "Ontology Lookup Service",
         "api_id": "ols",
         "api_url": "https://www.ebi.ac.uk/ols4/api/",
         "ontologies": [
@@ -1910,6 +1913,7 @@ Returns the details for the Ontology API denoted by the API_ID
 ```json
 [
     {
+        "api_name": "LOINC API",
         "api_id": "loinc",
         "api_url": "https://loinc.regenstrief.org/searchapi/",
         "ontologies": [

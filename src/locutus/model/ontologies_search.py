@@ -55,11 +55,13 @@ class OntologyAPI(Serializable):
         self,
         api_id=None,
         api_url=None,
+        api_name=None,
         resource_type="OntologyAPI",
     ):
         super().__init__(id=api_id, collection_type="OntologyAPI", resource_type=resource_type)
         self.api_id = api_id
         self.api_url = api_url
+        self.api_name = api_name
         self.ontologies = []
 
     class _Schema(Schema):
@@ -68,6 +70,7 @@ class OntologyAPI(Serializable):
         """
         api_id = fields.Str()
         api_url = fields.Str()
+        api_name = fields.Str()
         ontologies = fields.List(fields.Nested(Ontology._Schema))
 
         @post_load
