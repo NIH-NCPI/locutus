@@ -13,8 +13,7 @@ on:
   pull_request:
     branches:
       - main
-    types:
-      - closed
+    types: [opened, reopened]
 
   workflow_dispatch:
     inputs:
@@ -30,8 +29,6 @@ on:
 jobs:
   merge-into-main:
     runs-on: ubuntu-latest
-    # Continue if the PR was merged in or if manually triggered(on purpose). 
-    if: github.event.pull_request.merged == true || github.event.inputs.confirm == 'y'
 
     env:
       GITHUB_TOKEN: ${{ secrets.ACTION_ACCESS_TOKEN }}
@@ -89,8 +86,8 @@ jobs:
 
   delete-remote-feature-branch:
     runs-on: ubuntu-latest
-    # Continue if the PR was merged(not just closed)
-    if: github.event.pull_request.merged == true
+    # Not needed if kicking off manually
+    if: github.event.inputs.confirm == 'y'
 
     steps:
       - name: Delete feature branch
@@ -102,8 +99,6 @@ jobs:
 
   deploy-to-gcp-dev:
     runs-on: ubuntu-latest
-    # Continue if the PR was merged in or if manually triggered(on purpose). 
-    if: github.event.pull_request.merged == true || github.event.inputs.confirm == 'y'
 
     env:
       GCP_PROJECT_ID: ${{ secrets.DEV_PROJECT_ID }}
