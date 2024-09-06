@@ -1,13 +1,13 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/locutus-407820/locutus1', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/$IMAGE_NAME', '.']
 # Push the container image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/locutus-407820/locutus1']
+  args: ['push', 'gcr.io/$PROJECT_ID/$IMAGE_NAME']
 # Deploy container image to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  args: ['run', 'deploy', 'locutus', '--image', 'gcr.io/locutus-407820/locutus1', '--region', 'us-central1']
+  args: ['run', 'deploy', '$SERVICE_NAME', '--image', 'gcr.io/$PROJECT_ID/$IMAGE_NAME', '--region', '$REGION']
 images:
-- gcr.io/locutus-407820/locutus1
+- gcr.io/$PROJECT_ID/$IMAGE_NAME

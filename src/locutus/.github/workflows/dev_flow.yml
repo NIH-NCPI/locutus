@@ -1,0 +1,131 @@
+# On feature branch merge into `develop`:
+#  * Sync `main` branch with new changes to `develop`
+#  * Delete remote feature branch
+#  * Publish `develop` to GCP
+
+# On workflow dispatch:
+#   * Sync `main` branch with new changes to `develop`
+#   * Publish `develop` to GCP
+
+name: dev-flow
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Are you sure you want to deploy to dev?'
+        required: true
+        default: 'n'
+        type: choice
+        options:
+          - y
+          - n
+      
+jobs:
+  merge-into-main:
+    runs-on: ubuntu-latest
+    # Continue if the PR was merged in or if manually triggered(on purpose). 
+    if: github.event.pull_request.merged == true || github.event.inputs.confirm == 'y'
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.ACTION_ACCESS_TOKEN }}
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v3
+        with:
+          ref: main  # Main branch is checked out
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Checkout develop branch
+        run: git checkout develop
+
+      - name: Attempt to merge main into develop
+        # Does not make a commit if failing
+        # Does not fast-forward if the merge works
+        run: |
+          git merge main --no-commit --no-ff
+        continue-on-error: true  # Continue to the next step even if there's a merge conflict
+
+      - name: Check for merge conflicts
+        # if the list of merge conflicts is -n(non-empty) then fail workflow
+        run: |
+          if [ -n "$(git ls-files -u)" ]; then 
+            echo "Merge conflict detected! Failing the workflow."
+            echo "::error::Merge conflict detected. Please resolve the conflicts manually."
+            exit 1
+          fi
+
+      - name: Finalize merge with commit
+        if: success()
+        run: |
+          git commit -m "Syncing changes from main to develop: ${{ github.event.pull_request.title }} [skip ci]"
+
+      - name: Push changes to develop branch
+        if: success()
+        run: git push origin develop
+
+      - name: Comment on PR about merge conflict
+        if: failure()
+        run: |
+          curl -X POST \
+          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d '{"body": "Merge conflict detected while syncing main to develop. Please resolve the conflict."}' \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments
+
+  delete-remote-feature-branch:
+    runs-on: ubuntu-latest
+    # Continue if the PR was merged(not just closed)
+    if: github.event.pull_request.merged == true
+
+    steps:
+      - name: Delete feature branch
+        # Automatically delete the remote feature branch after the successful merge
+        run: |
+          BRANCH_NAME=${{ github.event.pull_request.head.ref }}
+          echo "Deleting branch $BRANCH_NAME"
+          git push origin --delete "$BRANCH_NAME"
+
+  deploy-to-gcp-dev:
+    runs-on: ubuntu-latest
+    # Continue if the PR was merged in or if manually triggered(on purpose). 
+    if: github.event.pull_request.merged == true || github.event.inputs.confirm == 'y'
+
+    env:
+      GCP_PROJECT_ID: ${{ secrets.DEV_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.DEV_SA_KEY }}
+      IMAGE_NAME: locu_dev_img
+      SERVICE_NAME: locu_dev
+      REGION: ${{ secrets.REGION_LOC_1 }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          service_account_key: ${{ env.GCP_SA_KEY }}
+
+      - name: Trigger Cloud Build
+        uses: google-github-actions/deploy-cloudbuild@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          credentials: ${{ env.GCP_SA_KEY }}
+          config: 'cloudbuild.yaml' 
+          substitutions: PROJECT_ID=${{ env.GCP_PROJECT_ID }},IMAGE_NAME=${{ env.IMAGE_NAME }},SERVICE_NAME=${{ env.SERVICE_NAME }},REGION=${{ env.REGION }}
