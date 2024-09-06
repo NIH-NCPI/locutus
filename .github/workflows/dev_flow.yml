@@ -11,7 +11,7 @@ name: dev-flow
 
 on:
   pull_request:
-    types: [opened, reopened, edited]
+    types: [opened, reopened, edited, synchronize]
       
 jobs:
   merge-into-main:
