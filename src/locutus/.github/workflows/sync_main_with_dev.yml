@@ -71,6 +71,14 @@ jobs:
         if: success()
         run: git push origin develop
 
+      - name: Delete feature branch
+        # Automatically delete the remote feature branch after the successful merge
+        if: github.event.pull_request.merged == true
+        run: |
+          BRANCH_NAME=${{ github.event.pull_request.head.ref }}
+          echo "Deleting branch $BRANCH_NAME"
+          git push origin --delete "$BRANCH_NAME"
+
       - name: Comment on PR about merge conflict
         if: failure()
         run: |
