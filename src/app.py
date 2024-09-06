@@ -41,6 +41,14 @@ app = Flask(__name__)
 CORS(app)
 api = Api(app)
 
+# Just a silly test that we hope will allow us to see that our PR did result in proper deployment
+from locutus.api import default_headers
+class Silliness(Resource):
+    def get(self):
+        return "Hello World!", 200, default_headers
+
+api.add_resource(Silliness, "/Silly")
+
 # Terminology GET (all terminologies)/POST (new without an ID)
 api.add_resource(Terminologies, "/api/Terminology")
 # Terminology GET (by ID), PUT (with id, can be create if you have an ID
