@@ -11,20 +11,7 @@ name: dev-flow
 
 on:
   pull_request:
-    branches:
-      - main
-    types: [opened, reopened]
-
-  workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Are you sure you want to deploy to dev?'
-        required: true
-        default: 'n'
-        type: choice
-        options:
-          - y
-          - n
+    types: [opened, reopened, edited]
       
 jobs:
   merge-into-main:
