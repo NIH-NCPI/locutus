@@ -1,9 +1,13 @@
-# On feature branch merge into develop:
+# On feature branch merge into `develop`:
 #  * Sync `main` branch with new changes to `develop`
 #  * Delete remote feature branch
-#  * Deploy to 
+#  * Publish `develop` to GCP
 
-name: sync-main-to-dev
+# On workflow dispatch:
+#   * Sync `main` branch with new changes to `develop`
+#   * Publish `develop` to GCP
+
+name: dev-flow
 
 on:
   pull_request:
@@ -104,6 +108,9 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ secrets.DEV_PROJECT_ID }}
       GCP_SA_KEY: ${{ secrets.DEV_SA_KEY }}
+      IMAGE_NAME: locu_dev_img
+      SERVICE_NAME: locu_dev
+      REGION: ${{ secrets.REGION_LOC_1 }}
       
     steps:
       - name: Checkout code
@@ -120,4 +127,5 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
           credentials: ${{ env.GCP_SA_KEY }}
-          config: 'cloudbuild.dev.yaml' 
+          config: 'cloudbuild.yaml' 
+          substitutions: PROJECT_ID=${{ env.GCP_PROJECT_ID }},IMAGE_NAME=${{ env.IMAGE_NAME }},SERVICE_NAME=${{ env.SERVICE_NAME }},REGION=${{ env.REGION }}
