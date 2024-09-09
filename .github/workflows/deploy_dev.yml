@@ -1,15 +1,11 @@
 # This workflow build and push a Docker container to Google Artifact Registry
-# and deploy it on Cloud Run when a commit is merged into the "main"
-# branch.
+# and deploy it on Cloud Run when a PR has been approved by a reviewer.
 
 name: 'Build and Deploy to Cloud Run'
 
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - closed
+  pull_request_review:
+    types: [submitted]
 
 env:
 
@@ -24,7 +20,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.pull_request.merged == true
+    if: github.event.review.state == 'approved'
     
     environment:
       name: dev
