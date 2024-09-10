@@ -554,6 +554,33 @@ This is the expected result after removing preferences with the URL code specify
 }
 ```
 
+### https://[APPURL]/api/Terminology/[id]/standard
+
+#### GET
+
+Return the reference to the standard terminology related to the `Terminology` (specified by id).<br>
+Returns the standard_terminology at the Terminology("self") level. <br> Expected return example below.
+
+```json
+{
+    "reference": [
+        "/Terminology/tm--example1",
+        "/Terminology/tm--example2"
+    ]
+}
+```
+
+#### POST
+
+Create a reference to a prefered `Terminology` for the terminology (specified by id). <br> 
+Request body example:
+ ```json
+{
+    "standard_terminology": "tm--example2"
+}
+```
+
+
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
 associated with the terminology. This includes adding and removing codes, 
