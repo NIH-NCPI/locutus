@@ -572,6 +572,72 @@ class Terminology(Serializable):
 
         return message
 
+    def get_standard_terminology(self):
+        """
+        Retrieves all references from the 'standard_terminology' sub-collection
+
+        Returns:
+            dict: An array of `Terminology` references under the "references" key
+        
+        Example:
+        {
+            "reference": [
+                "/Terminology/tm--example1",
+                "/Terminology/tm--example3"]
+        ]    
+            
+        """
+        try:
+            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+                .collection("standard_terminology").document("self")
+
+            doc_snapshot = doc_ref.get()
+            if doc_snapshot.exists:
+                return doc_snapshot.to_dict()
+            else:
+                # If refs don't exist return an empty list
+                return {"reference": []}
+
+        except Exception as e:
+            print(f"An error occurred while retrieving standard terminology: {e}")
+            raise
+
+
+    def add_standard_terminology(self, standard_terminology):
+        """
+        Creates or adds to a document in the 'standard_terminology' sub-collection
+
+        Args:
+            standard_terminology (dict): A dictionary representing the standard terminology to be added.
+
+        JSON body example:
+        {
+            "standard_terminology": "tm--example1"
+        }
+
+        """
+        try:
+            new_std = f"/Terminology/{standard_terminology}"
+            
+            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+                .collection("standard_terminology").document("self")
+
+            # Retrieves the current data if it exists, defaults to an empty list
+            doc_snapshot = doc_ref.get()
+            if doc_snapshot.exists:
+                data = doc_snapshot.to_dict()
+                stds = data.get("reference", [])
+            else:
+                stds = []
+
+            # Update the document with the new list
+            stds.append(new_std)
+            doc_ref.set({"reference": stds})
+
+        except Exception as e:
+            print(f"An error occurred while adding standard terminology: {e}")
+            raise
+
 
     class _Schema(Schema):
         id = fields.Str()
