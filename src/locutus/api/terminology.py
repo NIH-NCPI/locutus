@@ -216,27 +216,27 @@ class OntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
     
-class StandardTerminology(Resource):
+class PreferredTerminology(Resource):
     def get(self, id=None):
         t = Term.get(id)
 
-        pref = t.get_standard_terminology()
+        pref = t.get_preferred_terminology()
 
         return (pref, 200, default_headers)
         
     def post(self, id):
-        """Add a `standard_terminology` to a specific Terminology"""
+        """Add a `preferred_terminology` to a specific Terminology"""
         body = request.get_json()
         t = Term.get(id)
-        if "standard_terminology" not in body:
-            return {"message": "standard_terminology is required"}, 400
+        if "preferred_terminology" not in body:
+            return {"message": "preferred_terminology is required"}, 400
 
-        standard_terminology = body["standard_terminology"]
+        preferred_terminology = body["preferred_terminology"]
 
-        t.add_standard_terminology(standard_terminology=standard_terminology)
+        t.add_preferred_terminology(preferred_terminology=preferred_terminology)
         response = {
             "terminology": {"Reference being mapped": f"Terminology/{t.id}"},
-            "standard_terminology": standard_terminology,
+            "preferred_terminology": preferred_terminology,
         }
 
         return (response, 200, default_headers)

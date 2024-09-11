@@ -16,7 +16,7 @@ from locutus.api.terminology import (
     TerminologyRenameCode,
     TerminologyEdit,
     OntologyAPISearchPreferences,
-    StandardTerminology
+    PreferredTerminology
 )
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
@@ -63,9 +63,9 @@ api.add_resource(OntologyAPISearchPreferences,
 api.add_resource(OntologyAPISearchPreferences,
                  "/api/Terminology/<string:id>/filter/<string:code>",
                  endpoint = 'onto_code_preferences')
-# GET/POST standard_terminology sub-collection associated with a Terminology
-api.add_resource(StandardTerminology,
-                 "/api/Terminology/<string:id>/standard")
+# GET/POST preferred_terminology sub-collection associated with a Terminology
+api.add_resource(PreferredTerminology,
+                 "/api/Terminology/<string:id>/preferred_terminology")
 
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly

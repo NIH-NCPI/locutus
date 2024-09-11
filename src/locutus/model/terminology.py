@@ -572,9 +572,9 @@ class Terminology(Serializable):
 
         return message
 
-    def get_standard_terminology(self):
+    def get_preferred_terminology(self):
         """
-        Retrieves all references from the 'standard_terminology' sub-collection
+        Retrieves all references from the 'preferred_terminology' sub-collection
 
         Returns:
             dict: An array of `Terminology` references under the "references" key
@@ -589,7 +589,7 @@ class Terminology(Serializable):
         """
         try:
             doc_ref = persistence().collection(self.resource_type).document(self.id) \
-                .collection("standard_terminology").document("self")
+                .collection("preferred_terminology").document("self")
 
             doc_snapshot = doc_ref.get()
             if doc_snapshot.exists:
@@ -599,43 +599,47 @@ class Terminology(Serializable):
                 return {"reference": []}
 
         except Exception as e:
-            print(f"An error occurred while retrieving standard terminology: {e}")
+            print(f"An error occurred while retrieving preferred terminology: {e}")
             raise
 
 
-    def add_standard_terminology(self, standard_terminology):
+    def add_preferred_terminology(self, preferred_terminology):
         """
-        Creates or adds to a document in the 'standard_terminology' sub-collection
+        Creates or adds to a document in the 'preferred_terminology' sub-collection
 
         Args:
-            standard_terminology (dict): A dictionary representing the standard terminology to be added.
+            preferred_terminology (dict): A dictionary representing the preferred terminology to be added.
 
         JSON body example:
         {
-            "standard_terminology": "tm--example1"
+            "preferred_terminology": "tm--example1"
         }
-
         """
         try:
-            new_std = f"/Terminology/{standard_terminology}"
-            
+            # Reference to the sub-collection document named "self"
             doc_ref = persistence().collection(self.resource_type).document(self.id) \
-                .collection("standard_terminology").document("self")
+                .collection("preferred_terminology").document("self")
 
-            # Retrieves the current data if it exists, defaults to an empty list
+            # Retrieve the current data if it exists
             doc_snapshot = doc_ref.get()
             if doc_snapshot.exists:
                 data = doc_snapshot.to_dict()
-                stds = data.get("reference", [])
+                references = data.get("references", {})
             else:
-                stds = []
+                references = {}
 
-            # Update the document with the new list
-            stds.append(new_std)
-            doc_ref.set({"reference": stds})
+            # Create a new reference(unique key required - python)
+            key = f"reference_{len(references) + 1}"
+            new_pref = {key: f"/Terminology/{preferred_terminology}"}
+
+            # Add the new reference to the existing references
+            references.update(new_pref)
+
+            # Update the document with the new dictionary of references
+            doc_ref.set({"references": references})
 
         except Exception as e:
-            print(f"An error occurred while adding standard terminology: {e}")
+            print(f"An error occurred while adding preferred terminology: {e}")
             raise
 
 
