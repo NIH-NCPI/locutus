@@ -153,12 +153,12 @@ class Table(Resource):
     def delete(self, id):
         body = request.get_json()
         editor = get_editor(body)
-        if editor not in body:
-            return ("table DELETE  requires an editor!", 400, default_headers)
+        if editor is None:
+            return ("table DELETE requires an editor!", 400, default_headers)
 
         # This is a bit "out of band"
         t = mTable.get(id)
-        t.terminology().dereference().add_provenance(
+        t.terminology.dereference().add_provenance(
             change_type=Terminology.ChangeType.RemoveTable,
             target="self",
             old_value=f"Table Name: {t.name}",

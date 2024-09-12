@@ -155,16 +155,17 @@ class Table(Serializable):
                     new_values.append(f"variable: {new_varname}")
                     var.name = new_varname
                     var.code = clean_varname(var.name)
+                    if var.code != original_code:
+                        
+                        # Since we found a matching code, we'll pull the mappings and
+                        # save those under the new code after deleting the old ones.
 
-                    # Since we found a matching code, we'll pull the mappings and
-                    # save those under the new code after deleting the old ones.
-
-                    mappings = terms.mappings(original_code)
-                    if original_code in mappings and mappings[original_code] != []:
-                        terms.set_mapping(
-                            var.code, mappings[original_code], editor=editor
-                        )
-                        terms.delete_mappings(code=original_code, editor=editor)
+                        mappings = terms.mappings(original_code)
+                        if original_code in mappings and mappings[original_code] != []:
+                            terms.set_mapping(
+                                var.code, mappings[original_code], editor=editor
+                            )
+                            terms.delete_mappings(code=original_code, editor=editor)
 
                 if new_description is not None:
                     old_values.append(f"description: {var.description}")
