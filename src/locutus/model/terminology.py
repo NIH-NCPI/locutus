@@ -640,7 +640,7 @@ class Terminology(Serializable):
             if new_ref not in references:
                 references.append(new_ref)
 
-            # Update the document with the new dictionary of references
+            # Update the document with new combined data
             doc_ref.set({"references": references})
 
         except Exception as e:
