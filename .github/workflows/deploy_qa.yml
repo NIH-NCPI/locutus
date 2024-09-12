@@ -12,7 +12,7 @@ env:
 
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
   REGION: ${{ secrets.REGION_LOC_1 }}
-  SERVICE: 'locutus'
+  SERVICE: ${{ secrets.PROJECT_ID }}
   IMAGE_NAME: 'loc_img'
   GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
 
