@@ -6,7 +6,7 @@ name: 'Build and Deploy to Cloud Run'
 on:
   pull_request:
     branches:
-      - release
+      - main
     types:
       - opened
 
@@ -14,7 +14,7 @@ env:
 
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
   REGION: ${{ secrets.REGION_LOC_1 }}
-  SERVICE: 'locutus'
+  SERVICE: ${{ secrets.PROJECT_ID }}
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
 
