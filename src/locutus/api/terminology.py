@@ -234,9 +234,10 @@ class PreferredTerminology(Resource):
         preferred_terminology = body["preferred_terminology"]
 
         t.add_preferred_terminology(preferred_terminology=preferred_terminology)
+        
         response = {
-            "terminology": {"Reference being mapped": f"Terminology/{t.id}"},
-            "preferred_terminology": preferred_terminology,
+        "id": t.id,
+        "preferred_terminology": preferred_terminology,
         }
 
         return (response, 200, default_headers)

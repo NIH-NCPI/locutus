@@ -563,10 +563,14 @@ Returns the preferred-terminology at the Terminology("self") level. <br> Expecte
 
 ```json
 {
-    "references": {
-        "reference_1": "/Terminology/tm--example1",
-        "reference_2": "/Terminology/tm--example2"
-    }
+    "references": [
+        {
+            "reference": "Terminology/tm--example1"
+        },
+        {
+            "reference": "Terminology/tm--example2"
+        }
+    ]
 }
 ```
 

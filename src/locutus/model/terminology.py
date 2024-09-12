@@ -577,15 +577,19 @@ class Terminology(Serializable):
         Retrieves all references from the 'preferred_terminology' sub-collection
 
         Returns:
-            dict: An array of `Terminology` references under the "references" key
+            list: 'references" - An array of `Terminology` reference dictionaries
         
         Example:
         {
-            "reference": [
-                "/Terminology/tm--example1",
-                "/Terminology/tm--example3"]
-        ]    
-            
+            "references": [
+                {
+                    "reference": "Terminology/tm--example1"
+                },
+                {
+                    "reference": "Terminology/tm--example2"
+                }
+            ]
+        } 
         """
         try:
             doc_ref = persistence().collection(self.resource_type).document(self.id) \
@@ -624,16 +628,17 @@ class Terminology(Serializable):
             doc_snapshot = doc_ref.get()
             if doc_snapshot.exists:
                 data = doc_snapshot.to_dict()
-                references = data.get("references", {})
+                references = data.get("references", [])
             else:
-                references = {}
+                references = []
 
-            # Create a new reference(unique key required - python)
-            key = f"reference_{len(references) + 1}"
-            new_pref = {key: f"/Terminology/{preferred_terminology}"}
+            # Create a new reference
+            new_pref = {'reference': f"Terminology/{preferred_terminology}"}
 
-            # Add the new reference to the existing references
-            references.update(new_pref)
+            # Ensure the new reference is not already in the list
+            new_ref = {"reference": f"Terminology/{preferred_terminology}"}
+            if new_ref not in references:
+                references.append(new_ref)
 
             # Update the document with the new dictionary of references
             doc_ref.set({"references": references})
