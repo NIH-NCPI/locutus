@@ -4,11 +4,9 @@
 name: 'Build and Deploy to Cloud Run'
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
-    types:
-      - opened
+      - test_uat_gh_action
 
 env:
 
