@@ -33,7 +33,8 @@ class SessionManager:
         # Adjust session timeout based on affiliation.
         self.set_timeout_based_on_affiliation(affiliation)
         
-        return {"message": f"Session started for user {user_id} with the {affiliation} affiliation "}, 200
+        return {"message": f"Session started for user {user_id} with the
+                 {affiliation} affiliation "}, 200
 
     def set_timeout_based_on_affiliation(self, affiliation):
         # Dynamically adjust timeout based on affiliation
