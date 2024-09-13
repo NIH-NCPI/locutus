@@ -1,5 +1,4 @@
 from flask import Flask, request, render_template, url_for
-from datetime import timedelta
 from flask_cors import CORS, cross_origin
 from flask_restful import Resource, Api
 
@@ -133,10 +132,6 @@ api.add_resource(OntologyAPIs, "/api/OntologyAPI", endpoint='all_ontologies')
 # GET (by ID) Single OntologyAPI and ontology details 
 api.add_resource(OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint='ontology_by_id')
 
-# POST pass auth to initiate a session
-api.add_resource(LoginResource, "/api/session/start")
-# POST pass auth to terminate a session
-api.add_resource(OntologyAPIs, "/api/session/end")
 
 
 
@@ -152,7 +147,6 @@ def not_found(e):
         ),
         404,
     )
-
 
 
 if __name__ == "__main__":
