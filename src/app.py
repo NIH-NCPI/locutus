@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, url_for
+
 from flask_cors import CORS, cross_origin
 from flask_restful import Resource, Api
 
@@ -133,8 +134,6 @@ api.add_resource(OntologyAPIs, "/api/OntologyAPI", endpoint='all_ontologies')
 api.add_resource(OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint='ontology_by_id')
 
 
-
-
 @app.errorhandler(404)
 @cross_origin(allow_headers=["Content-Type"])
 def not_found(e):
@@ -151,3 +150,4 @@ def not_found(e):
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
+    
