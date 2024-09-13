@@ -51,7 +51,7 @@ class SessionManager:
     def terminate_session(self):
         session.clear()
         return {"message": "Session terminated"}, 200
-# 
+    
     def get_session_status(self):
         # Hint: Remember the session is cleared when terminated. 
         if 'user_id' in session:
