@@ -5,6 +5,10 @@ import secrets
 from datetime import timedelta
 
 class SessionManager:
+    """
+    Manages session handling including: initiation, termination,
+    and configuration based on user affiliation.
+    """
     def __init__(self, app):
         self.app = app
         # Sessions will persist beyond browser close
@@ -24,6 +28,18 @@ class SessionManager:
         Session(self.app)
 
     def initiate_session(self, user_id, affiliation=None):
+        """
+        Initiates a session for a user and sets the session timeout based on 
+        their affiliation. If the affiliation is not provided, it defaults to 'basic'.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+            affiliation (str, optional): The user's affiliation, which influences
+              session timeout. 
+
+        Returns:
+            A dictionary with a success message and HTTP status code 200.
+        """
         if not affiliation:
             affiliation = 'basic'
         
@@ -54,7 +70,15 @@ class SessionManager:
         return {"message": "Session terminated"}, 200
     
     def get_session_status(self):
-        # Hint: Remember the session is cleared when terminated. 
+        """
+        Sets the session timeout based on the user's affiliation.
+
+        Premium users receive a 24-hour session timeout, basic users receive a 16-hour timeout, 
+        and unaffiliated or other users receive an 8-hour timeout.
+
+        Args:
+            affiliation (str): The user's affiliation, which determines the session timeout.
+        """
         if 'user_id' in session:
             return {
                 "message": "Session active", 
