@@ -36,10 +36,19 @@ from locutus.api.datadictionary import (
     DataDictionaryTable,
 )
 from locutus.api.ontologies_search import OntologyAPIs
+from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
+from locutus.model.sessions import SessionManager
 
 app = Flask(__name__)
 CORS(app)
 api = Api(app)
+
+# Sessions
+session_manager = SessionManager(app)
+
+api.add_resource(SessionStart, '/api/session/start', resource_class_kwargs={'session_manager': session_manager})
+api.add_resource(SessionTerminate, '/api/session/terminate', resource_class_kwargs={'session_manager': session_manager})
+api.add_resource(SessionStatus, '/api/session/status', resource_class_kwargs={'session_manager': session_manager})
 
 # Terminology GET (all terminologies)/POST (new without an ID)
 api.add_resource(Terminologies, "/api/Terminology")
