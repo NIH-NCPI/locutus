@@ -573,6 +573,81 @@ class Terminology(Serializable):
 
         return message
 
+    def get_preferred_terminology(self):
+        """
+        Retrieves all references from the 'preferred_terminology' sub-collection
+
+        Returns:
+            list: 'references" - An array of `Terminology` reference dictionaries
+        
+        Example:
+        {
+            "references": [
+                {
+                    "reference": "Terminology/tm--example1"
+                },
+                {
+                    "reference": "Terminology/tm--example2"
+                }
+            ]
+        } 
+        """
+        try:
+            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+                .collection("preferred_terminology").document("self")
+
+            doc_snapshot = doc_ref.get()
+            if doc_snapshot.exists:
+                return doc_snapshot.to_dict()
+            else:
+                # If refs don't exist return an empty list
+                return {"reference": []}
+
+        except Exception as e:
+            print(f"An error occurred while retrieving preferred terminology: {e}")
+            raise
+
+
+    def add_preferred_terminology(self, preferred_terminology):
+        """
+        Creates or adds to a document in the 'preferred_terminology' sub-collection
+
+        Args:
+            preferred_terminology (dict): A dictionary representing the preferred terminology to be added.
+
+        JSON body example:
+        {
+            "preferred_terminology": "tm--example1"
+        }
+        """
+        try:
+            # Reference to the sub-collection document named "self"
+            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+                .collection("preferred_terminology").document("self")
+
+            # Retrieve the current data if it exists
+            doc_snapshot = doc_ref.get()
+            if doc_snapshot.exists:
+                data = doc_snapshot.to_dict()
+                references = data.get("references", [])
+            else:
+                references = []
+
+            # Create a new reference
+            new_pref = {'reference': f"Terminology/{preferred_terminology}"}
+
+            # Ensure the new reference is not already in the list
+            new_ref = {"reference": f"Terminology/{preferred_terminology}"}
+            if new_ref not in references:
+                references.append(new_ref)
+
+            # Update the document with new combined data
+            doc_ref.set({"references": references})
+
+        except Exception as e:
+            print(f"An error occurred while adding preferred terminology: {e}")
+            raise
+
 
     class _Schema(Schema):
         id = fields.Str()
