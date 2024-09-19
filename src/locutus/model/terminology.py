@@ -580,7 +580,7 @@ class Terminology(Serializable):
         Returns:
             list: 'references" - An array of `Terminology` reference dictionaries
         
-        Example:
+        Example output:
         {
             "references": [
                 {
@@ -598,10 +598,11 @@ class Terminology(Serializable):
 
             doc_snapshot = doc_ref.get()
             if doc_snapshot.exists:
-                return doc_snapshot.to_dict()
+                preferred_terms = doc_snapshot.to_dict().get('references', [])
+                return {"references": preferred_terms}
             else:
-                # If refs don't exist return an empty list
-                return {"reference": []}
+                # Return an empty list for references if no preferred terminology exists
+                return {"references": []}
 
         except Exception as e:
             print(f"An error occurred while retrieving preferred terminology: {e}")
@@ -613,12 +614,17 @@ class Terminology(Serializable):
         Creates or adds to a document in the 'preferred_terminology' sub-collection
 
         Args:
-            preferred_terminology (dict): A dictionary representing the preferred terminology to be added.
+            preferred_terminology (list): A dictionary representing the preferred terminology to be added.
 
-        JSON body example:
-        {
-            "preferred_terminology": "tm--example1"
-        }
+        JSON body with two additions example:
+        [
+            {
+                "preferred_terminology": "tm--example1"
+            },
+            {
+                "preferred_terminology": "tm--example2"
+            }
+        ]
         """
         try:
             # Reference to the sub-collection document named "self"

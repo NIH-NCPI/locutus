@@ -218,6 +218,24 @@ class OntologyAPISearchPreferences(Resource):
     
 class PreferredTerminology(Resource):
     def get(self, id=None):
+        """
+        Retrieve the preferred terminology for a specific Terminology
+
+        Args:
+            id (str): Defines the terminology of interest
+
+        Example Response:
+        {
+            "references": [
+                {
+                    "reference": "Terminology/tm--example1"
+                },
+                {
+                    "reference": "Terminology/tm--example2"
+                }
+            ]
+        } 
+        """
         t = Term.get(id)
 
         pref = t.get_preferred_terminology()
@@ -225,19 +243,48 @@ class PreferredTerminology(Resource):
         return (pref, 200, default_headers)
         
     def post(self, id):
-        """Add a `preferred_terminology` to a specific Terminology"""
+        """
+        Add one or more preferred terminologies to a specific Term.
+
+        Args:
+            id (str): The ID of the Term to which the preferred terminology will be added.
+        
+        Example Request Body:
+        [
+            {
+                "preferred_terminology": "tm--example1"
+            },
+            {
+                "preferred_terminology": "tm--example2"
+            }
+        ]
+
+        Example Response:
+        {
+            "id": "term123",
+            "references": [
+                {
+                    "preferred_terminology": "tm--example1"
+                },
+                {
+                    "preferred_terminology": "tm--example2"
+                }
+            ]
+        }
+        """
         body = request.get_json()
         t = Term.get(id)
-        if "preferred_terminology" not in body:
-            return {"message": "preferred_terminology is required"}, 400
 
-        preferred_terminology = body["preferred_terminology"]
+        if not isinstance(body, list) or not all("preferred_terminology" in item for item in body):
+            return {"message": "preferred_terminology is required and should be in a list"}, 400
 
-        t.add_preferred_terminology(preferred_terminology=preferred_terminology)
-        
+        for item in body:
+            preferred_terminology = item["preferred_terminology"]
+            t.add_preferred_terminology(preferred_terminology=preferred_terminology)
+
         response = {
-        "id": t.id,
-        "preferred_terminology": preferred_terminology,
+            "id": t.id,
+            "references": body,
         }
 
         return (response, 200, default_headers)

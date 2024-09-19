@@ -554,12 +554,12 @@ This is the expected result after removing preferences with the URL code specify
 }
 ```
 
-### https://[APPURL]/api/Terminology/[id]/preferred-terminology
+### https://[APPURL]/api/Terminology/[id]/preferred_terminology
 
 #### GET
 
-Return the reference to the preferred-terminology related to the `Terminology` (specified by id).<br>
-Returns the preferred-terminology at the Terminology("self") level. <br> Expected return example below.
+Return the reference to the preferred_terminology related to the `Terminology` (specified by id).<br>
+Returns the preferred_terminology at the Terminology("self") level. <br> Expected return example below.
 
 ```json
 {
@@ -579,9 +579,14 @@ Returns the preferred-terminology at the Terminology("self") level. <br> Expecte
 Create a reference to a prefered `Terminology` for the terminology (specified by id). <br> 
 Request body example:
  ```json
-{
-    "preferred_terminology": "tm--example2"
-}
+[
+    {
+        "preferred_terminology": "tm--example3"
+    },
+    {
+        "preferred_terminology": "tm--example6"
+    }
+]
 ```
 
 
