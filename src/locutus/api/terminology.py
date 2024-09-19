@@ -251,24 +251,14 @@ class PreferredTerminology(Resource):
             id (str): The ID of the Term to which the preferred terminology will be added.
         
         Example Request Body:
-        [
-            {
-                "preferred_terminology": "tm--example1"
-            },
-            {
-                "preferred_terminology": "tm--example2"
-            }
-        ]
-
-        Example Response:
         {
-            "id": "term123",
-            "references": [
+            "editor": "me",
+            "preferred_terminologies": [
                 {
                     "preferred_terminology": "tm--example1"
                 },
                 {
-                    "preferred_terminology": "tm--example2"
+                    "preferred_terminology": "tm--example6"
                 }
             ]
         }
