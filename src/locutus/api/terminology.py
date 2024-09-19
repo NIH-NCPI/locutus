@@ -242,9 +242,10 @@ class PreferredTerminology(Resource):
 
         return (pref, 200, default_headers)
         
-    def post(self, id):
+    def put(self, id):
         """
-        Add one or more preferred terminologies to a specific Term.
+        Creates one or more preferred terminologies to a specific Terminology.
+        This will replace what already exists. Provinance exists for this.
 
         Args:
             id (str): The ID of the Term to which the preferred terminology will be added.
@@ -275,16 +276,34 @@ class PreferredTerminology(Resource):
         body = request.get_json()
         t = Term.get(id)
 
-        if not isinstance(body, list) or not all("preferred_terminology" in item for item in body):
-            return {"message": "preferred_terminology is required and should be in a list"}, 400
+        if not isinstance(body, dict) or "editor" not in body or not isinstance(body.get("preferred_terminologies", []), list):
+            return {"message": "'editor' is required and 'preferred_terminologies' should be a list"}, 400
 
-        for item in body:
-            preferred_terminology = item["preferred_terminology"]
-            t.add_preferred_terminology(preferred_terminology=preferred_terminology)
+
+        preferred_terminologies = body["preferred_terminologies"]
+
+        # Ensure each item in preferred_terminologies contains the key 'preferred_terminology'
+        if not all("preferred_terminology" in item for item in preferred_terminologies):
+            return {"message": "Each item in 'preferred_terminologies' must contain 'preferred_terminology'"}, 400
+
+        editor = body["editor"]
+
+        # Replace all preferred terminologies and store the editor
+        t.replace_preferred_terminology(editor=editor, preferred_terminology=preferred_terminologies)
 
         response = {
             "id": t.id,
-            "references": body,
+            "references": preferred_terminologies
         }
-
         return (response, 200, default_headers)
+    
+    def delete(self, id):
+        pref_terms = (
+            persistence().collection("Terminology").document(id).collection("preferred_terminology")
+        )
+        delete_collection(pref_terms)
+
+        response = {
+            "message": f"The preferred_terminology collection was deleted for terminology {id}."}
+        
+        return response, 200, default_headers
