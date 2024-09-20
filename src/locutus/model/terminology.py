@@ -94,6 +94,7 @@ class Terminology(Serializable):
         ApprovalRequested = "Approval Requested"
         Approved = "Approved"
         ApprovalDenied = "Approval Denied"
+        ReplacePrefTerm = "Add/Replace Preferred Terminology"
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -580,7 +581,7 @@ class Terminology(Serializable):
         Returns:
             list: 'references" - An array of `Terminology` reference dictionaries
         
-        Example:
+        Example output:
         {
             "references": [
                 {
@@ -598,51 +599,51 @@ class Terminology(Serializable):
 
             doc_snapshot = doc_ref.get()
             if doc_snapshot.exists:
-                return doc_snapshot.to_dict()
+                preferred_terms = doc_snapshot.to_dict().get('references', [])
+                return {"references": preferred_terms}
             else:
-                # If refs don't exist return an empty list
-                return {"reference": []}
+                # Return an empty list for references if no preferred terminology exists
+                return {"references": []}
 
         except Exception as e:
             print(f"An error occurred while retrieving preferred terminology: {e}")
             raise
 
 
-    def add_preferred_terminology(self, preferred_terminology):
+    def replace_preferred_terminology(self, editor, preferred_terminology):
         """
-        Creates or adds to a document in the 'preferred_terminology' sub-collection
+        Creates or replaces a document in the 'preferred_terminology' sub-collection
 
         Args:
-            preferred_terminology (dict): A dictionary representing the preferred terminology to be added.
+            preferred_terminology (list): A dictionary representing the preferred terminology to be added.
 
-        JSON body example:
-        {
-            "preferred_terminology": "tm--example1"
-        }
+        JSON body with two additions example:
+        [
+            {
+                "preferred_terminology": "tm--example1"
+            },
+            {
+                "preferred_terminology": "tm--example2"
+            }
+        ]
         """
         try:
             # Reference to the sub-collection document named "self"
             doc_ref = persistence().collection(self.resource_type).document(self.id) \
                 .collection("preferred_terminology").document("self")
 
-            # Retrieve the current data if it exists
-            doc_snapshot = doc_ref.get()
-            if doc_snapshot.exists:
-                data = doc_snapshot.to_dict()
-                references = data.get("references", [])
-            else:
-                references = []
-
-            # Create a new reference
-            new_pref = {'reference': f"Terminology/{preferred_terminology}"}
-
-            # Ensure the new reference is not already in the list
-            new_ref = {"reference": f"Terminology/{preferred_terminology}"}
-            if new_ref not in references:
-                references.append(new_ref)
+            # Create a list of references based on the provided preferred terminologies
+            references = [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
 
             # Update the document with new combined data
             doc_ref.set({"references": references})
+
+            self.add_provenance(
+            Terminology.ChangeType.ReplacePrefTerm,
+            target="self",
+            new_value=references,
+            editor=editor,
+            )
 
         except Exception as e:
             print(f"An error occurred while adding preferred terminology: {e}")

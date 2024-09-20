@@ -218,26 +218,82 @@ class OntologyAPISearchPreferences(Resource):
     
 class PreferredTerminology(Resource):
     def get(self, id=None):
+        """
+        Retrieve the preferred terminology for a specific Terminology
+
+        Args:
+            id (str): Defines the terminology of interest
+
+        Example Response:
+        {
+            "references": [
+                {
+                    "reference": "Terminology/tm--example1"
+                },
+                {
+                    "reference": "Terminology/tm--example2"
+                }
+            ]
+        } 
+        """
         t = Term.get(id)
 
         pref = t.get_preferred_terminology()
 
         return (pref, 200, default_headers)
         
-    def post(self, id):
-        """Add a `preferred_terminology` to a specific Terminology"""
+    def put(self, id):
+        """
+        Creates one or more preferred terminologies to a specific Terminology.
+        This will replace what already exists. Provinance exists for this.
+
+        Args:
+            id (str): The ID of the Term to which the preferred terminology will be added.
+        
+        Example Request Body:
+        {
+            "editor": "me",
+            "preferred_terminologies": [
+                {
+                    "preferred_terminology": "tm--example1"
+                },
+                {
+                    "preferred_terminology": "tm--example6"
+                }
+            ]
+        }
+        """
         body = request.get_json()
         t = Term.get(id)
-        if "preferred_terminology" not in body:
-            return {"message": "preferred_terminology is required"}, 400
 
-        preferred_terminology = body["preferred_terminology"]
+        if not isinstance(body, dict) or "editor" not in body or not isinstance(body.get("preferred_terminologies", []), list):
+            return {"message": "'editor' is required and 'preferred_terminologies' should be a list"}, 400
 
-        t.add_preferred_terminology(preferred_terminology=preferred_terminology)
-        
+
+        preferred_terminologies = body["preferred_terminologies"]
+
+        # Ensure each item in preferred_terminologies contains the key 'preferred_terminology'
+        if not all("preferred_terminology" in item for item in preferred_terminologies):
+            return {"message": "Each item in 'preferred_terminologies' must contain 'preferred_terminology'"}, 400
+
+        editor = body["editor"]
+
+        # Replace all preferred terminologies and store the editor
+        t.replace_preferred_terminology(editor=editor, preferred_terminology=preferred_terminologies)
+
         response = {
-        "id": t.id,
-        "preferred_terminology": preferred_terminology,
+            "id": t.id,
+            "references": preferred_terminologies
         }
-
         return (response, 200, default_headers)
+    
+    def delete(self, id):
+        pref_terms = (
+            persistence().collection("Terminology").document(id).collection("preferred_terminology")
+        )
+        delete_collection(pref_terms)
+
+        response = {
+            "message": f"The preferred_terminology collection was deleted for terminology {id}."}
+        
+        return response, 200, default_headers

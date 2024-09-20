@@ -72,7 +72,7 @@ api.add_resource(OntologyAPISearchPreferences,
 api.add_resource(OntologyAPISearchPreferences,
                  "/api/Terminology/<string:id>/filter/<string:code>",
                  endpoint = 'onto_code_preferences')
-# GET/POST preferred_terminology sub-collection associated with a Terminology
+# GET/PUT/DELETE preferred_terminology sub-collection associated with a Terminology
 api.add_resource(PreferredTerminology,
                  "/api/Terminology/<string:id>/preferred_terminology")
 
