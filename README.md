@@ -589,7 +589,10 @@ Request body example:
             "preferred_terminology": "tm--example6"
         }
     ]
+<<<<<<< HEAD
 }
+=======
+>>>>>>> bd55aa7 ([FD-1633]PR2 Update the readme)
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
@@ -675,6 +678,7 @@ Request body example for `mapping_votes` :
     },
     "is_admin":"False",
     "update_allowed":"True"
+}
 }
 ```
 
