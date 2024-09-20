@@ -574,19 +574,21 @@ Returns the preferred_terminology at the Terminology("self") level. <br> Expecte
 }
 ```
 
-#### POST
+#### PUT
 
-Create a reference to a prefered `Terminology` for the terminology (specified by id). <br> 
+Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
 Request body example:
  ```json
-[
-    {
-        "preferred_terminology": "tm--example3"
-    },
-    {
-        "preferred_terminology": "tm--example6"
-    }
-]
+{
+    "editor": "me",
+    "preferred_terminologies": [
+        {
+            "preferred_terminology": "tm--example1"
+        },
+        {
+            "preferred_terminology": "tm--example6"
+        }
+    ]
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
@@ -673,7 +675,12 @@ Request body example for `mapping_votes` :
     "is_admin":"False",
     "update_allowed":"True"
 }
+}
 ```
+
+#### DELETE
+Running the DELETE request will remove the preferred_terminology collection
+from the `Terminology` specified by the id
 
 
 ## Terminology Provenance
