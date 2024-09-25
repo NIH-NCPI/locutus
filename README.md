@@ -682,6 +682,92 @@ Request body example for `mapping_votes` :
 }
 ```
 
+### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
+  
+  * id (str): The document ID.
+  * code (str): The target document (mapping) identifier.
+  * type (str): The type of input to retrieve (e.g., "mapping_conversations" or "mapping_votes").
+
+#### GET
+
+Return the reference to the `user_input` `type` related to the `Terminology` (specified by id).<br>
+Returns all records of the `type` at the `code` level. <br> 
+
+Expected return for type `mapping_votes` below
+
+```json
+{
+    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+    "code": "TEST_0001",
+    "mapping_votes": [
+        {
+            "user2": "up"
+        },
+        {
+            "user3": "down"
+        }
+    ]
+}
+```
+
+Expected return for type `mapping_conversations` below
+
+```json
+{
+    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+    "code": "TEST_0001",
+    "mapping_conversations": [
+        {
+            "note_datetime": "Sep 25, 2023, 08:47:33.396",
+            "user_id": "user1",
+            "note": "Original notes"
+        },
+        {
+            "note_datetime": "Sep 25, 2023, 08:47:33.396",
+            "user_id": "user2",
+            "note": "test 2"
+        }
+    ]
+}
+```
+
+#### POST
+
+Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
+Body description:<br>
+* editor(required): Represents the user
+* {type of user_input eg 'mapping_votes'}(required): defines the users input
+* update_allowed(Optional, default=True): Denotes whether previous 
+  user input should be editable.
+*is_admin(Optional, default=False): Denotes the requester is the
+  an admin and is able to edit a user's data.
+
+Request body example for `mapping_conversations` :
+ ```json
+{
+    "editor": "user5",
+    "mapping_conversations": {
+        "note_datetime": "Sep 25, 2023, 08:47:33.396",
+        "user_id": "user5",
+        "note": "testing"
+    },
+    "is_admin":"False",
+    "update_allowed":"False"
+}
+```
+
+Request body example for `mapping_votes` :
+ ```json
+{
+    "editor": "user1",
+    "mapping_votes": {
+        "user1": "up"
+    },
+    "is_admin":"False",
+    "update_allowed":"True"
+}
+```
+
 #### DELETE
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
