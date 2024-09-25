@@ -77,7 +77,7 @@ api.add_resource(OntologyAPISearchPreferences,
 api.add_resource(PreferredTerminology,
                  "/api/Terminology/<string:id>/preferred_terminology")
 
-# 
+# GET/PUT user_input sub-collection associated with a Terminology/code/input type
 api.add_resource(TerminologyUserInput, "/api/Terminology/<string:id>/user_input/<string:code>/<string:type>")
 
 
