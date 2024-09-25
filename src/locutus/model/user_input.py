@@ -8,7 +8,7 @@ Current Use:
 
 """
 
-from marshmallow import Schema, fields, post_load, validates, ValidationError
+from marshmallow import Schema, fields, post_load
 from datetime import datetime
 
 class UserInput:
@@ -34,21 +34,6 @@ class UserInput:
         class _Schema(Schema):
             """Schema for serializing/deserializing multiple mapping conversations."""
             mapping_conversations = fields.List(fields.Dict(keys=fields.Str(), values=fields.Str()))
-
-            @validates('mapping_conversations')
-            def validate_note_length(self, conversations):
-                """
-                Validates that the 'note' field doesn't exceed 200 characters.
-                
-                Args:
-                    conversations (list): List of dictionaries representing conversations.
-                    
-                Raises:
-                    ValidationError: If the 'note' field exceeds 200 characters.
-                """
-                for conv in conversations:
-                    if 'note' in conv and len(conv['note']) > 200:
-                        raise ValidationError(f"Note exceeds 200 characters: {conv['note']}")
 
             @post_load
             def build_mapping_conversations(self, data, **kwargs):
@@ -95,24 +80,6 @@ class UserInput:
             """        
             mapping_votes = fields.List(fields.Dict(keys=fields.Str(),
                                                      values=fields.Str()))
-
-
-            @validates('mapping_votes')
-            def validate_votes(self, votes):
-                """
-                Validates that each vote value is either 'up' or 'down'.
-                
-                Args:
-                    votes (list): List of dictionaries representing votes.
-                    
-                Raises:
-                    ValidationError: If any vote value is not 'up' or 'down'.
-                """
-                for vote in votes:
-                    for value in vote.values():
-                        if value not in ['up', 'down']:
-                            raise ValidationError(f"Vote must be 'up' or 'down', got '{value}'.")
-
 
             @post_load
             def build_mapping_votes(self, data, **kwargs):

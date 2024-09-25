@@ -649,7 +649,7 @@ Body description:<br>
 * {type of user_input eg 'mapping_votes'}(required): defines the users input
 * update_allowed(Optional, default=True): Denotes whether previous 
   user input should be editable.
-*is_admin(Optional, default=False): Denotes the requester is the
+* is_admin(Optional, default=False): Denotes the requester is the
   an admin and is able to edit a user's data.
 
 Request body example for `mapping_conversations` :
