@@ -39,6 +39,7 @@ from locutus.api.datadictionary import (
 from locutus.api.ontologies_search import OntologyAPIs
 from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
 from locutus.model.sessions import SessionManager
+from locutus.api.user_input import TerminologyUserInput
 
 app = Flask(__name__)
 CORS(app)
@@ -75,6 +76,10 @@ api.add_resource(OntologyAPISearchPreferences,
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Terminology
 api.add_resource(PreferredTerminology,
                  "/api/Terminology/<string:id>/preferred_terminology")
+
+# 
+api.add_resource(TerminologyUserInput, "/api/Terminology/<string:id>/user_input/<string:code>/<string:type>")
+
 
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly
