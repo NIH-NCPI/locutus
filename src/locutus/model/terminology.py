@@ -6,6 +6,8 @@ from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
 
+from locutus.model.user_input import UserInput
+
 import pdb
 
 class CodeAlreadyPresent(Exception):
@@ -649,6 +651,177 @@ class Terminology(Serializable):
             print(f"An error occurred while adding preferred terminology: {e}")
             raise
 
+    def get_user_input(self, resource_type, collection_type, id, code, type):
+            """
+            Retrieves user input for the identified Resource/id/collection/code/type.
+            Does not filter down by editor.
+            Returns only one type of user_input.
+
+            Args:
+            resource_type (str): The resource collection (e.g., "Terminology").
+            collection_type (str): The subcollection (e.g., "user_input")
+            id (str): The document ID.
+            code (str): The target document (mapping) identifier.
+            type (str): The type of input to retrieve 
+                (e.g., "mapping_conversations" or "mapping_votes").
+
+            Returns:
+                dict: Serialized user input data based on the type specified.
+            
+            Example output for TerminologyUserInput type mapping_votes
+            {
+                "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+                "code": "TEST_0001",
+                "mapping_votes": [
+                    {
+                        "user2": "original up"
+                    },
+                    {
+                        "user3": "original down"
+                    }
+                ]
+            }
+            """
+            try:
+                doc_ref = persistence().collection(resource_type).document(id) \
+                    .collection(collection_type).document(code)
+
+                doc_snapshot = doc_ref.get()
+
+                if doc_snapshot.exists:
+                    existing_data = doc_snapshot.to_dict()
+
+                    # Handle different input types
+                    if type == "mapping_conversations":
+                        schema = UserInput.MappingConversations._Schema()
+                        input_data = existing_data.get("mapping_conversations", [])
+                    elif type == "mapping_votes":
+                        schema = UserInput.MappingVotes._Schema()
+                        input_data = existing_data.get("mapping_votes", [])
+                    else:
+                        return {"message": "Invalid input type specified."}, 400
+
+                    # Serialize the data using the appropriate schema
+                    serialized_data = schema.dump({type: input_data})
+
+                    return {"Terminology": id,
+                            "code": code,
+                            type: serialized_data[type]}
+
+                else:
+                    # Return an empty response if no input exists
+                    return {"Terminology": id, "code": code, "message": "No user input for this mapping."}
+            
+            except Exception as e:
+                return (f"An error occurred while retrieving user input for {id} {resource_type} - {code}: {e}"), 500
+
+
+    
+    def create_or_replace_user_input(self, resource_type, collection_type, id, 
+                                    code, type, editor, user_input, update_allowed,
+                                    is_admin):
+        """
+        Creates or replaces a document in the 'user_input' sub-collection.
+
+        This method handles the creation or updating of user input based on the
+        specified type. It checks whether the user is allowed to update their 
+        own records or if an admin is trying to modify the records. 
+
+        Scenarios using type mapping_conversations:
+        * If no existing mapping_conversations subcollection
+            - Then create the subcollection with the users input
+        * If mapping_conversations subcollection exists and the user should be 
+          able to edit their record(if existing), or if admin needs to edit it.
+            - Then check for the users data and replace that record with the
+              new one. If no user data exists append the new record.
+        * If mapping_conversations subcollection exists and the user should not
+          be able to edit their previous insertions.
+            - Then append the new user data to mapping_conversations.
+
+        Args:
+            resource_type (str): The type of resource (e.g., "Terminology").
+            collection_type (str): The sub-collection (e.g., "user_input").
+            id (str): The document ID.
+            code (str): The target document (mapping) identifier.
+            type (str): The type of input to process (e.g., "mapping_conversations").
+            editor (str): The ID of the user.
+            user_input (dict): The user input data to be updated or created.
+            update_allowed (bool): Indicates if the user is allowed to update their input.
+            is_admin (bool): Indicates if the current user is an admin.
+        """
+
+        try:
+            doc_ref = persistence().collection(resource_type).document(id) \
+                .collection(collection_type).document(code)
+
+            # Fetch existing data for the document if it exists
+            doc_snapshot = doc_ref.get()
+            existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
+
+            if type in existing_data:
+                input_list = existing_data[type]
+                if update_allowed or is_admin:
+                # If admin wants to edit or if the user should be able to edit
+                    self.update_or_append_input(input_list, editor, user_input)
+                else:
+                # If there is no reason to update existing data. Append the new record.
+                   input_list.append(user_input) 
+            else:
+            # No existing data of this type.  Initialize new subcollection and data.
+                existing_data[type] = [user_input]
+            
+            # Update database with the appended data
+            doc_ref.set(existing_data)
+
+        except Exception as e:
+            return (f"An error occurred while retrieving user input for {id} \
+                    {resource_type} - {code}: {e}"), 500
+
+
+    def update_or_append_input(self, input_list, editor, user_input):
+        """
+        Update existing input or append new user input.
+
+        This method checks if the user (editor) has an existing entry in the 
+        input list. If an entry exists for the user, it will replace the
+        existing entry with the new user input. If the user does not have 
+        an existing entry, the new input will be appended to the list. 
+
+        Args:
+            input_list (list): The list of existing user input entries.
+            editor (str): The ID of the user editing the input.
+            user_input (dict): The user input data to be updated or added.
+
+        Returns:
+            list: The updated list of user input entries.
+
+        Notes:
+            If the editor matches an existing user ID in the input_list,
+            their entry will be replaced. If the editor is a key in the 
+            input entry, that entry will be updated. If no matches are 
+            found, the user input will be appended.
+        """
+        existing = False
+
+        # Iterate through the input_list to check for existing user data
+        for idx, entry in enumerate(input_list):
+            # Check if editor matches the value of user_id
+            if 'user_id' in entry and entry['user_id'] == editor:
+                # Replace the existing entry with the new user input
+                input_list[idx] = user_input
+                existing = True
+                break
+
+            # Check if editor matches a key in the entry
+            if editor in entry:
+                # Replace the entry where editor is a key
+                input_list[idx] = {editor: user_input[editor]}
+                existing = True
+                break
+
+        # If no matching entry is found, append a new input
+        if not existing:
+            input_list.append(user_input) 
 
     class _Schema(Schema):
         id = fields.Str()
