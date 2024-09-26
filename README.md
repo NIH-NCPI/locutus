@@ -641,7 +641,7 @@ Expected return for type `mapping_conversations` below
 }
 ```
 
-#### POST
+#### PUT
 
 Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
 Body description:<br>
