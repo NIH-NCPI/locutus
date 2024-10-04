@@ -2,6 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus.model.terminology import Terminology as Term
 from locutus.api import default_headers
+from locutus.model.sessions import SessionManager
 
 import pdb
 
@@ -60,8 +61,7 @@ class TerminologyUserInput(Resource, Term):
         Update the user input 
 
         This method updates the user input for a specific mapping based on 
-        the provided user data. It checks if the user is allowed to update 
-        the input based on their role (editor/admin) and the defined rules.
+        the provided user data. 
 
         Args:
             id (str): Defines the terminology of interest.
@@ -69,46 +69,34 @@ class TerminologyUserInput(Resource, Term):
             type (str): The type of input to update (e.g., "mapping_votes").
 
         Request Body:
-            {
-                "editor": "ex_user",
-                "mapping_votes": {
-                    "ex_user": "updated up"
-                },
-                "update_allowed": "False",
-                "is_admin": "True"
-            }
-        
-        Notes: 
-            update_allowed(Optional, default=True): Denotes whether previous 
-              user input should be editable.
-            is_admin(Optional, default=False): Denotes the requester is the
-              an admin and is able to edit a user's data.
+        {
+            "note": "I dont like this mapping"
+        }
         """
         body = request.get_json()
         t = Term.get(id)
 
-        if 'editor' not in body:
-            return {"message": "editor is required"}
+        user_input = body
 
-        editor = body.get("editor")  
-        user_input = body.get(type)
-
-        if 'update_allowed' in body:
-             update_allowed = body.get('update_allowed').lower() == 'true'
-        else:
-             update_allowed = True
-
-        if 'is_admin' in body:
-             is_admin = body.get('is_admin').lower() == 'true'
-        else:
-             is_admin = False
-
-        # Validate 'mapping_votes' values
+        # Validate input based on type
         if type == 'mapping_votes':
-            for user, vote in user_input.items():
-                if vote.lower() not in ['up', 'down']:
-                    return {"message": f"Invalid vote value '{vote}' for user \
-                             {user}. Must be 'up' or 'down'."}, 400
+            vote = user_input.get('vote')
+            if not vote or vote not in ['up', 'down']:
+                return {"message": "'vote' must be provided set to 'up' or 'down'."}, 400
+
+        elif type == 'mapping_conversations':
+            note = user_input.get('note')
+            if not note or len(note) > 500:
+                return {"message": f"'note' must be provided and cannot exceed 500 characters."}, 400
+
+        # Add additional data (user ID and date) to the input
+        user_obj = SessionManager.create_session_user_object()
+        if 'error' in user_obj:
+            return {"message": "User not logged in"}, 401
+
+       # Update the user input with user_id and date
+        user_input.update(user_obj)
+        user_input.update(SessionManager.create_date_object())
 
         # create input for the user or replace existing input
         t.create_or_replace_user_input(self.resource_type,
@@ -116,14 +104,10 @@ class TerminologyUserInput(Resource, Term):
                                        id,
                                        code,
                                        type,
-                                       editor,
-                                       user_input,
-                                       update_allowed,
-                                       is_admin)
+                                       user_input)
 
         response = {
-            "user_id": editor,
-            "message": f"{editor}s {type} were updated for {id}-{code}"
+            "message": f"The {type} was updated for {id}-{code}"
         }
         return (response, 200, default_headers)
         

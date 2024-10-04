@@ -7,6 +7,7 @@ from datetime import datetime
 import time
 
 from locutus.model.user_input import UserInput
+from locutus.model.sessions import SessionManager
 
 import pdb
 
@@ -672,13 +673,11 @@ class Terminology(Serializable):
             {
                 "Terminology": "tm--2VjOxekLP8m28EPRqk95",
                 "code": "TEST_0001",
-                "mapping_votes": [
+                "user_id": [
                     {
-                        "user2": "original up"
+                        "user_id": user
+                        "up": "date"
                     },
-                    {
-                        "user3": "original down"
-                    }
                 ]
             }
             """
@@ -718,25 +717,12 @@ class Terminology(Serializable):
 
     
     def create_or_replace_user_input(self, resource_type, collection_type, id, 
-                                    code, type, editor, user_input, update_allowed,
-                                    is_admin):
+                                    code, type, user_input):
         """
         Creates or replaces a document in the 'user_input' sub-collection.
 
         This method handles the creation or updating of user input based on the
-        specified type. It checks whether the user is allowed to update their 
-        own records or if an admin is trying to modify the records. 
-
-        Scenarios using type mapping_conversations:
-        * If no existing mapping_conversations subcollection
-            - Then create the subcollection with the users input
-        * If mapping_conversations subcollection exists and the user should be 
-          able to edit their record(if existing), or if admin needs to edit it.
-            - Then check for the users data and replace that record with the
-              new one. If no user data exists append the new record.
-        * If mapping_conversations subcollection exists and the user should not
-          be able to edit their previous insertions.
-            - Then append the new user data to mapping_conversations.
+        specified type. 
 
         Args:
             resource_type (str): The type of resource (e.g., "Terminology").
@@ -744,10 +730,7 @@ class Terminology(Serializable):
             id (str): The document ID.
             code (str): The target document (mapping) identifier.
             type (str): The type of input to process (e.g., "mapping_conversations").
-            editor (str): The ID of the user.
             user_input (dict): The user input data to be updated or created.
-            update_allowed (bool): Indicates if the user is allowed to update their input.
-            is_admin (bool): Indicates if the current user is an admin.
         """
 
         try:
@@ -758,14 +741,11 @@ class Terminology(Serializable):
             doc_snapshot = doc_ref.get()
             existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
 
+            user_id = user_input['user_id']
+
             if type in existing_data:
                 input_list = existing_data[type]
-                if update_allowed or is_admin:
-                # If admin wants to edit or if the user should be able to edit
-                    self.update_or_append_input(input_list, editor, user_input)
-                else:
-                # If there is no reason to update existing data. Append the new record.
-                   input_list.append(user_input) 
+                self.update_or_append_input(input_list, user_id, user_input)
             else:
             # No existing data of this type.  Initialize new subcollection and data.
                 existing_data[type] = [user_input]
@@ -778,11 +758,11 @@ class Terminology(Serializable):
                     {resource_type} - {code}: {e}"), 500
 
 
-    def update_or_append_input(self, input_list, editor, user_input):
+    def update_or_append_input(self, input_list, user_id, user_input):
         """
         Update existing input or append new user input.
 
-        This method checks if the user (editor) has an existing entry in the 
+        This method checks if the user has an existing entry in the 
         input list. If an entry exists for the user, it will replace the
         existing entry with the new user input. If the user does not have 
         an existing entry, the new input will be appended to the list. 
@@ -795,27 +775,15 @@ class Terminology(Serializable):
         Returns:
             list: The updated list of user input entries.
 
-        Notes:
-            If the editor matches an existing user ID in the input_list,
-            their entry will be replaced. If the editor is a key in the 
-            input entry, that entry will be updated. If no matches are 
-            found, the user input will be appended.
         """
         existing = False
 
         # Iterate through the input_list to check for existing user data
         for idx, entry in enumerate(input_list):
-            # Check if editor matches the value of user_id
-            if 'user_id' in entry and entry['user_id'] == editor:
+            # Check if session owner matches the value of user_id
+            if entry['user_id'] == user_id:
                 # Replace the existing entry with the new user input
                 input_list[idx] = user_input
-                existing = True
-                break
-
-            # Check if editor matches a key in the entry
-            if editor in entry:
-                # Replace the entry where editor is a key
-                input_list[idx] = {editor: user_input[editor]}
                 existing = True
                 break
 
