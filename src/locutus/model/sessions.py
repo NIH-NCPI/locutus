@@ -2,7 +2,7 @@ from flask import session
 from flask_session import Session
 
 import secrets
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 class SessionManager:
     """
@@ -87,3 +87,14 @@ class SessionManager:
             }, 200
         else:
             return {"message": "No active session"}, 404
+        
+    def create_session_user_object():
+        if 'user_id' in session:
+            user_id = session['user_id']
+            return {'user_id': user_id}
+        else:
+            return {'error': 'User not logged in'}
+        
+    def create_date_object():
+        current_date = datetime.now().strftime("%b %d, %Y, %I:%M:%S.%f %p")
+        return {"date": current_date}          

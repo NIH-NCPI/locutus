@@ -9,7 +9,6 @@ Current Use:
 """
 
 from marshmallow import Schema, fields, post_load
-from datetime import datetime
 
 class UserInput:
     class MappingConversations:
@@ -22,7 +21,7 @@ class UserInput:
 
         Data Expectations:
             "mapping_conversations": {
-                "note_datetime": "Sep 25, 2024, 08:47:33.396 AM",
+                "date": "Sep 25, 2024, 08:47:33.396 AM",
                 "user_id": "users id",
                 "note": "note here"
             }
@@ -33,7 +32,8 @@ class UserInput:
 
         class _Schema(Schema):
             """Schema for serializing/deserializing multiple mapping conversations."""
-            mapping_conversations = fields.List(fields.Dict(keys=fields.Str(), values=fields.Str()))
+            mapping_conversations = fields.List(fields.Dict(keys=fields.Str(),
+                                                             values=fields.Str()))
 
             @post_load
             def build_mapping_conversations(self, data, **kwargs):
@@ -49,9 +49,7 @@ class UserInput:
                 "mapping_conversations": [
                     {
                         "user_id": conv["user_id"],
-                        "note_datetime": (
-                            conv["note_datetime"].strftime("%b %d, %Y, %I:%M:%S.%f %p")
-                            if isinstance(conv["note_datetime"], datetime) else None),
+                        "date": conv["date"],
                         "note": conv["note"]
                     } for conv in self.mapping_conversations
                 ]
@@ -68,7 +66,9 @@ class UserInput:
 
         Data Expectations:
             "mapping_votes": {
-                "the users id": "the users vote ['up','down']",
+                "date": "Sep 25, 2024, 08:47:33.396 AM",
+                "user_id": "users id",
+                "vote": "up"
             }
         """
         def __init__(self, mapping_votes):
@@ -90,9 +90,16 @@ class UserInput:
                 Returns:
                     dict: A dictionary representation of the mapping votes.
                 """
-                return UserInput.MappingVotes(data['mapping_conversations'])
+                return UserInput.MappingVotes(data['mapping_votes'])
             
         def to_dict(self):
-            """Converts the list of mapping conversations to a dictionary format."""
-            return {"mapping_votes": [{k: v} for vote in self.mapping_votes for k, v in vote.items()]}
-
+            """Converts the list of mapping votes to a dictionary format."""
+            return {
+                "mapping_votes": [
+                    {
+                        "user_id": conv["user_id"],
+                        "date": conv["date"],
+                        "vote": conv["vote"]
+                    } for conv in self.mapping_votes
+                ]
+            }

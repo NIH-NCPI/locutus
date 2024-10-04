@@ -595,11 +595,16 @@ Request body example:
 >>>>>>> bd55aa7 ([FD-1633]PR2 Update the readme)
 ```
 
+#### DELETE
+Running the DELETE request will remove the preferred_terminology collection
+from the `Terminology` specified by the id
+
 ### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
   
   * id (str): The document ID.
   * code (str): The target document (mapping) identifier.
-  * type (str): The type of input to retrieve (e.g., "mapping_conversations" or "mapping_votes").
+  * type (str): The type of input to retrieve 
+     - currently available: "mapping_conversations","mapping_votes".
 
 #### GET
 
@@ -614,10 +619,9 @@ Expected return for type `mapping_votes` below
     "code": "TEST_0001",
     "mapping_votes": [
         {
-            "user2": "up"
-        },
-        {
-            "user3": "down"
+            "date": "Oct 04, 2024, 03:35:23.088717 PM",
+            "user_id": "test_session",
+            "vote": "up"
         }
     ]
 }
@@ -631,14 +635,14 @@ Expected return for type `mapping_conversations` below
     "code": "TEST_0001",
     "mapping_conversations": [
         {
-            "note_datetime": "Sep 25, 2023, 08:47:33.396",
-            "user_id": "user1",
-            "note": "Original notes"
+            "date": "Oct 04, 2024, 04:17:43.043579 PM",
+            "user_id": "test_session",
+            "note": "I like this mapping"
         },
         {
-            "note_datetime": "Sep 25, 2023, 08:47:33.396",
-            "user_id": "user2",
-            "note": "test 2"
+            "date": "Oct 04, 2024, 04:21:15.460040 PM",
+            "user_id": "test_session2",
+            "note": "I dont like this mapping"
         }
     ]
 }
@@ -647,37 +651,18 @@ Expected return for type `mapping_conversations` below
 #### PUT
 
 Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
-Body description:<br>
-* editor(required): Represents the user
-* {type of user_input eg 'mapping_votes'}(required): defines the users input
-* update_allowed(Optional, default=True): Denotes whether previous 
-  user input should be editable.
-* is_admin(Optional, default=False): Denotes the requester is the
-  an admin and is able to edit a user's data.
 
 Request body example for `mapping_conversations` :
  ```json
 {
-    "editor": "user5",
-    "mapping_conversations": {
-        "note_datetime": "Sep 25, 2023, 08:47:33.396",
-        "user_id": "user5",
-        "note": "testing"
-    },
-    "is_admin":"False",
-    "update_allowed":"False"
+    "note": "I dont like this mapping"
 }
 ```
 
 Request body example for `mapping_votes` :
  ```json
 {
-    "editor": "user1",
-    "mapping_votes": {
-        "user1": "up"
-    },
-    "is_admin":"False",
-    "update_allowed":"True"
+    "vote": "up"
 }
 }
 ```
@@ -767,11 +752,6 @@ Request body example for `mapping_votes` :
     "update_allowed":"True"
 }
 ```
-
-#### DELETE
-Running the DELETE request will remove the preferred_terminology collection
-from the `Terminology` specified by the id
-
 
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
