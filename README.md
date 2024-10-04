@@ -560,20 +560,23 @@ This is the expected result after removing preferences with the URL code specify
 
 Return the reference to the preferred_terminology related to the `Terminology` (specified by id).<br>
 Returns the preferred_terminology at the Terminology("self") level. <br> Expected return example below.
+
 ```json
-[
-    {
-        "preferred_terminology": "tm--example3"
-    },
-    {
-        "preferred_terminology": "tm--example6"
-    }
-]
+{
+    "references": [
+        {
+            "reference": "Terminology/tm--example1"
+        },
+        {
+            "reference": "Terminology/tm--example2"
+        }
+    ]
+}
 ```
 
-#### POST
+#### PUT
 
-Create a reference to a prefered `Terminology` for the terminology (specified by id). <br> 
+Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
 Request body example:
  ```json
 {
