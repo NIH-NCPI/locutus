@@ -561,22 +561,19 @@ This is the expected result after removing preferences with the URL code specify
 Return the reference to the preferred_terminology related to the `Terminology` (specified by id).<br>
 Returns the preferred_terminology at the Terminology("self") level. <br> Expected return example below.
 
-```json
-{
-    "references": [
-        {
-            "reference": "Terminology/tm--example1"
-        },
-        {
-            "reference": "Terminology/tm--example2"
-        }
-    ]
-}
+[
+    {
+        "preferred_terminology": "tm--example3"
+    },
+    {
+        "preferred_terminology": "tm--example6"
+    }
+]
 ```
 
-#### PUT
+#### POST
 
-Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
+Create a reference to a prefered `Terminology` for the terminology (specified by id). <br> 
 Request body example:
  ```json
 {
@@ -589,10 +586,7 @@ Request body example:
             "preferred_terminology": "tm--example6"
         }
     ]
-<<<<<<< HEAD
 }
-=======
->>>>>>> bd55aa7 ([FD-1633]PR2 Update the readme)
 ```
 
 #### DELETE
@@ -663,7 +657,6 @@ Request body example for `mapping_votes` :
  ```json
 {
     "vote": "up"
-}
 }
 ```
 
