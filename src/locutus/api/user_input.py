@@ -3,10 +3,10 @@ from flask import request
 from locutus.model.terminology import Terminology as Term
 from locutus.api import default_headers
 from locutus.model.sessions import SessionManager
-
+from locutus.model.user_input import UserInput
 import pdb
 
-
+USER_INPUT_STRING_LIMIT = 1000
 class TerminologyUserInput(Resource, Term):
     """
     Resource for handling user input related to terminology mappings.
@@ -82,32 +82,31 @@ class TerminologyUserInput(Resource, Term):
         if type == 'mapping_votes':
             vote = user_input.get('vote')
             if not vote or vote not in ['up', 'down']:
-                return {"message": "'vote' must be provided set to 'up' or 'down'."}, 400
+                return {"message": "'vote' must be provided and set to 'up' or 'down'."}, 400
+
+            # Use the MappingVotes class to build the mapping vote
+            mapping_votes_instance = UserInput.MappingVotes({})
+            user_input = mapping_votes_instance.build_mapping_vote(vote)
 
         elif type == 'mapping_conversations':
             note = user_input.get('note')
-            if not note or len(note) > 500:
-                return {"message": f"'note' must be provided and cannot exceed 500 characters."}, 400
+            if not note or len(note) > USER_INPUT_STRING_LIMIT:
+                return {"message": f"'note' must be provided and cannot exceed {USER_INPUT_STRING_LIMIT} characters."}, 400
 
-        # Add additional data (user ID and date) to the input
-        user_obj = SessionManager.create_session_user_object()
-        if 'error' in user_obj:
-            return {"message": "User not logged in"}, 401
+            # Use the MappingConversations class to build the mapping conversation
+            mapping_conversations_instance = UserInput.MappingConversations([])
+            user_input = mapping_conversations_instance.build_mapping_conversation(note)
 
-       # Update the user input with user_id and date
-        user_input.update(user_obj)
-        user_input.update(SessionManager.create_date_object())
-
-        # create input for the user or replace existing input
         t.create_or_replace_user_input(self.resource_type,
                                        self.collection_type,
                                        id,
                                        code,
                                        type,
                                        user_input)
+        
 
         response = {
-            "message": f"The {type} was updated for {id}-{code}"
+            "message": f"The {type} were updated for {id}-{code}"
         }
         return (response, 200, default_headers)
         

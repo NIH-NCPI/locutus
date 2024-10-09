@@ -614,13 +614,16 @@ Expected return for type `mapping_votes` below
 {
     "Terminology": "tm--2VjOxekLP8m28EPRqk95",
     "code": "TEST_0001",
-    "mapping_votes": [
-        {
-            "date": "Oct 04, 2024, 03:35:23.088717 PM",
-            "user_id": "test_session",
+    "mapping_votes": {
+        "bg_test_session2": {
+            "date": "Oct 09, 2024, 03:51:01.088284 PM",
+            "vote": "up"
+        },
+        "bg_test_session": {
+            "date": "Oct 09, 2024, 03:49:50.742381 PM",
             "vote": "up"
         }
-    ]
+    }
 }
 ```
 
