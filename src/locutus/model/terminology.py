@@ -696,7 +696,7 @@ class Terminology(Serializable):
                         input_data = existing_data.get("mapping_conversations", [])
                     elif type == "mapping_votes":
                         schema = UserInput.MappingVotes._Schema()
-                        input_data = existing_data.get("mapping_votes", [])
+                        input_data = existing_data.get("mapping_votes", {})
                     else:
                         return {"message": "Invalid input type specified."}, 400
 
@@ -716,23 +716,11 @@ class Terminology(Serializable):
 
 
     
-    def create_or_replace_user_input(self, resource_type, collection_type, id, 
-                                    code, type, user_input):
+    def create_or_replace_user_input(self, resource_type, collection_type, id, code, type, user_input):
         """
-        Creates or replaces a document in the 'user_input' sub-collection.
-
-        This method handles the creation or updating of user input based on the
-        specified type. 
-
-        Args:
-            resource_type (str): The type of resource (e.g., "Terminology").
-            collection_type (str): The sub-collection (e.g., "user_input").
-            id (str): The document ID.
-            code (str): The target document (mapping) identifier.
-            type (str): The type of input to process (e.g., "mapping_conversations").
-            user_input (dict): The user input data to be updated or created.
+        Creates or replaces a document in the 'user_input' sub-collection data
+        for a user.
         """
-
         try:
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(code)
@@ -741,16 +729,23 @@ class Terminology(Serializable):
             doc_snapshot = doc_ref.get()
             existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
 
-            user_id = user_input['user_id']
+            # Get user_id to identify existing data for the user.
+            user_id = SessionManager.create_session_user_id()
+            if 'error' in user_id:
+                raise ValueError("User not logged in")
+        
+            # Initialize type structure if it doesn't exist. Debug: If put 
+            # request does not add data the result will be an empty list or dict.
+            if type not in existing_data:
+                if type == "mapping_votes":
+                    existing_data[type] = {}
+                elif type == "mapping_conversations":
+                    existing_data[type] = []
 
-            if type in existing_data:
-                input_list = existing_data[type]
-                self.update_or_append_input(input_list, user_id, user_input)
-            else:
-            # No existing data of this type.  Initialize new subcollection and data.
-                existing_data[type] = [user_input]
+            # Update or append the user input based on type. Updates existing_data.
+            self.update_or_append_input(existing_data[type], user_id, user_input)
             
-            # Update database with the appended data
+            # Update the Firestore document with the new data.
             doc_ref.set(existing_data)
 
         except Exception as e:
@@ -758,38 +753,30 @@ class Terminology(Serializable):
                     {resource_type} - {code}: {e}"), 500
 
 
-    def update_or_append_input(self, input_list, user_id, user_input):
+    def update_or_append_input(self, input_data, user_id, user_input):
         """
         Update existing input or append new user input.
-
-        This method checks if the user has an existing entry in the 
-        input list. If an entry exists for the user, it will replace the
-        existing entry with the new user input. If the user does not have 
-        an existing entry, the new input will be appended to the list. 
-
-        Args:
-            input_list (list): The list of existing user input entries.
-            editor (str): The ID of the user editing the input.
-            user_input (dict): The user input data to be updated or added.
-
-        Returns:
-            list: The updated list of user input entries.
-
         """
-        existing = False
+        if isinstance(input_data, dict):
+            # For dictionaries (e.g., mapping_votes)
+            # Insert new record or update existing entry based on user_id
+            input_data[user_id] = {
+                "vote": user_input.get("vote"),
+                "date": user_input.get("date")
+            }
+        elif isinstance(input_data, list):
+            # For lists (e.g., mapping_conversations)
+            existing_entry = next((entry for entry in input_data if entry.get('user_id') == user_id), None)
 
-        # Iterate through the input_list to check for existing user data
-        for idx, entry in enumerate(input_list):
-            # Check if session owner matches the value of user_id
-            if entry['user_id'] == user_id:
-                # Replace the existing entry with the new user input
-                input_list[idx] = user_input
-                existing = True
-                break
-
-        # If no matching entry is found, append a new input
-        if not existing:
-            input_list.append(user_input) 
+            if existing_entry:
+                existing_entry.update({
+                    "note": user_input.get("note"),
+                    "date": user_input.get("date")
+                })
+            else:
+                # If no matching entry is found, append a new input
+                user_input['user_id'] = user_id
+                input_data.append(user_input)
 
     class _Schema(Schema):
         id = fields.Str()

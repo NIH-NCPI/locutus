@@ -88,13 +88,13 @@ class SessionManager:
         else:
             return {"message": "No active session"}, 404
         
-    def create_session_user_object():
+    def create_session_user_id():
         if 'user_id' in session:
             user_id = session['user_id']
-            return {'user_id': user_id}
+            return user_id
         else:
             return {'error': 'User not logged in'}
         
-    def create_date_object():
+    def create_current_datetime():
         current_date = datetime.now().strftime("%b %d, %Y, %I:%M:%S.%f %p")
-        return {"date": current_date}          
+        return current_date    
