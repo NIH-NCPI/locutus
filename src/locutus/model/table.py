@@ -93,6 +93,7 @@ class Table(Serializable):
             terminology = {
                 "name": name,
                 "url": f"{url}/{name}",
+                "description": self.description,
                 "codes": [],
             }
             t = Terminology(**terminology)
@@ -156,7 +157,7 @@ class Table(Serializable):
                     var.name = new_varname
                     var.code = clean_varname(var.name)
                     if var.code != original_code:
-                        
+
                         # Since we found a matching code, we'll pull the mappings and
                         # save those under the new code after deleting the old ones.
 
@@ -179,26 +180,31 @@ class Table(Serializable):
                 if new_values:
                     terminology = self.terminology.dereference()
                     terminology.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm, 
+                        change_type=Terminology.ChangeType.EditTerm,
                         target=original_code,
                         old_value=old_values,
                         new_value=new_values,
-                        editor=editor
+                        editor=editor,
                     )
                     terminology.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm, 
+                        change_type=Terminology.ChangeType.EditTerm,
                         target="self",
                         old_value=old_values,
                         new_value=new_values,
-                        editor=editor
+                        editor=editor,
                     )
                     if original_varname != new_varname:
-                        term_doc = persistence().collection(terminology.resource_type).document(terminology.id).collection("provenance")
+                        term_doc = (
+                            persistence()
+                            .collection(terminology.resource_type)
+                            .document(terminology.id)
+                            .collection("provenance")
+                        )
                         prov = term_doc.document(original_code).get().to_dict()
                         prov["target"] = var.code
                         term_doc.document(var.code).set(prov)
                         term_doc.document(original_code).delete()
-                return True 
+                return True
         return False
 
     def _insert_variable(self, variable):
@@ -298,7 +304,7 @@ class Table(Serializable):
 
     def keys(self):
         return [self.url, self.name]
-    
+
     def get_preference(self, code=None):
         """Retrieve preferences from the terminology."""
         try:
@@ -307,11 +313,13 @@ class Table(Serializable):
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
             raise
-        
+
     def add_or_update_pref(self, api_preference, code=None):
         try:
-            self.terminology.dereference().add_or_update_pref(api_preference=api_preference, code=code)
-        
+            self.terminology.dereference().add_or_update_pref(
+                api_preference=api_preference, code=code
+            )
+
         except Exception as e:
             print(f"An error occurred while updating preferences: {str(e)}")
             raise
@@ -323,6 +331,7 @@ class Table(Serializable):
         except Exception as e:
             print(f"An error occurred while updating preferences: {str(e)}")
             raise
+
     class _Schema(Schema):
         id = fields.Str()
         code = fields.Str()
