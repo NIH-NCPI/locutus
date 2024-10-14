@@ -5,6 +5,8 @@ name: 'Build and Deploy to Cloud Run'
 
 on:
   pull_request_review:
+    branches:
+      - main
     types: [submitted]
 
 env:
