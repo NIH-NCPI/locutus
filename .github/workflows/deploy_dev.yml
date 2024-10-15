@@ -7,7 +7,7 @@ on:
   pull_request_review:
     branches:
       - main
-    types:  [opened, reopened, synchronize, edited]
+    types: [opened, reopened, edited, synchronize]
 
 env:
 
@@ -21,6 +21,7 @@ jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
+
 
     
     environment:
