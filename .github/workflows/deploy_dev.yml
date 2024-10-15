@@ -7,7 +7,7 @@ on:
   pull_request_review:
     branches:
       - main
-    types:  [opened, reopened, synchronize]
+    types:  [opened, reopened, synchronize, edited]
 
 env:
 
@@ -22,7 +22,6 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.review.state == 'approved'
     
     environment:
       name: dev
