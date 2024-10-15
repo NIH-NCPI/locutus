@@ -590,7 +590,6 @@ Request body example:
         }
     ]
 }
-
 ```
 
 #### DELETE
