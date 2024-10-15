@@ -22,7 +22,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.review.state == 'open'
+    if: github.event.review.state == 'approved'
     
     environment:
       name: dev
