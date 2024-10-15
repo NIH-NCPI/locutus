@@ -7,7 +7,7 @@ on:
   pull_request_review:
     branches:
       - main
-    types: [submitted]
+    types:  [opened, reopened, synchronize]
 
 env:
 
@@ -22,7 +22,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.review.state == 'approved'
+    if: github.event.review.state == 'open' && github.base_ref == 'main'
     
     environment:
       name: dev
