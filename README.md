@@ -666,7 +666,6 @@ Request body example for `mapping_votes` :
 }
 ```
 
-
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
 associated with the terminology. This includes adding and removing codes, 
