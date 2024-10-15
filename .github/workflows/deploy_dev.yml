@@ -5,8 +5,9 @@ name: 'Build and Deploy to Cloud Run'
 
 on:
   pull_request_review:
-
-    types: [opened, reopened, edited, synchronize]
+    branches:
+      - main
+    types: [opened, reopened, synchronize, edited]
 
 env:
 
@@ -21,7 +22,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-
+    if:  github.base_ref == 'main'
     
     environment:
       name: dev
