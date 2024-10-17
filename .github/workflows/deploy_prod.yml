@@ -28,6 +28,7 @@ env:
   SERVICE: 'locutus'
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
 
 jobs:
   
