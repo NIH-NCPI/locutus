@@ -3,7 +3,7 @@
 # Will create a version env variable using the PR title. PR naming convention ex:
 # 'Release v0.0.0'
 
-name: 'Build and Deploy to Cloud Run'
+name: 'QA Deploy'
 
 on:
   pull_request:

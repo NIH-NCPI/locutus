@@ -2,7 +2,7 @@
 # and deploy it on Cloud Run when a PR has been approved by a reviewer.
 # Will create a version env variable using the PR number.
 
-name: 'Build and Deploy to Cloud Run'
+name: 'Dev Deploy'
 
 on:
   pull_request_review:
