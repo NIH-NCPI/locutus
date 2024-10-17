@@ -1,13 +1,13 @@
 # This workflow build and push a Docker container to Google Artifact Registry
 # and deploy it on Cloud Run when a PR has been approved by a reviewer.
+# Will create a version env variable using the PR number.
 
 name: 'Build and Deploy to Cloud Run'
 
 on:
   pull_request_review:
-    branches:
-      - main
     types: [submitted]
+  workflow_dispatch: # This enables manual triggers
 
 env:
 
@@ -34,6 +34,9 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
+        with:
+          ref: main # specify main branch is checked out
+
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -45,6 +48,19 @@ jobs:
         run: |-
           gcloud auth configure-docker '${{ env.REGION }}-docker.pkg.dev'
 
+
+      - name: Configure Git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Extract Version from PR Number
+        id: extract_version
+        run: |
+          VERSION=${{ github.event.pull_request.number }} 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV 
+          echo "Extracted Version: $VERSION"
+  
       - name: 'Build and Push Container'
         run: |-
           DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"

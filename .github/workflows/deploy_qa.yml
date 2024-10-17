@@ -1,5 +1,7 @@
 # This workflow build and push a Docker container to Google Artifact Registry
 # and deploy it on Cloud Run when a PR to the `release` branch is made.
+# Will create a version env variable using the PR title. PR naming convention ex:
+# 'Release v0.0.0'
 
 name: 'Build and Deploy to Cloud Run'
 
@@ -9,6 +11,7 @@ on:
       - release
     types:
       - opened
+  workflow_dispatch: # This enables manual triggers
 
 env:
 
@@ -33,6 +36,8 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
+        with:
+          ref: release # specify release branch is checked out
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -43,6 +48,18 @@ jobs:
       - name: 'Docker Auth'
         run: |-
           gcloud auth configure-docker '${{ env.REGION }}-docker.pkg.dev'
+
+      - name: Configure Git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0
+        id: extract_version
+        run: |
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[\d.]+\b') 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV 
+          echo "Extracted Version: $VERSION"
 
       - name: 'Build and Push Container'
         run: |-

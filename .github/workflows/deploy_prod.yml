@@ -1,5 +1,7 @@
 # This workflow build and push a Docker container to Google Artifact Registry
 # and deploy it on Cloud Run when a PR to the `release` branch is merged.
+# Will create a version env variable using the PR title. PR naming convention ex:
+# 'Release v0.0.0'
 
 name: 'Build and Deploy to Cloud Run'
 
@@ -9,6 +11,7 @@ on:
       - release
     types:
       - closed
+  workflow_dispatch: # This enables manual triggers
 
 env:
 
@@ -23,7 +26,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
     
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true && github.base_ref == 'release'
 
     environment:
       name: prod
@@ -35,6 +38,8 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
+        with:
+          ref: release # specify release branch is checked out
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -58,3 +63,28 @@ jobs:
           service: '${{ env.SERVICE }}'
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+  
+      # After PR merge and deployment, set version, create tag, and create release
+      - name: Configure Git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0
+        id: extract_version
+        run: |
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[\d.]+\b') 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted Version: $VERSION"
+
+      - name: Create Release Tag
+        run: |
+          git tag "$VERSION"
+          git push origin "$VERSION"
+      
+      - name: Create a Release
+        uses: elgohr/Github-Release-Action@v5
+        with:
+          title: "Release $VERSION" # e.g., Release v0.0.0
+          tag: $VERSION # v0.0.0
+  
