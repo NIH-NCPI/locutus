@@ -8,10 +8,18 @@ name: 'Prod Deploy and Release'
 on:
   pull_request:
     branches:
-      - release
+      - main  # This will trigger on PRs targeting the main branch
     types:
-      - closed
-  workflow_dispatch: # This enables manual triggers
+      - opened
+      - reopened
+      - synchronize
+      - edited
+  # pull_request:
+  #   branches:
+  #     - release
+  #   types:
+  #     - closed
+  # workflow_dispatch: # This enables manual triggers
 
 env:
 
@@ -26,7 +34,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
     
-    if: github.event.pull_request.merged == true && github.base_ref == 'release'
+    # if: github.event.pull_request.merged == true && github.base_ref == 'release'
 
     environment:
       name: prod
