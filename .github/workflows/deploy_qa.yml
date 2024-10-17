@@ -8,10 +8,18 @@ name: 'QA Deploy'
 on:
   pull_request:
     branches:
-      - release
+      - main  # This will trigger on PRs targeting the main branch
     types:
       - opened
-  workflow_dispatch: # This enables manual triggers
+      - reopened
+      - synchronize
+      - edited
+  # pull_request:
+  #   branches:
+  #     - release
+  #   types:
+  #     - opened
+  # workflow_dispatch: # This enables manual triggers
 
 env:
 
