@@ -63,7 +63,8 @@ jobs:
         id: extract_version
         run: |
           VERSION=${{ github.event.pull_request.number }} 
-          echo "VERSION=$VERSION" >> $GITHUB_ENV 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=VERSION::$VERSION"
           echo "Extracted Version: $VERSION"
   
       - name: 'Build and Push Container'
@@ -78,3 +79,4 @@ jobs:
           service: '${{ env.SERVICE }}'
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          env_vars: VERSION=${{ steps.extract_version.outputs.VERSION }}
