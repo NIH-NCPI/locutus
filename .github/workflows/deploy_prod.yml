@@ -75,16 +75,17 @@ jobs:
         run: |
           VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[\d.]+\b') 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=VERSION::$VERSION"
           echo "Extracted Version: $VERSION"
 
       - name: Create Release Tag
         run: |
-          git tag "$VERSION"
-          git push origin "$VERSION"
+          git tag "${{ steps.extract_version.outputs.VERSION }}"
+          git push origin "${{ steps.extract_version.outputs.VERSION }}"
       
       - name: Create a Release
         uses: elgohr/Github-Release-Action@v5
         with:
-          title: "Release $VERSION" # e.g., Release v0.0.0
-          tag: $VERSION # v0.0.0
+          title: "Release ${{ steps.extract_version.outputs.VERSION }}" # e.g., Release v0.0.0
+          tag: ${{ steps.extract_version.outputs.VERSION }} # v0.0.0
   

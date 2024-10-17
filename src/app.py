@@ -49,7 +49,7 @@ api = Api(app)
 session_manager = SessionManager(app)
 
 # GET app version
-api.add_resource(Version, "/api/Version")
+api.add_resource(Version, "/api/version")
 
 api.add_resource(SessionStart, '/api/session/start', resource_class_kwargs={'session_manager': session_manager})
 api.add_resource(SessionTerminate, '/api/session/terminate', resource_class_kwargs={'session_manager': session_manager})
