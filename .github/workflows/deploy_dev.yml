@@ -5,14 +5,6 @@
 name: 'Dev Deploy'
 
 on:
-  pull_request:
-    branches:
-      - main  # This will trigger on PRs targeting the main branch
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - edited
   pull_request_review:
     types: [submitted]
   workflow_dispatch: # This enables manual triggers
@@ -30,7 +22,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    # if: github.event.review.state == 'approved'
+    if: github.event.review.state == 'approved'
     
     environment:
       name: dev
