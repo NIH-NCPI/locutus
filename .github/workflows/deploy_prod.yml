@@ -48,7 +48,7 @@ jobs:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
         # with:
-        #   ref: release # specify release branch is checked out
+        #   ref: release # release is deployed, not the working branch
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -87,10 +87,10 @@ jobs:
           echo "::set-output name=VERSION::$VERSION"
           echo "Extracted Version: $VERSION"
 
-      - name: Create Release Tag
-        run: |
-          git tag "${{ steps.extract_version.outputs.VERSION }}"
-          git push origin "${{ steps.extract_version.outputs.VERSION }}"
+      # - name: Create Release Tag
+      #   run: |
+      #     git tag "${{ steps.extract_version.outputs.VERSION }}"
+      #     git push origin "${{ steps.extract_version.outputs.VERSION }}"
       
       - name: Create a Release
         uses: elgohr/Github-Release-Action@v5
