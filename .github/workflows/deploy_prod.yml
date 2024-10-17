@@ -8,18 +8,10 @@ name: 'Prod Deploy and Release'
 on:
   pull_request:
     branches:
-      - main  # This will trigger on PRs targeting the main branch
+      - release
     types:
-      - opened
-      - reopened
-      - synchronize
-      - edited
-  # pull_request:
-  #   branches:
-  #     - release
-  #   types:
-  #     - closed
-  # workflow_dispatch: # This enables manual triggers
+      - closed
+  workflow_dispatch: # This enables manual triggers
 
 env:
 
@@ -35,7 +27,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
     
-    # if: github.event.pull_request.merged == true && github.base_ref == 'release'
+    if: github.event.pull_request.merged == true && github.base_ref == 'release'
 
     environment:
       name: prod
@@ -47,8 +39,8 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
-        # with:
-        #   ref: release # release is deployed, not the working branch
+        with:
+          ref: release # notice testers: release is deployed, not the working branch
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -86,11 +78,6 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "::set-output name=VERSION::$VERSION"
           echo "Extracted Version: $VERSION"
-
-      # - name: Create Release Tag
-      #   run: |
-      #     git tag "${{ steps.extract_version.outputs.VERSION }}"
-      #     git push origin "${{ steps.extract_version.outputs.VERSION }}"
       
       - name: Create a Release
         uses: elgohr/Github-Release-Action@v5
