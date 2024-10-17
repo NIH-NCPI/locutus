@@ -7,6 +7,7 @@ py3x
 deploy.sh
 runlocal.sh
 .env
+flask_session
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
