@@ -8,19 +8,10 @@ name: 'QA Deploy'
 on:
   pull_request:
     branches:
-      - main  # This will trigger on PRs targeting the main branch
+      - release
     types:
       - opened
-      - reopened
-      - synchronize
-      - edited
-# on:
-#   pull_request:
-#     branches:
-#       - release
-#     types:
-#       - opened
-#   workflow_dispatch: # This enables manual triggers
+  workflow_dispatch: # This enables manual triggers
 
 env:
 
@@ -45,8 +36,6 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
-        with:
-          ref: release # release is deployed, not the working branch
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
