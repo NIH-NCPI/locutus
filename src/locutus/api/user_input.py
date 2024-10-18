@@ -6,8 +6,7 @@ from locutus.model.sessions import SessionManager
 from locutus.model.user_input import UserInput
 import pdb
 
-USER_INPUT_STRING_LIMIT = 1000
-class TerminologyUserInput(Resource, Term):
+class TerminologyUserInput(Resource, UserInput):
     """
     Resource for handling user input related to terminology mappings.
 
@@ -23,38 +22,35 @@ class TerminologyUserInput(Resource, Term):
         self.collection_type = collection_type
     
     def get(self, id, code, type):
-            """
-            Retrieves user input for the identified Resource/id/collection/code/type.
-            Does not filter down by editor.
-            Returns only one type of user_input.
+        """
+        Retrieves user input for the identified Resource/id/collection/code/type.
+        Does not filter down by editor.
+        Returns only one type of user_input.
 
-            Args:
-                id (str): Defines the terminology of interest
-                code (str): Defines the target document(mapping)
-                type (str): The type of input to retrieve
-                    (e.g., "mapping_conversations" or "mapping_votes").
+        Args:
+            id (str): Defines the terminology of interest
+            code (str): Defines the target document(mapping)
+            type (str): The type of input to retrieve
+                (e.g., "mapping_conversations" or "mapping_votes").
 
-            Example output for TerminologyUserInput type mapping_votes
-            {
-                "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-                "code": "TEST_0001",
-                "mapping_votes": [
-                    {
-                        "user2": "up"
-                    },
-                    {
-                        "user3": "down"
-                    }
-                ]
-            }
-            """
-
-            t = Term.get(id)
-
-            user_input = t.get_user_input(self.resource_type, self.collection_type,
-                                           id, code, type)
-            
-            return (user_input, 200, default_headers)
+        Example output for TerminologyUserInput type mapping_votes
+        {
+            "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+            "code": "TEST_0001",
+            "mapping_votes": [
+                {
+                    "user2": "up"
+                },
+                {
+                    "user3": "down"
+                }
+            ]
+        }
+        """
+        user_input = UserInput.get_user_input(self, self.resource_type, self.collection_type,
+                                        id, code, type)
+        
+        return (user_input, 200, default_headers)
             
     def put(self, id, code, type):
         """
@@ -69,41 +65,34 @@ class TerminologyUserInput(Resource, Term):
             type (str): The type of input to update (e.g., "mapping_votes").
 
         Request Body:
+        Editor is not required if using sessions
         {
+            "editor": "editor name",
             "note": "I dont like this mapping"
         }
         """
         body = request.get_json()
-        t = Term.get(id)
 
-        user_input = body
+        editor = body.get('editor') if 'editor' in body else None
 
-        # Validate input based on type
-        if type == 'mapping_votes':
-            vote = user_input.get('vote')
-            if not vote or vote not in ['up', 'down']:
-                return {"message": "'vote' must be provided and set to 'up' or 'down'."}, 400
+        # Instantiate the appropriate UserInput subclass
+        user_input_instance = self.get_input_class(type)
 
-            # Use the MappingVotes class to build the mapping vote
-            mapping_votes_instance = UserInput.MappingVotes({})
-            user_input = mapping_votes_instance.build_mapping_vote(vote)
-
-        elif type == 'mapping_conversations':
-            note = user_input.get('note')
-            if not note or len(note) > USER_INPUT_STRING_LIMIT:
-                return {"message": f"'note' must be provided and cannot exceed {USER_INPUT_STRING_LIMIT} characters."}, 400
-
-            # Use the MappingConversations class to build the mapping conversation
-            mapping_conversations_instance = UserInput.MappingConversations([])
-            user_input = mapping_conversations_instance.build_mapping_conversation(note)
-
-        t.create_or_replace_user_input(self.resource_type,
-                                       self.collection_type,
-                                       id,
-                                       code,
-                                       type,
-                                       user_input)
+        user_input = user_input_instance.build_user_input(
+            body.get(user_input_instance.input_type),
+            editor=editor
+        )
+        result = UserInput.create_or_replace_user_input(self,
+                                                        self.resource_type,
+                                                        self.collection_type,
+                                                        id,
+                                                        code,
+                                                        type,
+                                                        user_input,
+                                                        editor)
         
+        if isinstance(result, tuple):
+            return result
 
         response = {
             "message": f"The {type} were updated for {id}-{code}"

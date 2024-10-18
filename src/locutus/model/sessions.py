@@ -88,13 +88,30 @@ class SessionManager:
         else:
             return {"message": "No active session"}, 404
         
-    def create_session_user_id():
+    def create_user_id(editor=None):
+        """
+        Retrieves the user ID from the session or uses the provided editor ID.
+
+        Args:
+            editor (str, optional): The editor's user ID, if provided.
+
+        Returns:
+            str: The user ID.
+            dict: An error message if no user ID is found.
+        """
         if 'user_id' in session:
-            user_id = session['user_id']
-            return user_id
+            return session['user_id']
+        elif editor:
+            return editor
         else:
-            return {'error': 'User not logged in'}
+            raise ValueError('User is not provided.')
         
     def create_current_datetime():
+        """
+        Creates a formatted string of the current date and time.
+
+        Returns:
+            str: The current date and time as a string.
+        """
         current_date = datetime.now().strftime("%b %d, %Y, %I:%M:%S.%f %p")
         return current_date    
