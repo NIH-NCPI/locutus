@@ -653,15 +653,19 @@ Expected return for type `mapping_conversations` below
 Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
 
 Request body example for `mapping_conversations` :
+# editor is only required if not using sessions
  ```json
 {
+    "editor": "editor name",
     "note": "I dont like this mapping"
 }
 ```
 
 Request body example for `mapping_votes` :
+# editor is only required if not using sessions
  ```json
 {
+    "editor": "editor name",
     "vote": "up"
 }
 ```

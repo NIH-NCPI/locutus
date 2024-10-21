@@ -10,7 +10,7 @@ Current Use:
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 
-from locutus.model.sessions import SessionManager
+from sessions import SessionManager
 
 USER_INPUT_CHAR_LIMIT = 1000
 
@@ -95,20 +95,37 @@ class UserInput:
         except Exception as e:
             return (f"An error occurred while retrieving user input for {id} {resource_type} - {code}: {e}"), 500
 
-    def create_or_replace_user_input(self, resource_type, collection_type, id, code, type, user_input, editor=None):
+    def create_or_replace_user_input(self, resource_type, collection_type, id, code, type, body):
         """
         Creates or replaces a document in the 'user_input' sub-collection data
         for a user.
         """
+        # Prep the data
         try:
+            editor = body.get('editor') if 'editor' in body else None
+
+            # Instantiate the appropriate UserInput subclass
             user_input_instance = self.get_input_class(type)
 
-            # Validate user input
-            try:
-                user_input_instance.validate_input(user_input)
-            except ValueError as e:
-                return {"message": str(e)}, 400
+            # Build and format user_input as necessary
+            user_input = user_input_instance.build_user_input(
+                body.get(user_input_instance.input_type),
+                editor=editor
+            )
 
+            formatted_user_input = user_input_instance.format_for_storage(user_input)
+
+        except Exception as e:
+            return (f"ERROR: while creating the user_input from body: {e}"), 500
+
+        # Validate
+        try:
+            user_input_instance.validate_input(user_input)
+        except ValueError as e:
+            return {"message": str(e)}, 400
+        
+        # Prep any existing data
+        try:
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(code)
 
@@ -118,51 +135,65 @@ class UserInput:
 
              # Initialize type structure using return_format if it doesn't exist
             if type not in existing_data:
-                existing_data[type] = self.return_format() if callable(self.return_format) else self.return_format
+                existing_data[type] = self.return_format() \
+                                      if callable(self.return_format) \
+                                      else self.return_format
 
             # Get user_id to identify existing data for the user.
             try:
                 user_id = SessionManager.create_user_id(editor=editor)
             except ValueError as e:
-                print(f"Error: {e}")
-        
-            # Update or append the user input based on type. Updates existing_data.
-            self.update_or_append_input(existing_data[type], user_id, user_input)
-            
-            # Update the Firestore document with the new data.
-            doc_ref.set(existing_data)
+                print(f"An error occurred while getting the user_id. {e}")
 
+        except Exception as e:
+            return (f"An error occured during update setup {e}"), 500
+        
+        # Update or append the user input based on type. Updates existing_data.
+        try:
+            self.update_or_append_input(
+                existing_data[type],
+                user_id,
+                formatted_user_input,
+                user_input_instance.return_format
+            )
+        except Exception as e:
+            return (f"An error occurred while appending data. {e}"), 500
+        
+        # Update the Firestore document with the new data.
+        try:
+            doc_ref.set(existing_data)
             return existing_data
 
         except Exception as e:
-            return (f"An error occurred while updating user input for {id} \
+            return (f"An error occurred while updating firestore {id} \
                     {resource_type} - {code}: {e}"), 500
 
 
-    def update_or_append_input(self, input_data, user_id, user_input):
+    def update_or_append_input(self, existing_data, user_id, new_record, return_format):
         """
         Update existing input or append new user input.
-        """
-        if isinstance(input_data, dict):
-            # For dictionaries (e.g., mapping_votes)
-            # Insert new record or update existing entry based on user_id
-            input_data[user_id] = {
-                "vote": user_input.get("vote"),
-                "date": user_input.get("date")
-            }
-        elif isinstance(input_data, list):
-            # For lists (e.g., mapping_conversations)
-            existing_entry = next((entry for entry in input_data if entry.get('user_id') == user_id), None)
 
+        Args:
+            existing_data (dict or list): The data to be updated (could be a dict or list).
+            user_id (str): The user ID for the entry.
+            new_record (dict or list): The user_input formatted as defined by it's class.
+            return_format (type): The format in which input data is stored (list or dict).
+        """
+        if return_format == dict:
+            
+            # Insert new record or update existing entry based on user_id.
+            existing_data.update(new_record)
+            
+        elif return_format == list:
+            # Get the users existing entry
+            existing_entry = next((entry for entry in existing_data if entry.get('user_id') == user_id), None)
+    
             if existing_entry:
-                existing_entry.update({
-                    "note": user_input.get("note"),
-                    "date": user_input.get("date")
-                })
+                # Update the existing entry.
+                existing_entry.update(new_record.get(user_id))
             else:
-                # If no matching entry is found, append a new input
-                user_input['user_id'] = user_id
-                input_data.append(user_input)
+                # Append a new input if no matching entry is found.
+                existing_data.append(new_record[user_id])
 
 class MappingConversations(UserInput):
     """Represents a user's comments or notes for multiple mappings. Used
@@ -212,6 +243,15 @@ class MappingConversations(UserInput):
             raise ValueError(f"'note' must be provided and cannot exceed {USER_INPUT_CHAR_LIMIT} characters.")
         else:
             pass
+
+    def format_for_storage(self, user_input):
+        return {
+            user_input["user_id"]: {
+                "note": user_input["note"],
+                "date": user_input["date"]
+            }
+        }
+
     class _Schema(Schema):
         """Schema for serializing/deserializing multiple mapping conversations."""
         mapping_conversations = fields.List(fields.Dict(keys=fields.Str(),
@@ -252,7 +292,7 @@ class MappingVotes(UserInput):
 
     """
     def __init__(self):
-        super().__init__(return_format=list,input_type="vote")
+        super().__init__(return_format=dict,input_type="vote")
 
     def build_user_input(self, vote, editor=None):
         """
@@ -294,6 +334,14 @@ class MappingVotes(UserInput):
             raise ValueError("'vote' must be provided and set to 'up' or 'down'.")
         else: 
             pass
+
+    def format_for_storage(self, user_input):
+        return {
+            user_input["user_id"]: {
+                "vote": user_input["vote"],
+                "date": user_input["date"]
+            }
+        }
 
     class _Schema(Schema):
         """

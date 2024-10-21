@@ -2,7 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus.model.terminology import Terminology as Term
 from locutus.api import default_headers
-from locutus.model.sessions import SessionManager
+from sessions import SessionManager
 from locutus.model.user_input import UserInput
 import pdb
 
@@ -73,23 +73,13 @@ class TerminologyUserInput(Resource, UserInput):
         """
         body = request.get_json()
 
-        editor = body.get('editor') if 'editor' in body else None
-
-        # Instantiate the appropriate UserInput subclass
-        user_input_instance = self.get_input_class(type)
-
-        user_input = user_input_instance.build_user_input(
-            body.get(user_input_instance.input_type),
-            editor=editor
-        )
         result = UserInput.create_or_replace_user_input(self,
                                                         self.resource_type,
                                                         self.collection_type,
                                                         id,
                                                         code,
                                                         type,
-                                                        user_input,
-                                                        editor)
+                                                        body)
         
         if isinstance(result, tuple):
             return result

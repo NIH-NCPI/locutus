@@ -38,7 +38,7 @@ from locutus.api.datadictionary import (
 )
 from locutus.api.ontologies_search import OntologyAPIs
 from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
-from locutus.model.sessions import SessionManager
+from sessions import SessionManager
 from locutus.api.user_input import TerminologyUserInput
 
 app = Flask(__name__)

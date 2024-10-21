@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 
 from locutus.model.user_input import UserInput
-from locutus.model.sessions import SessionManager
+from sessions import SessionManager
 
 import pdb
 
