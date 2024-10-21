@@ -6,6 +6,7 @@ py3x
 # Management scripts
 deploy.sh
 runlocal.sh
+.env
 flask_session
 
 # Byte-compiled / optimized / DLL files
