@@ -596,6 +596,79 @@ Request body example:
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
 
+### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
+  
+  * id (str): The document ID.
+  * code (str): The target document (mapping) identifier.
+  * type (str): The type of input to retrieve 
+     - currently available: "mapping_conversations","mapping_votes".
+
+#### GET
+
+Return the reference to the `user_input` `type` related to the `Terminology` (specified by id).<br>
+Returns all records of the `type` at the `code` level. <br> 
+
+Expected return for type `mapping_votes` below
+
+```json
+{
+    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+    "code": "TEST_0001",
+    "mapping_votes": {
+        "bg_test_session2": {
+            "date": "Oct 09, 2024, 03:51:01.088284 PM",
+            "vote": "up"
+        },
+        "bg_test_session": {
+            "date": "Oct 09, 2024, 03:49:50.742381 PM",
+            "vote": "up"
+        }
+    }
+}
+```
+
+Expected return for type `mapping_conversations` below
+
+```json
+{
+    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+    "code": "TEST_0001",
+    "mapping_conversations": [
+        {
+            "date": "Oct 04, 2024, 04:17:43.043579 PM",
+            "user_id": "test_session",
+            "note": "I like this mapping"
+        },
+        {
+            "date": "Oct 04, 2024, 04:21:15.460040 PM",
+            "user_id": "test_session2",
+            "note": "I dont like this mapping"
+        }
+    ]
+}
+```
+
+#### PUT
+
+Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
+
+Request body example for `mapping_conversations` :
+# editor is only required if not using sessions
+ ```json
+{
+    "editor": "editor name",
+    "note": "I dont like this mapping"
+}
+```
+
+Request body example for `mapping_votes` :
+# editor is only required if not using sessions
+ ```json
+{
+    "editor": "editor name",
+    "vote": "up"
+}
+```
 
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 

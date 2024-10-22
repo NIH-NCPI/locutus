@@ -6,6 +6,9 @@ from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
 
+from locutus.model.user_input import UserInput
+from sessions import SessionManager
+
 import pdb
 
 class CodeAlreadyPresent(Exception):
@@ -648,6 +651,7 @@ class Terminology(Serializable):
         except Exception as e:
             print(f"An error occurred while adding preferred terminology: {e}")
             raise
+
 
 
     class _Schema(Schema):

@@ -2,7 +2,7 @@ from flask import session
 from flask_session import Session
 
 import secrets
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 class SessionManager:
     """
@@ -87,3 +87,31 @@ class SessionManager:
             }, 200
         else:
             return {"message": "No active session"}, 404
+        
+    def create_user_id(editor=None):
+        """
+        Retrieves the user ID from the session or uses the provided editor ID.
+
+        Args:
+            editor (str, optional): The editor's user ID, if provided.
+
+        Returns:
+            str: The user ID.
+            dict: An error message if no user ID is found.
+        """
+        if 'user_id' in session:
+            return session['user_id']
+        elif editor:
+            return editor
+        else:
+            raise ValueError('User is not provided.')
+        
+    def create_current_datetime():
+        """
+        Creates a formatted string of the current date and time.
+
+        Returns:
+            str: The current date and time as a string.
+        """
+        current_date = datetime.now().strftime("%b %d, %Y, %I:%M:%S.%f %p")
+        return current_date    

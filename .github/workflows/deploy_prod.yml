@@ -27,7 +27,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
     
-    if: github.event.pull_request.merged == true && github.base_ref == 'release'
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'release'
 
     environment:
       name: prod
