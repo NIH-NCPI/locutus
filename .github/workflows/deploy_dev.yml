@@ -22,7 +22,7 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'main'
+    if: github.event.review.state == 'approved'
     
     environment:
       name: dev
