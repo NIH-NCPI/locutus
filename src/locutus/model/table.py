@@ -306,13 +306,28 @@ class Table(Serializable):
         return [self.url, self.name]
 
     def get_preference(self, code=None):
-        """Retrieve preferences from the terminology."""
+        """Retrieve preferences from the terminology or fall back to table 
+        preferences if none are found.
+        
+        If no VALID code is provided: returns Table preferences
+        If code is provided, and preferences exist: returns the Code preferences.
+        If code is provided, and no prefs exist: ruturns Table preferences.
+        """
         try:
             pref = self.terminology.dereference().get_preference(code=code)
+
+            # Check if pref is a dictionary and has keys with empty dictionaries as values
+            if isinstance(pref, dict) and any(isinstance(value, dict) and not value for value in pref.values()):
+                # Trigger retrieval for 'self'
+                table_pref = self.terminology.dereference().get_preference(code="self")
+                return table_pref if table_pref else {}
+
             return pref
+
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
             raise
+
 
     def add_or_update_pref(self, api_preference, code=None):
         try:
