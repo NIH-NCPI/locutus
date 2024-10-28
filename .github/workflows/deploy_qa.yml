@@ -73,3 +73,4 @@ jobs:
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           env_vars: VERSION=${{ steps.extract_version.outputs.VERSION }}
+
