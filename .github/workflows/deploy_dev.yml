@@ -6,9 +6,9 @@ name: 'Dev Deploy'
 
 on:
   pull_request_review:
-    types: [submitted]
+    types: [submitted, edited] # submitted, reviewer edits the PR (ex comments)
   workflow_dispatch: # This enables manual triggers
-
+  
 env:
 
   PROJECT_ID: ${{ secrets.PROJECT_ID }}

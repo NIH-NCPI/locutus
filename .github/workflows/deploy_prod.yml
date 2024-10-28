@@ -9,9 +9,7 @@ on:
   pull_request:
     branches:
       - release
-    types:
-      - closed
-  workflow_dispatch: # This enables manual triggers
+    types: [closed, edited] # PR opened, edited(PR title, etc)
 
 env:
 
