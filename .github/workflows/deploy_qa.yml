@@ -9,9 +9,7 @@ on:
   pull_request:
     branches:
       - release
-    types:
-      - opened
-  workflow_dispatch: # This enables manual triggers
+    types: [opened, edited, synchronize] # PR opened, edited(PR title, etc), new commits are pushed.
 
 env:
 
