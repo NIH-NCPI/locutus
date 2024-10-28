@@ -6,6 +6,9 @@ from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
 
+from locutus.model.user_input import UserInput
+from sessions import SessionManager
+
 import pdb
 
 class CodeAlreadyPresent(Exception):
@@ -82,6 +85,7 @@ class Terminology(Serializable):
     class ChangeType(StrEnum):
         Create = "Create Terminology"
         CreateTable = "Create Table"
+        RemoveTable = "Remove Table"
         AddVariables = "Add Variables"
         AddTerm = "Add Term"
         RemoveTerm = "Remove Term"
@@ -93,6 +97,7 @@ class Terminology(Serializable):
         ApprovalRequested = "Approval Requested"
         Approved = "Approved"
         ApprovalDenied = "Approval Denied"
+        ReplacePrefTerm = "Add/Replace Preferred Terminology"
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -571,6 +576,82 @@ class Terminology(Serializable):
         print(message)
 
         return message
+
+    def get_preferred_terminology(self):
+        """
+        Retrieves all references from the 'preferred_terminology' sub-collection
+
+        Returns:
+            list: 'references" - An array of `Terminology` reference dictionaries
+        
+        Example output:
+        {
+            "references": [
+                {
+                    "reference": "Terminology/tm--example1"
+                },
+                {
+                    "reference": "Terminology/tm--example2"
+                }
+            ]
+        } 
+        """
+        try:
+            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+                .collection("preferred_terminology").document("self")
+
+            doc_snapshot = doc_ref.get()
+            if doc_snapshot.exists:
+                preferred_terms = doc_snapshot.to_dict().get('references', [])
+                return {"references": preferred_terms}
+            else:
+                # Return an empty list for references if no preferred terminology exists
+                return {"references": []}
+
+        except Exception as e:
+            print(f"An error occurred while retrieving preferred terminology: {e}")
+            raise
+
+
+    def replace_preferred_terminology(self, editor, preferred_terminology):
+        """
+        Creates or replaces a document in the 'preferred_terminology' sub-collection
+
+        Args:
+            preferred_terminology (list): A dictionary representing the preferred terminology to be added.
+
+        JSON body with two additions example:
+        [
+            {
+                "preferred_terminology": "tm--example1"
+            },
+            {
+                "preferred_terminology": "tm--example2"
+            }
+        ]
+        """
+        try:
+            # Reference to the sub-collection document named "self"
+            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+                .collection("preferred_terminology").document("self")
+
+            # Create a list of references based on the provided preferred terminologies
+            references = [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
+
+            # Update the document with new combined data
+            doc_ref.set({"references": references})
+
+            self.add_provenance(
+            Terminology.ChangeType.ReplacePrefTerm,
+            target="self",
+            new_value=references,
+            editor=editor,
+            )
+
+        except Exception as e:
+            print(f"An error occurred while adding preferred terminology: {e}")
+            raise
+
 
 
     class _Schema(Schema):

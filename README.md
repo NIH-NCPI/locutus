@@ -554,6 +554,122 @@ This is the expected result after removing preferences with the URL code specify
 }
 ```
 
+### https://[APPURL]/api/Terminology/[id]/preferred_terminology
+
+#### GET
+
+Return the reference to the preferred_terminology related to the `Terminology` (specified by id).<br>
+Returns the preferred_terminology at the Terminology("self") level. <br> Expected return example below.
+
+```json
+{
+    "references": [
+        {
+            "reference": "Terminology/tm--example1"
+        },
+        {
+            "reference": "Terminology/tm--example2"
+        }
+    ]
+}
+```
+
+#### PUT
+
+Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
+Request body example:
+ ```json
+{
+    "editor": "me",
+    "preferred_terminologies": [
+        {
+            "preferred_terminology": "tm--example1"
+        },
+        {
+            "preferred_terminology": "tm--example6"
+        }
+    ]
+}
+```
+
+#### DELETE
+Running the DELETE request will remove the preferred_terminology collection
+from the `Terminology` specified by the id
+
+### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
+  
+  * id (str): The document ID.
+  * code (str): The target document (mapping) identifier.
+  * type (str): The type of input to retrieve 
+     - currently available: "mapping_conversations","mapping_votes".
+
+#### GET
+
+Return the reference to the `user_input` `type` related to the `Terminology` (specified by id).<br>
+Returns all records of the `type` at the `code` level. <br> 
+
+Expected return for type `mapping_votes` below
+
+```json
+{
+    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+    "code": "TEST_0001",
+    "mapping_votes": {
+        "bg_test_session2": {
+            "date": "Oct 09, 2024, 03:51:01.088284 PM",
+            "vote": "up"
+        },
+        "bg_test_session": {
+            "date": "Oct 09, 2024, 03:49:50.742381 PM",
+            "vote": "up"
+        }
+    }
+}
+```
+
+Expected return for type `mapping_conversations` below
+
+```json
+{
+    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+    "code": "TEST_0001",
+    "mapping_conversations": [
+        {
+            "date": "Oct 04, 2024, 04:17:43.043579 PM",
+            "user_id": "test_session",
+            "note": "I like this mapping"
+        },
+        {
+            "date": "Oct 04, 2024, 04:21:15.460040 PM",
+            "user_id": "test_session2",
+            "note": "I dont like this mapping"
+        }
+    ]
+}
+```
+
+#### PUT
+
+Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
+
+Request body example for `mapping_conversations` :
+# editor is only required if not using sessions
+ ```json
+{
+    "editor": "editor name",
+    "note": "I dont like this mapping"
+}
+```
+
+Request body example for `mapping_votes` :
+# editor is only required if not using sessions
+ ```json
+{
+    "editor": "editor name",
+    "vote": "up"
+}
+```
+
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
 associated with the terminology. This includes adding and removing codes, 
@@ -1481,7 +1597,8 @@ Delete the api search preferences for a specific table (with a given id). An exa
 Return the api search preference for the variable (specified by code) within 
 a specific table (specified by id). <br> 
 The response below would be the result of specifying 'study_code' as the `code` 
-in the request.
+in the request. <br> **Note:** If no preferences for the code(ie 'study_code') exist the
+request will retrieve any existing preferences for at the Table level. [Example results](#table_id_filter_get)
 ```json
 {
     "study_code": {

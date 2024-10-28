@@ -1,14 +1,15 @@
 # This workflow build and push a Docker container to Google Artifact Registry
 # and deploy it on Cloud Run when a PR to the `release` branch is merged.
+# Will create a version env variable using the PR title. PR naming convention ex:
+# 'Release v0.0.0'
 
-name: 'Build and Deploy to Cloud Run'
+name: 'Prod Deploy and Release'
 
 on:
   pull_request:
     branches:
       - release
-    types:
-      - closed
+    types: [closed, edited] # PR opened, edited(PR title, etc)
 
 env:
 
@@ -17,24 +18,27 @@ env:
   SERVICE: 'locutus'
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
 
 jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
     
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'release'
 
     environment:
       name: prod
 
     permissions:
-      contents: 'read'
+      contents: 'write'
       id-token: 'write'
 
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
+        with:
+          ref: release # release is deployed, not the working branch
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -58,3 +62,28 @@ jobs:
           service: '${{ env.SERVICE }}'
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+  
+      - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0
+        id: extract_version
+        run: |
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+') 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=VERSION::$VERSION"
+          echo "Extracted Version: $VERSION"
+
+      - name: 'Deploy to Cloud Run'
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ env.SERVICE }}'
+          region: '${{ env.REGION }}'
+          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          env_vars: VERSION=${{ steps.extract_version.outputs.VERSION }}
+      
+      # If the tag already exists the Release process will fail
+      - name: Create a Release
+        uses: elgohr/Github-Release-Action@v5
+        with:
+          title: "Release ${{ steps.extract_version.outputs.VERSION }}" # e.g., Release v0.0.0
+          tag: ${{ steps.extract_version.outputs.VERSION }} # v0.0.0
+    
+  
