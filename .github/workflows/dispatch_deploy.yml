@@ -1,6 +1,5 @@
 # This workflow build and push a Docker container to Google Artifact Registry
-# and deploy it on Cloud Run when a PR has been approved by a reviewer.
-# Will create a version env variable using the PR number.
+# and deploy it on Cloud Run when triggered manually. 
 
 name: 'Dispatch Deploy'
 
@@ -16,7 +15,7 @@ on:
         description: 'Optional version for the deployment'
         required: false
         type: string
-        default: 'v0.0.0'
+        default: 'dispatch'
   
 env:
 
@@ -24,12 +23,15 @@ env:
   REGION: ${{ secrets.REGION_LOC_1 }}
   SERVICE: 'locutus'
   IMAGE_NAME: 'locutus_img'
-  GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
+  GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
 
 jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
+
+    environment:
+      name: ${{ github.event.inputs.environment }}
 
     permissions:
       contents: 'read'
@@ -42,15 +44,14 @@ jobs:
       - name: Set up environment
         run: echo "Deploying to ${{ github.event.inputs.environment }} environment"
 
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
+      - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ env.GCP_CREDENTIALS }}'
+          credentials_json: ${{ env.GCP_CREDENTIALS }}
 
       - name: 'Docker Auth'
-        run: |-
-          gcloud auth configure-docker '${{ env.REGION }}-docker.pkg.dev'
+        run: |
+          gcloud auth configure-docker "${{ env.REGION }}-docker.pkg.dev"
 
       - name: 'Configure Git user'
         run: |
@@ -58,16 +59,13 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       
       - name: 'Set Version'
-        id: extract_version
         run: |
-            VERSION=${{ github.event.inputs.tag }} 
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
-            echo "::set-output name=VERSION::$VERSION"
-            echo "Extracted Version: $VERSION"
+          VERSION="${{ github.event.inputs.tag }}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "Extracted Version: ${VERSION}"
 
-  
       - name: 'Build and Push Container'
-        run: |-
+        run: |
           DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker build --tag "${DOCKER_TAG}" .
           docker push "${DOCKER_TAG}"
@@ -75,7 +73,7 @@ jobs:
       - name: 'Deploy to Cloud Run'
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
-          service: '${{ env.SERVICE }}'
-          region: '${{ env.REGION }}'
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ steps.extract_version.outputs.VERSION }}
+          env_vars: VERSION=${{ env.VERSION }}

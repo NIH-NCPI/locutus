@@ -44,14 +44,14 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ env.GCP_CREDENTIALS }}'
+          credentials_json: ${{ env.GCP_CREDENTIALS }}
 
       - name: 'Docker Auth'
-        run: |-
+        run: |
           gcloud auth configure-docker '${{ env.REGION }}-docker.pkg.dev'
 
       - name: 'Build and Push Container'
-        run: |-
+        run: |
           DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker build --tag "${DOCKER_TAG}" .
           docker push "${DOCKER_TAG}"
@@ -59,31 +59,30 @@ jobs:
       - name: 'Deploy to Cloud Run'
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
-          service: '${{ env.SERVICE }}'
-          region: '${{ env.REGION }}'
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
   
       - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0
         id: extract_version
         run: |
           VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+') 
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "::set-output name=VERSION::$VERSION"
-          echo "Extracted Version: $VERSION"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "Extracted Version: ${VERSION}"
 
       - name: 'Deploy to Cloud Run'
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
-          service: '${{ env.SERVICE }}'
-          region: '${{ env.REGION }}'
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ steps.extract_version.outputs.VERSION }}
+          env_vars: VERSION=${{ env.VERSION }}
       
       # If the tag already exists the Release process will fail
       - name: Create a Release
         uses: elgohr/Github-Release-Action@v5
         with:
           title: "Release ${{ steps.extract_version.outputs.VERSION }}" # e.g., Release v0.0.0
-          tag: ${{ steps.extract_version.outputs.VERSION }} # v0.0.0
+          tag: ${{ env.VERSION }} # v0.0.0
     
   
