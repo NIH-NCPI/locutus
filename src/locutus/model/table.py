@@ -316,9 +316,8 @@ class Table(Serializable):
         try:
             pref = self.terminology.dereference().get_preference(code=code)
 
-            # Check if pref is a dictionary and has keys with empty dictionaries as values
-            if isinstance(pref, dict) and any(isinstance(value, dict) and not value for value in pref.values()):
-                # Trigger retrieval for 'self'
+            # If code exists as a key and is empty get the Table preferences.
+            if code in pref and not pref[code]:
                 table_pref = self.terminology.dereference().get_preference(code="self")
                 return table_pref if table_pref else {}
 
