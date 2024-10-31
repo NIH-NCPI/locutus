@@ -7,6 +7,7 @@ from locutus.model.terminology import Terminology as Term, Coding
 from locutus import persistence
 from locutus.model.helpers import set_logging_config, update_gcloud_project
 
+csv_file_path = '../data/test_data_ori.csv'
 class ExtendedCoding(Coding):
     def __init__(self, system=None, code=None, display=None, comment=None, editor=None,
                  variable_name=None, enumerated_value=None):
@@ -72,7 +73,7 @@ def process_csv_and_load_to_locutus(file_path):
                 logging.error(f"Error processing row for mapping: {source_variable}, "
                               f"mapped value: {source_enumeration}. Exception: {e}")
 def load_data(project_id):
-    _log_file = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{project_id}_data_load.log"
+    _log_file = f"../data/logging/data_load.log"
 
     # Set logging configs
     set_logging_config(log_file=_log_file)
@@ -83,7 +84,6 @@ def load_data(project_id):
     update_gcloud_project(project_id)
 
     # Process CSV file
-    csv_file_path = 'test_data.csv'
     logging.info(f"Starting CSV processing for file: {csv_file_path}")
     process_csv_and_load_to_locutus(csv_file_path)
     logging.info("CSV processing completed.")
