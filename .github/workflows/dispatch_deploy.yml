@@ -30,6 +30,9 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
+    environment:
+      name: ${{ github.event.inputs.environment }}
+
     permissions:
       contents: 'read'
       id-token: 'write'
