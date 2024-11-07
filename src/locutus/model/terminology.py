@@ -523,20 +523,8 @@ class Terminology(Serializable):
                     pref[code] = prv.to_dict() or {}
                 else:
                     # Fall back to terminology preference if no specific code preference is found
-                    terminology_pref = (
-                        persistence()
-                        .collection(self.resource_type)
-                        .document(self.id)
-                        .collection('onto_api_preference')
-                        .document(term_pref_id)
-                        .get()
-                    )
+                    return self.get_preference()
 
-                    if terminology_pref.exists:
-                        pref[term_pref_id] = terminology_pref.to_dict() or {}
-                    else:
-                        # Return an empty object if neither preference exists
-                        pref[code] = {}
 
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
