@@ -488,27 +488,27 @@ class Terminology(Serializable):
 
     def get_preference(self, code=None):
         pref = {}
+        term_pref_id = "self"  # Identifier for terminology preference
 
         try:
-            # If no specific code is provided, get all preferences
+            # If no code is provided, retrieve the terminology preference directly
             if code is None:
-                for prv in (
+                terminology_pref = (
                     persistence()
                     .collection(self.resource_type)
                     .document(self.id)
                     .collection('onto_api_preference')
-                    .stream()
-                ):
-                    try:
-                        prv_dict = prv.to_dict()
-                        id = "self"  # Use "self" for unspecific code retrieval
-                        pref[id] = prv_dict
-                    except TypeError as e:
-                        raise TypeError(
-                            "Encountered an issue converting a document to a dictionary."
-                        ) from e
-            
-            # If a specific code is provided, get only that preference
+                    .document(term_pref_id)
+                    .get()
+                )
+
+                if terminology_pref.exists:
+                    pref[term_pref_id] = terminology_pref.to_dict() or {}
+                else:
+                    # Return a message if terminology preference doesn't exist
+                    return {"message": f"No terminology preference exists for Terminology:{self.id}"}
+
+            # If a specific code is provided, get the preference
             else:
                 prv = (
                     persistence()
@@ -518,17 +518,32 @@ class Terminology(Serializable):
                     .document(code)
                     .get()
                 )
-                
+
                 if prv.exists:
                     pref[code] = prv.to_dict() or {}
                 else:
-                    pref[code] = {}
-        
+                    # Fall back to terminology preference if no specific code preference is found
+                    terminology_pref = (
+                        persistence()
+                        .collection(self.resource_type)
+                        .document(self.id)
+                        .collection('onto_api_preference')
+                        .document(term_pref_id)
+                        .get()
+                    )
+
+                    if terminology_pref.exists:
+                        pref[term_pref_id] = terminology_pref.to_dict() or {}
+                    else:
+                        # Return a message if neither preference exists
+                        return {"message": f"No preference exists for code:{code} or Terminology:{self.id}"}
+
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
             raise
 
         return pref
+
 
     
     def add_or_update_pref(self, api_preference, code=None):
