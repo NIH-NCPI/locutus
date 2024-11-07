@@ -23,6 +23,7 @@ def clean_varname(name):
         .replace(")", "")
         .replace("'", "")
         .replace('"', "")
+        .replace("/", "_")
     )
 
 
