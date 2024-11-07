@@ -183,7 +183,8 @@ Replace terminology at the given ID
   ],
   "id": "tm-5AKcaQ-QLe3REWzaJYoUA",
   "resource_type": "Terminology",
-  "name": "Sex"
+  "name": "Sex",
+  "editor": "test_editor"
 }
 ```
 
@@ -511,7 +512,11 @@ This is the expected result after removing preferences with the URL without spec
 
 Return the api search preference for the code within a specific terminology
 (specified by id).<br> 
-The response below would be the result of specifying 'T21' as the `code` in the request.
+The response below would be the result of specifying 'T21' as the `code` in the request.<br>
+ - If preferences for the `code` do not exist the endpoint will fallback to use any
+preferences found for the `Terminology`(code:'self'). Example seen [HERE](#httpsappurlapiterminologyidfilter)<br>
+ - If preferences for neither the `code` nor the `Terminology` exist a message 
+ explaining this, is returned.<br>
 
 ```json
 {
@@ -525,6 +530,7 @@ The response below would be the result of specifying 'T21' as the `code` in the 
     }
 }
 ```
+
 
 #### PUT
 
