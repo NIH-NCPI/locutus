@@ -515,8 +515,8 @@ Return the api search preference for the code within a specific terminology
 The response below would be the result of specifying 'T21' as the `code` in the request.<br>
  - If preferences for the `code` do not exist the endpoint will fallback to use any
 preferences found for the `Terminology`(code:'self'). Example seen [HERE](#httpsappurlapiterminologyidfilter)<br>
- - If preferences for neither the `code` nor the `Terminology` exist a message 
- explaining this, is returned.<br>
+ - If preferences for neither the `code` nor the `Terminology` exist an empty object 
+ is returned.<br>
 
 ```json
 {

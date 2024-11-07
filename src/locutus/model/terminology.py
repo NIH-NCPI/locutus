@@ -505,8 +505,8 @@ class Terminology(Serializable):
                 if terminology_pref.exists:
                     pref[term_pref_id] = terminology_pref.to_dict() or {}
                 else:
-                    # Return a message if terminology preference doesn't exist
-                    return {"message": f"No terminology preference exists for Terminology:{self.id}"}
+                    # Return an empty object if terminology preference doesn't exist
+                    pref[term_pref_id] = {}
 
             # If a specific code is provided, get the preference
             else:
@@ -535,8 +535,8 @@ class Terminology(Serializable):
                     if terminology_pref.exists:
                         pref[term_pref_id] = terminology_pref.to_dict() or {}
                     else:
-                        # Return a message if neither preference exists
-                        return {"message": f"No preference exists for code:{code} or Terminology:{self.id}"}
+                        # Return an empty object if neither preference exists
+                        pref[code] = {}
 
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
