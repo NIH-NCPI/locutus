@@ -523,8 +523,7 @@ class Terminology(Serializable):
                     pref[code] = prv.to_dict() or {}
                 else:
                     # Fall back to terminology preference if no specific code preference is found
-                    pref[code]=self.get_preference()
-
+                    return self.get_preference()
 
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
