@@ -523,7 +523,7 @@ class Terminology(Serializable):
                     pref[code] = prv.to_dict() or {}
                 else:
                     # Fall back to terminology preference if no specific code preference is found
-                    return self.get_preference()
+                    pref[code]=self.get_preference()
 
 
         except Exception as e:
