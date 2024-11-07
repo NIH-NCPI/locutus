@@ -1,16 +1,22 @@
 # This workflow build and push a Docker container to Google Artifact Registry
-# and deploy it on Cloud Run when a PR to the `release` branch is made.
-# Will create a version env variable using the PR title. PR naming convention ex:
-# 'Release v0.0.0'
+# and deploy it on Cloud Run when triggered manually. 
 
-name: 'QA Deploy'
+name: 'Dispatch Deploy'
 
 on:
-  pull_request:
-    branches:
-      - release
-    types: [opened, edited, synchronize] # PR opened, edited(PR title, etc), new commits are pushed.
-
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (e.g., dev, uat, prod, alpha)'
+        required: true
+        type: string
+        default: 'dev'
+      tag:
+        description: 'Optional version for the deployment'
+        required: false
+        type: string
+        default: 'dispatch'
+  
 env:
 
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -23,9 +29,9 @@ jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
-    
+
     environment:
-      name: qa
+      name: ${{ github.event.inputs.environment }}
 
     permissions:
       contents: 'read'
@@ -35,24 +41,26 @@ jobs:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
 
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
+      - name: Set up environment
+        run: echo "Deploying to ${{ github.event.inputs.environment }} environment"
+
+      - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ env.GCP_CREDENTIALS }}
 
       - name: 'Docker Auth'
         run: |
-          gcloud auth configure-docker '${{ env.REGION }}-docker.pkg.dev'
+          gcloud auth configure-docker "${{ env.REGION }}-docker.pkg.dev"
 
-      - name: Configure Git user
+      - name: 'Configure Git user'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       
-      - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0 or v0.0.0abc
+      - name: 'Set Version'
         run: |
-          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+[a-zA-Z]*') 
+          VERSION="${{ github.event.inputs.tag }}"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "Extracted Version: ${VERSION}"
 

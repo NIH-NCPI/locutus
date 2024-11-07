@@ -1597,7 +1597,8 @@ Delete the api search preferences for a specific table (with a given id). An exa
 Return the api search preference for the variable (specified by code) within 
 a specific table (specified by id). <br> 
 The response below would be the result of specifying 'study_code' as the `code` 
-in the request.
+in the request. <br> **Note:** If no preferences for the code(ie 'study_code') exist the
+request will retrieve any existing preferences for at the Table level. [Example results](#table_id_filter_get)
 ```json
 {
     "study_code": {
