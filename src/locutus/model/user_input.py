@@ -135,9 +135,9 @@ class UserInput:
 
              # Initialize type structure using return_format if it doesn't exist
             if type not in existing_data:
-                existing_data[type] = self.return_format() \
-                                      if callable(self.return_format) \
-                                      else self.return_format
+                existing_data[type] = user_input_instance.return_format() \
+                                    if callable(user_input_instance.return_format) \
+                                    else user_input_instance.return_format
 
             # Get user_id to identify existing data for the user.
             try:
@@ -211,7 +211,8 @@ class MappingConversations(UserInput):
         }
     """
     def __init__(self):
-        super().__init__(return_format=list,input_type="note")
+        super().__init__(return_format=list, input_type="note")
+        self.mapping_conversations = []
 
     def build_user_input(self, note, editor=None):
         """
@@ -292,7 +293,8 @@ class MappingVotes(UserInput):
 
     """
     def __init__(self):
-        super().__init__(return_format=dict,input_type="vote")
+        super().__init__(return_format=dict, input_type="vote")
+        self.mapping_votes = {}
 
     def build_user_input(self, vote, editor=None):
         """
