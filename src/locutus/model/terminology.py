@@ -229,7 +229,9 @@ class Terminology(Serializable):
                     # save those under the new code after deleting the old ones.
                     mappings = self.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
-                        self.set_mapping(new_code, mappings[original_code], editor=editor)
+                        self.set_mapping(
+                            new_code, mappings[original_code], editor=editor
+                        )
                         self.delete_mappings(code=original_code, editor=editor)
 
                 if new_display is not None and code.display != new_display:
@@ -262,9 +264,12 @@ class Terminology(Serializable):
                         editor=editor,
                     )
                     if original_code != new_code:
-                        term_doc = persistence().collection(self.resource_type).document(self.id).collection(
-                        "provenance"
-                         )
+                        term_doc = (
+                            persistence()
+                            .collection(self.resource_type)
+                            .document(self.id)
+                            .collection("provenance")
+                        )
                         prov = term_doc.document(original_code).get().to_dict()
                         prov["target"] = new_code
                         term_doc.document(new_code).set(prov)
@@ -503,6 +508,9 @@ class Terminology(Serializable):
             mapping = tmref.document(code).get().to_dict()
         except:
             mapping = None
+            print(
+                f"There was a problem getting the mapping details for the code, {self.name}.{code}"
+            )
             print(f"weird mapping: {tmref.get()}")
             pdb.set_trace()
         change_type = Terminology.ChangeType.AddMapping
@@ -549,7 +557,7 @@ class Terminology(Serializable):
                     persistence()
                     .collection(self.resource_type)
                     .document(self.id)
-                    .collection('onto_api_preference')
+                    .collection("onto_api_preference")
                     .document(code)
                     .get()
                 )
@@ -605,7 +613,9 @@ class Terminology(Serializable):
                 message = f"No preferences found to delete for code '{code}'."
 
         except Exception as e:
-            message = f"An error occurred while deleting preferences for code '{code}': {e}"
+            message = (
+                f"An error occurred while deleting preferences for code '{code}': {e}"
+            )
             raise
 
         print(message)
@@ -618,7 +628,7 @@ class Terminology(Serializable):
 
         Returns:
             list: 'references" - An array of `Terminology` reference dictionaries
-        
+
         Example output:
         {
             "references": [
@@ -629,15 +639,20 @@ class Terminology(Serializable):
                     "reference": "Terminology/tm--example2"
                 }
             ]
-        } 
+        }
         """
         try:
-            doc_ref = persistence().collection(self.resource_type).document(self.id) \
-                .collection("preferred_terminology").document("self")
+            doc_ref = (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection("preferred_terminology")
+                .document("self")
+            )
 
             doc_snapshot = doc_ref.get()
             if doc_snapshot.exists:
-                preferred_terms = doc_snapshot.to_dict().get('references', [])
+                preferred_terms = doc_snapshot.to_dict().get("references", [])
                 return {"references": preferred_terms}
             else:
                 # Return an empty list for references if no preferred terminology exists
@@ -666,20 +681,28 @@ class Terminology(Serializable):
         """
         try:
             # Reference to the sub-collection document named "self"
-            doc_ref = persistence().collection(self.resource_type).document(self.id) \
-                .collection("preferred_terminology").document("self")
+            doc_ref = (
+                persistence()
+                .collection(self.resource_type)
+                .document(self.id)
+                .collection("preferred_terminology")
+                .document("self")
+            )
 
             # Create a list of references based on the provided preferred terminologies
-            references = [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
+            references = [
+                {"reference": f"Terminology/{item['preferred_terminology']}"}
+                for item in preferred_terminology
+            ]
 
             # Update the document with new combined data
             doc_ref.set({"references": references})
 
             self.add_provenance(
-            Terminology.ChangeType.ReplacePrefTerm,
-            target="self",
-            new_value=references,
-            editor=editor,
+                Terminology.ChangeType.ReplacePrefTerm,
+                target="self",
+                new_value=references,
+                editor=editor,
             )
 
         except Exception as e:
