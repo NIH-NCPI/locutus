@@ -16,12 +16,18 @@ from locutus.api.terminology import (
     TerminologyRenameCode,
     TerminologyEdit,
     OntologyAPISearchPreferences,
-    PreferredTerminology
+    PreferredTerminology,
 )
 from locutus.api.terminology_mapping import TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.api.table import (Table, Tables, HarmonyCSV, TableEdit, 
-    TableRenameCode, TableOntologyAPISearchPreferences)
+from locutus.api.table import (
+    Table,
+    Tables,
+    HarmonyCSV,
+    TableEdit,
+    TableRenameCode,
+    TableOntologyAPISearchPreferences,
+)
 from locutus.api.table_mappings import TableMappings, TableMapping
 from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.provenance import (
@@ -45,6 +51,8 @@ from locutus.api.user_input import TerminologyUserInput
 
 from locutus.api.metadata import Version
 
+from locutus.api.user_prefs import UserPrefOntoFilters
+
 
 app = Flask(__name__)
 CORS(app)
@@ -56,9 +64,23 @@ session_manager = SessionManager(app)
 # GET app version
 api.add_resource(Version, "/api/version")
 
-api.add_resource(SessionStart, '/api/session/start', resource_class_kwargs={'session_manager': session_manager})
-api.add_resource(SessionTerminate, '/api/session/terminate', resource_class_kwargs={'session_manager': session_manager})
-api.add_resource(SessionStatus, '/api/session/status', resource_class_kwargs={'session_manager': session_manager})
+api.add_resource(
+    SessionStart,
+    "/api/session/start",
+    resource_class_kwargs={"session_manager": session_manager},
+)
+api.add_resource(
+    SessionTerminate,
+    "/api/session/terminate",
+    resource_class_kwargs={"session_manager": session_manager},
+)
+api.add_resource(
+    SessionStatus,
+    "/api/session/status",
+    resource_class_kwargs={"session_manager": session_manager},
+)
+
+api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 
 # Terminology GET (all terminologies)/POST (new without an ID)
 api.add_resource(Terminologies, "/api/Terminology")
@@ -74,19 +96,27 @@ api.add_resource(
     "/api/Terminology/<string:id>/rename",
 )
 # GET/POST/PUT/DELETE Ontology API preferences at Terminology level
-api.add_resource(OntologyAPISearchPreferences,
-                 "/api/Terminology/<string:id>/filter",
-                 endpoint = 'onto_terminology_preferences')
+api.add_resource(
+    OntologyAPISearchPreferences,
+    "/api/Terminology/<string:id>/filter",
+    endpoint="onto_terminology_preferences",
+)
 # GET/POST/PUT/DELETE Ontology API preferences at Code level
-api.add_resource(OntologyAPISearchPreferences,
-                 "/api/Terminology/<string:id>/filter/<string:code>",
-                 endpoint = 'onto_code_preferences')
+api.add_resource(
+    OntologyAPISearchPreferences,
+    "/api/Terminology/<string:id>/filter/<string:code>",
+    endpoint="onto_code_preferences",
+)
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Terminology
-api.add_resource(PreferredTerminology,
-                 "/api/Terminology/<string:id>/preferred_terminology")
+api.add_resource(
+    PreferredTerminology, "/api/Terminology/<string:id>/preferred_terminology"
+)
 
 # GET/PUT user_input sub-collection associated with a Terminology/code/input type
-api.add_resource(TerminologyUserInput, "/api/Terminology/<string:id>/user_input/<string:code>/<string:type>")
+api.add_resource(
+    TerminologyUserInput,
+    "/api/Terminology/<string:id>/user_input/<string:code>/<string:type>",
+)
 
 
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
@@ -109,13 +139,17 @@ api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")
 api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
 api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")
 # GET/POST/PUT/DELETE Ontology API preferences at Table level
-api.add_resource(TableOntologyAPISearchPreferences,
-                 "/api/Table/<string:id>/filter",
-                 endpoint = 'onto_table_preferences')
+api.add_resource(
+    TableOntologyAPISearchPreferences,
+    "/api/Table/<string:id>/filter",
+    endpoint="onto_table_preferences",
+)
 # GET/POST/PUT/DELETE Ontology API preferences at Variable level
-api.add_resource(TableOntologyAPISearchPreferences,
-                 "/api/Table/<string:id>/filter/<string:code>",
-                 endpoint = 'onto_var_preferences')
+api.add_resource(
+    TableOntologyAPISearchPreferences,
+    "/api/Table/<string:id>/filter/<string:code>",
+    endpoint="onto_var_preferences",
+)
 
 
 # POST
@@ -145,10 +179,12 @@ api.add_resource(
     TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<string:code>"
 )
 
-# GET Ontology All OntologyAPIs and ontology details 
-api.add_resource(OntologyAPIs, "/api/OntologyAPI", endpoint='all_ontologies')
-# GET (by ID) Single OntologyAPI and ontology details 
-api.add_resource(OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint='ontology_by_id')
+# GET Ontology All OntologyAPIs and ontology details
+api.add_resource(OntologyAPIs, "/api/OntologyAPI", endpoint="all_ontologies")
+# GET (by ID) Single OntologyAPI and ontology details
+api.add_resource(
+    OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint="ontology_by_id"
+)
 
 
 @app.errorhandler(404)
