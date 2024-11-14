@@ -2058,3 +2058,24 @@ Returns the details for the Ontology API denoted by the API_ID
     ]
 ]
 ```
+
+### https://[APPURL]/api/user/preferences/ontologies
+
+#### GET
+
+Returns the default preferences for the user (TBD) or, if not set, then the application defaults. 
+```json
+{
+    "Application Default": {
+        "api_preference": {
+            "ols": [
+                "mondo",
+                "hp",
+                "maxo",
+                "ncit"
+            ]
+        }
+    }
+}
+```
+In the example return above, no session existed, so we return this under the "Application Default". Otherwise, it will be associated with the user's ID (or email).  

@@ -1,3 +1,5 @@
+from sessions import SessionManager
+
 default_headers = [
     ("Content-Type", "application/fhir+json"),
 ]
@@ -27,5 +29,4 @@ def get_editor(body):
     if "editor" in body:
         editor = body["editor"]
         del body["editor"]
-
-    return editor
+    return SessionManager.create_user_id(editor=editor)
