@@ -66,7 +66,7 @@ jobs:
       - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0
         id: extract_version
         run: |
-          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+') 
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z]*\)\?') 
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "Extracted Version: ${VERSION}"
 
