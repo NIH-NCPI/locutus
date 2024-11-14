@@ -11,11 +11,16 @@ on:
         required: true
         type: string
         default: 'dev'
-      tag:
+      version:
         description: 'Optional version for the deployment'
         required: false
         type: string
         default: 'dispatch'
+      deploy_branch:
+        description: 'Branch to deploy to the environment'
+        required: true
+        type: string
+        default: 'main'
   
 env:
 
@@ -40,6 +45,8 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
+        with:
+          ref: ${{ github.event.inputs.deploy_branch }} # This branch is deployed
 
       - name: Set up environment
         run: echo "Deploying to ${{ github.event.inputs.environment }} environment"
@@ -66,14 +73,14 @@ jobs:
 
       - name: 'Build and Push Container'
         run: |
-          DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}-${{ github.event.inputs.environment }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker build --tag "${DOCKER_TAG}" .
           docker push "${DOCKER_TAG}"
 
       - name: 'Deploy to Cloud Run'
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
-          service: ${{ env.SERVICE }}
+          service: ${{ env.SERVICE }}-${{ github.event.inputs.environment }}
           region: ${{ env.REGION }}
-          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}-${{ github.event.inputs.environment }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           env_vars: VERSION=${{ env.VERSION }}
