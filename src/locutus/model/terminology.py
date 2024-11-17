@@ -48,11 +48,12 @@ the "codes" array.
 
 
 class Coding:
-    def __init__(self, code, display="", system=None, description=""):
+    def __init__(self, code, display="", system=None, description="", valid=None):
         self.code = code
         self.display = display
         self.system = system
         self.description = description
+        self.valid = valid
 
     class _Schema(Schema):
         code = fields.Str(
@@ -67,7 +68,7 @@ class Coding:
             # pdb.set_trace()
             return Coding(**data)
 
-    def to_dict(self):
+    def to_dict(self, valid=None):
         obj = {"code": self.code, "display": self.display}
 
         if self.description != "":
@@ -75,6 +76,9 @@ class Coding:
 
         if self.system is not None:
             obj["system"] = self.system
+                    
+        if valid is not None:
+            obj["valid"] = valid
 
         return obj
 
@@ -91,8 +95,8 @@ class Terminology(Serializable):
         RemoveTerm = "Remove Term"
         EditTerm = "Edit Term"
         AddMapping = "Add Mapping"
-        RemoveMapping = "Remove Mapping"
-        RemoveAllMappings = "Remove All Mappings"
+        SoftDeleteMapping = "Soft Delete Mapping"
+        SoftDeleteAllMappings = "Soft Delete All Mappings"
         EditMapping = "Edit Mapping"
         ApprovalRequested = "Approval Requested"
         Approved = "Approved"
@@ -160,7 +164,17 @@ class Terminology(Serializable):
         code_id = mapping["code"]
 
         for coding in mapping["codes"]:
-            codes.append(Coding(**coding))
+            # Get the 'valid' field separately, defaulting to None if not found
+            valid = coding.get('valid', None)
+
+            # Create a Coding object and pass 'valid' separately
+            codes.append(Coding(
+                code=coding["code"],
+                display=coding.get("display", ""),
+                system=coding.get("system", ""),
+                description=coding.get("description", ""),
+                valid=valid  # Explicitly set 'valid'
+            ))
 
         return codes
 
@@ -194,7 +208,7 @@ class Terminology(Serializable):
         for cc in self.codes:
             if cc.code == code:
                 self.codes.remove(cc)
-                self.delete_mappings(code=code, editor=editor)
+                self.soft_delete_mappings(code=code, editor=editor)
                 self.save()
                 self.add_provenance(
                     Terminology.ChangeType.RemoveTerm,
@@ -234,7 +248,7 @@ class Terminology(Serializable):
                     mappings = self.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
                         self.set_mapping(new_code, mappings[original_code], editor=editor)
-                        self.delete_mappings(code=original_code, editor=editor)
+                        self.soft_delete_mappings(code=original_code, editor=editor)
 
                 if new_display is not None and code.display != new_display:
                     old_values.append(f"display: {code.display}")
@@ -276,7 +290,16 @@ class Terminology(Serializable):
                     return True
         return False
 
-    def delete_mappings(self, editor, code=None):
+    def soft_delete_mappings(self, editor, code=None):
+        """
+        Soft deletes mappings from a terminology document setting the mapping 
+        valid field to false.
+
+        Args:
+            editor (str): The ID of the user performing the deletion.
+            code (str, optional): The specific mapping code to delete. 
+
+        """
         if code is not None:
             tmref = (
                 persistence()
@@ -289,22 +312,24 @@ class Terminology(Serializable):
             mapping = tmref.get().to_dict()
             time_of_delete = 0
             if mapping is not None:
-                # This is not super helpful, but at least we get some detail about which mappings were removed
-                mapping = ",".join([x["code"] for x in mapping["codes"]])
+                # Iterate over the codes in the mapping and toggle 'valid' to False
+                for coding in mapping["codes"]:
+                    if "valid" in coding:
+                        coding["valid"] = False
 
-                time_of_delete = tmref.delete()
+                # Save the updated mapping with the 'valid' field set to False
+                tmref.set(mapping)
+
                 self.add_provenance(
-                    change_type=Terminology.ChangeType.RemoveMapping,
+                    change_type=Terminology.ChangeType.SoftDeleteMapping,
                     target=code,
                     old_value=mapping,
                     editor=editor,
-                    timestamp=time_of_delete,
                 )
             else:
                 print(
-                    f"Deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings to be deleted."
+                    f"Soft deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings."
                 )
-            return time_of_delete
         else:
             mapref = (
                 persistence()
@@ -313,14 +338,22 @@ class Terminology(Serializable):
                 .collection("mappings")
             )
 
-            mapping_count = delete_collection(mapref)
+            for mapping_doc in mapref.stream():
+                mapping = mapping_doc.to_dict()
+                for coding in mapping["codes"]:
+                    if "valid" in coding:
+                        coding["valid"] = False
+
+                # Save the updated mapping
+                mapref.document(mapping["code"]).set(mapping)
+
             self.add_provenance(
-                change_type=Terminology.ChangeType.RemoveAllMappings,
+                change_type=Terminology.ChangeType.SoftDeleteAllMappings,
                 target="self",
-                old_value=f"{mapping_count} codes",
+                old_value="valid=True",
+                new_value="valid=False",
                 editor=editor,
             )
-            return mapping_count
 
     def mappings(self, code=None):
         codes = {}
@@ -451,9 +484,17 @@ class Terminology(Serializable):
 
         new_mappings = []
         for coding in codings:
-            doc["codes"].append(coding.to_dict())
-            new_mappings.append(doc["codes"][-1]["code"])
-        new_mappings = ",".join(new_mappings)
+            coding_dict = coding.to_dict()
+            
+            # Add 'valid' explicitly to the mapping document
+            coding_dict['valid'] = True
+
+            doc["codes"].append(coding_dict)
+            new_mappings.append(coding_dict["code"])
+
+            for coding_obj in self.codes:
+                if coding_obj.code == coding.code:
+                    coding_obj.valid = True
 
         tmref = (
             persistence()
@@ -480,7 +521,7 @@ class Terminology(Serializable):
             change_type=change_type,
             target=code,
             old_value=old_mappings,
-            new_value=new_mappings,
+            new_value=",".join(new_mappings),
             editor=editor,
         )
 

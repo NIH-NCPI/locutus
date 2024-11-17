@@ -31,8 +31,18 @@ class TerminologyMappings(Resource):
             for code in mappings:
                 mapping = {"code": code, "mappings": []}
                 for coding in mappings[code]:
-                    mapping["mappings"].append(coding.to_dict())
+                    print(f"Raw coding data: {coding.__dict__}")
+                    if not hasattr(coding, 'valid') or coding.valid:
+                        coding_dict = {
+                            "code": coding.code,
+                            "display": coding.display,
+                            "system": coding.system,
+                            "valid": coding.valid if hasattr(coding, 'valid') else None
+                        }
+                        
+                        mapping["codes"].append(coding_dict)
 
+            if mapping["codes"]:
                 response["codes"].append(mapping)
 
             return response
@@ -46,9 +56,9 @@ class TerminologyMappings(Resource):
             return ("Terminology DELETE requires an editor!", 400, default_headers)
 
         t = Term.get(id)
-        mapping_count = t.delete_mappings(editor=editor)
+        t.soft_delete_mappings(editor=editor)
 
-        response = {"terminology_id": id, "mappings_removed": mapping_count}
+        response = TerminologyMappings.get_mappings(id)
 
         return (response, 200, default_headers)
 
