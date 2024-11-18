@@ -40,7 +40,7 @@ class TableMappings(Resource):
             return ("mappings DELETE requires an editor!", 400, default_headers)
 
         table = Table.get(id)
-        mapping_count = table.terminology.dereference().soft_delete_mappings(editor=editor)
+        mapping_count = table.terminology.dereference().delete_mappings(editor=editor)
 
         response = {
             "terminology_id": table.terminology.dereference().id,
@@ -77,7 +77,7 @@ class TableMapping(Resource):
             return ("mappings DELETE requires an editor!", 400, default_headers)
 
         table = Table.get(id)
-        mapping_count = table.terminology.dereference().soft_delete_mappings(
+        mapping_count = table.terminology.dereference().delete_mappings(
             editor=editor, code=code
         )
 

@@ -22,13 +22,9 @@ class TerminologyMapping(Resource):
 
         # We should recieve a dictionary with a single key
         for coding in mappings[code]:
+            # Returns valid=true mappings or mappings without the 'valid' attribute.
             if not hasattr(coding, 'valid') or coding.valid:
-                response["mappings"].append({
-                            "code": coding.code,
-                            "display": coding.display,
-                            "system": coding.system,
-                            "valid": coding.valid if hasattr(coding, 'valid') else None
-                        })
+                response["mappings"].append(coding.to_dict())
 
         return (response, 200, default_headers)
 
@@ -41,7 +37,7 @@ class TerminologyMapping(Resource):
             return ("mappings DELETE requires an editor!", 400, default_headers)
 
         t = Term.get(id)
-        t.soft_delete_mappings(editor=editor, code=code)
+        t.delete_mappings(editor=editor, code=code)
 
         response = TerminologyMappings.get_mappings(id)
 

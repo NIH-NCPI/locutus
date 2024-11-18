@@ -602,7 +602,7 @@ Request body example:
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
 
-### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[mapped_code]/[type]
+### https://[APPURL]/api/Terminology/[id]/user_input/code/[code]/mapping/[mapped_code]/[type]
   
   * id (str): The document ID.
   * code (str): The target document (mapping) identifier.
@@ -620,8 +620,8 @@ Expected return for type `mapping_votes` below
 ```json
 {
     "Terminology": "tm-C8IP8Cw_0M_hHWeLl5WP3",
-    "code": "female_ex",
-    "mapped_code": "female",
+    "code": "type 2 diabetes",
+    "mapped_code": "Type 2 diabetes mellitus",
     "mapping_votes": {
         "editorrr": {
             "date": "Nov 17, 2024, 01:58:39.197679 PM",
@@ -636,17 +636,17 @@ Expected return for type `mapping_conversations` below
 ```json
 {
     "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-    "code": "female_ex",
-    "mapped_code": "female",
+    "code": "type 2 diabetes",
+    "mapped_code": "Type 2 diabetes mellitus",
     "mapping_conversations": [
         {
             "date": "Oct 04, 2024, 04:17:43.043579 PM",
-            "user_id": "test_session",
+            "user_id": "user24601",
             "note": "I like this mapping"
         },
         {
             "date": "Oct 04, 2024, 04:21:15.460040 PM",
-            "user_id": "test_session2",
+            "user_id": "user525600",
             "note": "I dont like this mapping"
         }
     ]
@@ -661,7 +661,7 @@ Request body example for `mapping_conversations` :
 # editor is only required if not using sessions
  ```json
 {
-    "editor": "editor name",
+    "editor": "user24601",
     "note": "I dont like this mapping"
 }
 ```
@@ -670,7 +670,7 @@ Request body example for `mapping_votes` :
 # editor is only required if not using sessions
  ```json
 {
-    "editor": "editor name",
+    "editor": "user525600",
     "vote": "up"
 }
 ```

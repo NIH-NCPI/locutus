@@ -23,6 +23,7 @@ class CodeAlreadyPresent(Exception):
         return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
 
+
 """
 A terminology exists on its own within the project but can be referenced by 
 variables as part of their data-type construction. 
@@ -77,7 +78,7 @@ class Coding:
         if self.system is not None:
             obj["system"] = self.system
                     
-        if valid is not None:
+        if valid:
             obj["valid"] = valid
 
         return obj
@@ -164,8 +165,8 @@ class Terminology(Serializable):
         code_id = mapping["code"]
 
         for coding in mapping["codes"]:
-            # Get the 'valid' field separately, defaulting to None if not found
-            valid = coding.get('valid', None)
+            # Get the 'valid' field separately, defaulting to True if not found
+            valid = coding.get('valid', True)
 
             # Create a Coding object and pass 'valid' separately
             codes.append(Coding(
@@ -208,7 +209,7 @@ class Terminology(Serializable):
         for cc in self.codes:
             if cc.code == code:
                 self.codes.remove(cc)
-                self.soft_delete_mappings(code=code, editor=editor)
+                self.delete_mappings(code=code, editor=editor)
                 self.save()
                 self.add_provenance(
                     Terminology.ChangeType.RemoveTerm,
@@ -248,7 +249,7 @@ class Terminology(Serializable):
                     mappings = self.mappings(original_code)
                     if original_code in mappings and mappings[original_code] != []:
                         self.set_mapping(new_code, mappings[original_code], editor=editor)
-                        self.soft_delete_mappings(code=original_code, editor=editor)
+                        self.delete_mappings(code=original_code, editor=editor)
 
                 if new_display is not None and code.display != new_display:
                     old_values.append(f"display: {code.display}")
@@ -290,7 +291,7 @@ class Terminology(Serializable):
                     return True
         return False
 
-    def soft_delete_mappings(self, editor, code=None):
+    def delete_mappings(self, editor, code=None):
         """
         Soft deletes mappings from a terminology document setting the mapping 
         valid field to false.
@@ -314,8 +315,7 @@ class Terminology(Serializable):
             if mapping is not None:
                 # Iterate over the codes in the mapping and toggle 'valid' to False
                 for coding in mapping["codes"]:
-                    if "valid" in coding:
-                        coding["valid"] = False
+                    coding["valid"] = False
 
                 # Save the updated mapping with the 'valid' field set to False
                 tmref.set(mapping)

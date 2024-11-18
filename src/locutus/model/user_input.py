@@ -9,7 +9,7 @@ Current Use:
 """
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
-
+from locutus.api import generate_paired_string
 from sessions import SessionManager
 
 USER_INPUT_CHAR_LIMIT = 1000
@@ -61,7 +61,7 @@ class UserInput:
         }
         """
         try:
-            mapped_pair=f'{code}|{mapped_code}'
+            mapped_pair=generate_paired_string(code, mapped_code)
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(mapped_pair)
 
@@ -107,7 +107,7 @@ class UserInput:
         """
         # Prep the data
         try:
-            mapped_pair=f'{code}|{mapped_code}'
+            mapped_pair=generate_paired_string(code, mapped_code)
             editor = body.get('editor') if 'editor' in body else None
 
             # Instantiate the appropriate UserInput subclass
@@ -145,9 +145,7 @@ class UserInput:
 
              # Initialize type structure using return_format if it doesn't exist
             if type not in existing_data:
-                existing_data[type] = user_input_instance.return_format() \
-                                    if callable(user_input_instance.return_format) \
-                                    else user_input_instance.return_format
+                existing_data[type] = user_input_instance.return_format()
 
             # Get user_id to identify existing data for the user.
             try:
