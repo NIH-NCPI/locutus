@@ -29,7 +29,7 @@ class TerminologyMappings(Resource):
             mappings = t.mappings()
 
             for code in mappings:
-                mapping = {"code": code, "mappings": []}
+                mapping = {"code": code, "codes": []}
                 for coding in mappings[code]:
                     print(f"Raw coding data: {coding.__dict__}")
                     if not hasattr(coding, 'valid') or coding.valid:
