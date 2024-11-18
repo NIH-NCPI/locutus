@@ -23,7 +23,6 @@ class CodeAlreadyPresent(Exception):
         return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
 
-
 """
 A terminology exists on its own within the project but can be referenced by 
 variables as part of their data-type construction. 
@@ -174,7 +173,7 @@ class Terminology(Serializable):
                 display=coding.get("display", ""),
                 system=coding.get("system", ""),
                 description=coding.get("description", ""),
-                valid=valid  # Explicitly set 'valid'
+                valid=valid
             ))
 
         return codes
@@ -235,7 +234,7 @@ class Terminology(Serializable):
 
         for code in self.codes:
             if code.code == original_code:
-                
+
                 # It's not unreasonable we have only been asked to update the
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
@@ -485,7 +484,7 @@ class Terminology(Serializable):
         new_mappings = []
         for coding in codings:
             coding_dict = coding.to_dict()
-            
+
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True
 
@@ -572,8 +571,6 @@ class Terminology(Serializable):
 
         return pref
 
-
-    
     def add_or_update_pref(self, api_preference, code=None):
         if code is None:
             code = "self"
@@ -588,7 +585,7 @@ class Terminology(Serializable):
             # Save the updated preferences back to the Firestore sub-collection
             persistence().collection(self.resource_type).document(self.id) \
                 .collection("onto_api_preference").document(code).set(cur_pref)
-            
+
         except Exception as e:
             print(f"An error occurred while updating preferences: {e}")
             raise
@@ -601,10 +598,10 @@ class Terminology(Serializable):
             # Define the collection reference
             collection_ref = persistence().collection(self.resource_type) \
                 .document(self.id).collection("onto_api_preference")
-            
+
             doc_ref = collection_ref.document(code)
             doc_snapshot = doc_ref.get()
-            
+
             if doc_snapshot.exists:
                 # Delete the document if it exists
                 doc_ref.delete()
@@ -655,7 +652,6 @@ class Terminology(Serializable):
             print(f"An error occurred while retrieving preferred terminology: {e}")
             raise
 
-
     def replace_preferred_terminology(self, editor, preferred_terminology):
         """
         Creates or replaces a document in the 'preferred_terminology' sub-collection
@@ -694,8 +690,6 @@ class Terminology(Serializable):
         except Exception as e:
             print(f"An error occurred while adding preferred terminology: {e}")
             raise
-
-
 
     class _Schema(Schema):
         id = fields.Str()

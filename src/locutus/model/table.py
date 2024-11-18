@@ -166,7 +166,7 @@ class Table(Serializable):
                             terms.set_mapping(
                                 var.code, mappings[original_code], editor=editor
                             )
-                            terms.soft_delete_mappings(code=original_code, editor=editor)
+                            terms.delete_mappings(code=original_code, editor=editor)
 
                 if new_description is not None:
                     old_values.append(f"description: {var.description}")

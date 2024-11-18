@@ -35,7 +35,7 @@ class TerminologyMappings(Resource):
                     if not hasattr(coding, 'valid') or coding.valid:
                         mapping["mappings"].append(coding.to_dict())
 
-            response["codes"].append(mapping)
+                response["codes"].append(mapping)
 
             return response
         return None
