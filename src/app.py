@@ -115,9 +115,8 @@ api.add_resource(
 # GET/PUT user_input sub-collection associated with a Terminology/code/input type
 api.add_resource(
     TerminologyUserInput,
-    "/api/Terminology/<string:id>/user_input/code/<string:code>/mapping/<string:mapped_code>/<string:type>",
+    "/api/Terminology/<string:id>/user_input/<string:code>/mapping/<string:mapped_code>/<string:type>",
 )
-
 
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly
