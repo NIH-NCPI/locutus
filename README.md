@@ -301,58 +301,58 @@ If the code doesn't exist, a 404 error is returned.
 
 #### GET
 
-Returns all mappings currently assigned to any code in the terminology.
+Returns all VALID mappings currently assigned to any code in the terminology.
 
 ```json
 {
-  "terminology": {
-    "Reference": "Terminology/tm-aIzCqJJkThKoxC2LiI6pP"
-  },
-  "codes": [
-    {
-      "code": "Female",
-      "mappings": [
-        {
-          "code": "female",
-          "display": "Female",
-          "system": "http://hl7.org/fhir/administrative-gender"
-        }
-      ]
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
     },
-    {
-      "code": "Male",
-      "mappings": [
+    "mappings": [
         {
-          "code": "male",
-          "display": "Male",
-          "system": "http://hl7.org/fhir/administrative-gender"
+            "code": "Female",
+            "codes": [
+                {
+                    "code": "female",
+                    "display": "Female",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 #### DELETE
 
-Removes all mappings associated with all codes in the given terminology.
+Soft deletes all mappings associated with all codes in the given terminology.
+The 'valid' field for the mapping is set to 'false'
 
 ### https://[APPURL]/api/Terminology/[id]/mapping/[code]
 
 #### GET
 
-Returns mappings for the specific code (from the terminology)
+Returns VALID mappings for the specific code (from the terminology)
 
 ```json
 {
-  "code": "Female",
-  "mappings": [
-    {
-      "code": "female",
-      "display": "Female",
-      "system": "http://hl7.org/fhir/administrative-gender"
+    "codes": [
+        {
+            "code": "female_ex",
+            "codes": [
+                {
+                    "code": "femalee",
+                    "display": "feMale",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true
+                }
+            ]
+        }
+    ],
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
     }
-  ]
 }
 ```
 
@@ -380,8 +380,8 @@ after the change.
 
 #### DELETE
 
-Remove the mappings currently associated with the given code from the specified
-terminology.
+Soft delete the mappings currently associated with the given code from the specified
+terminology. The mappings 'valid' field will be set to 'false'
 
 The response is a listing of all mappings for that terminology
 after the change.
@@ -602,10 +602,11 @@ Request body example:
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
 
-### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
+### https://[APPURL]/api/Terminology/[id]/user_input/[code]/mapping/[mapped_code]/[type]
   
   * id (str): The document ID.
   * code (str): The target document (mapping) identifier.
+  * mapped_code (str): The code being mapped to the target.
   * type (str): The type of input to retrieve 
      - currently available: "mapping_conversations","mapping_votes".
 
@@ -618,15 +619,12 @@ Expected return for type `mapping_votes` below
 
 ```json
 {
-    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-    "code": "TEST_0001",
+    "Terminology": "tm-C8IP8Cw_0M_hHWeLl5WP3",
+    "code": "type 2 diabetes",
+    "mapped_code": "Type 2 diabetes mellitus",
     "mapping_votes": {
-        "bg_test_session2": {
-            "date": "Oct 09, 2024, 03:51:01.088284 PM",
-            "vote": "up"
-        },
-        "bg_test_session": {
-            "date": "Oct 09, 2024, 03:49:50.742381 PM",
+        "editorrr": {
+            "date": "Nov 17, 2024, 01:58:39.197679 PM",
             "vote": "up"
         }
     }
@@ -638,16 +636,17 @@ Expected return for type `mapping_conversations` below
 ```json
 {
     "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-    "code": "TEST_0001",
+    "code": "type 2 diabetes",
+    "mapped_code": "Type 2 diabetes mellitus",
     "mapping_conversations": [
         {
             "date": "Oct 04, 2024, 04:17:43.043579 PM",
-            "user_id": "test_session",
+            "user_id": "user24601",
             "note": "I like this mapping"
         },
         {
             "date": "Oct 04, 2024, 04:21:15.460040 PM",
-            "user_id": "test_session2",
+            "user_id": "user525600",
             "note": "I dont like this mapping"
         }
     ]
@@ -662,7 +661,7 @@ Request body example for `mapping_conversations` :
 # editor is only required if not using sessions
  ```json
 {
-    "editor": "editor name",
+    "editor": "user24601",
     "note": "I dont like this mapping"
 }
 ```
@@ -671,7 +670,7 @@ Request body example for `mapping_votes` :
 # editor is only required if not using sessions
  ```json
 {
-    "editor": "editor name",
+    "editor": "user525600",
     "vote": "up"
 }
 ```
@@ -1491,7 +1490,8 @@ terminology endpoint for details.)
 
 #### DELETE
 
-Remove all mappings associated with codes from the table's shadow terminology.
+Soft delete all mappings associated with codes from the table's shadow terminology.
+The mappings 'valid' field is set to 'false'
 
 ### https://[APPURL]/api/Table/[id]/mapping/[code]
 
@@ -1508,8 +1508,8 @@ See corresponding endpoint for Terminology for more details.
 
 #### DELETE
 
-Remove the mappings currently associated with a given code from the table's
-shadow terminology.
+Soft delete the mappings currently associated with a given code from the table's
+shadow terminology. The mappings 'valid' field is set to 'false'.
 
 ### https://[APPURL]/api/Table/[id]/rename
 
