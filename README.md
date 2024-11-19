@@ -602,7 +602,7 @@ Request body example:
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
 
-### https://[APPURL]/api/Terminology/[id]/user_input/code/[code]/mapping/[mapped_code]/[type]
+### https://[APPURL]/api/Terminology/[id]/user_input/[code]/mapping/[mapped_code]/[type]
   
   * id (str): The document ID.
   * code (str): The target document (mapping) identifier.
