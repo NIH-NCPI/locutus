@@ -1,5 +1,7 @@
 from flask_restful import Resource
 from flask import request
+from flask_cors import cross_origin
+
 
 class SessionStart(Resource):
     """API resource for starting a user session.
@@ -10,6 +12,7 @@ class SessionStart(Resource):
     def __init__(self, session_manager):
         self.session_manager = session_manager
 
+    @cross_origin()
     def post(self):
         """Starts a session for the user.
 
@@ -39,6 +42,7 @@ class SessionTerminate(Resource):
     def __init__(self, session_manager):
         self.session_manager = session_manager
 
+    @cross_origin()
     def post(self):
         """Terminates the current user session.
 
