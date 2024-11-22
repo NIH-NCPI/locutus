@@ -48,12 +48,12 @@ the "codes" array.
 
 
 class Coding:
-    def __init__(self, code, display="", system=None, description="", valid=None):
+
+    def __init__(self, code, display="", system=None, description=""):
         self.code = code
         self.display = display
         self.system = system
         self.description = description
-        self.valid = valid
 
     class _Schema(Schema):
         code = fields.Str(
@@ -68,7 +68,7 @@ class Coding:
             # pdb.set_trace()
             return Coding(**data)
 
-    def to_dict(self, valid=None):
+    def to_dict(self):
         obj = {"code": self.code, "display": self.display}
 
         if self.description != "":
@@ -76,9 +76,6 @@ class Coding:
 
         if self.system is not None:
             obj["system"] = self.system
-                    
-        if valid:
-            obj["valid"] = valid
 
         return obj
 
@@ -102,6 +99,7 @@ class Terminology(Serializable):
         Approved = "Approved"
         ApprovalDenied = "Approval Denied"
         ReplacePrefTerm = "Add/Replace Preferred Terminology"
+        AddMappingQuality = "Add Mapping Quality"
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -163,18 +161,8 @@ class Terminology(Serializable):
         codes = []
         code_id = mapping["code"]
 
-        for coding in mapping["codes"]:
-            # Get the 'valid' field separately, defaulting to True if not found
-            valid = coding.get('valid', True)
-
-            # Create a Coding object and pass 'valid' separately
-            codes.append(Coding(
-                code=coding["code"],
-                display=coding.get("display", ""),
-                system=coding.get("system", ""),
-                description=coding.get("description", ""),
-                valid=valid
-            ))
+        for codingmapping in mapping["codes"]:
+            codes.append(CodingMapping(**codingmapping))
 
         return codes
 
@@ -702,3 +690,53 @@ class Terminology(Serializable):
         @post_load
         def build_terminology(self, data, **kwargs):
             return Terminology(**data)
+
+class CodingMapping(Coding):
+    """
+    Inherits Terminonlogy.Coding. Adds mapping specific attributes.
+    Note: Placed here to avoid circular imports. Move only with refactor.
+    """
+
+    def __init__(
+        self,
+        code,
+        display=None,
+        system=None,
+        description="",
+        valid=None,
+        mapping_relationship=None,
+    ):
+        super().__init__(code, display, system, description)
+        self.valid = valid
+        self.mapping_relationship = mapping_relationship
+
+    class _Schema(Schema):
+        code = fields.Str(
+            required=True, error_messages={"required": "Codings *must* have a code "}
+        )
+        display = fields.Str()
+        system = fields.URL()
+        description = fields.Str()
+        valid = fields.Bool()
+        mapping_relationship = fields.Str()
+
+        @post_load
+        def build_coding_mapping(self, data, **kwargs):
+            return CodingMapping(**data)
+
+    def to_dict(self):
+        """Inherits Terminonlogy.Coding. Adds mapping specific attributes."""
+        obj = super().to_dict()
+
+        # Marks the mapping valid if the attribute does not exist in the database
+        if self.valid is not None:
+            obj["valid"] = self.valid
+        else:
+            self.valid = True
+
+        # Returns the mapping_relationship as "" if the attribute does not exist in database
+        if self.mapping_relationship is not None:
+            obj["mapping_relationship"] = self.mapping_relationship
+        else:
+            obj["mapping_relationship"] = ""
+        return obj

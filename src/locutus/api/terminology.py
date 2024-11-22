@@ -119,13 +119,14 @@ class Terminologies(Resource):
         editor = get_editor(body)
         if "resource_type" in term:
             del term["resource_type"]
-        if editor:
-            self.add_provenance(
-                Terminology.ChangeType.CreateTerminology, editor=editor, target="self"
-            )
 
         t = Term(**term)
         t.save()
+        if editor:
+            t.add_provenance(
+                t.ChangeType.AddTerm, editor=editor, target="self"
+            )
+
         return t.dump(), 201, default_headers
 
 

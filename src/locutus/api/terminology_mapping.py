@@ -1,8 +1,10 @@
 from flask_restful import Resource
 from flask import request
 from locutus import persistence
-from locutus.model.terminology import Terminology as Term, Coding
+from locutus.model.terminology import Terminology as Term, Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.model.terminology_mapping import MappingRelationshipModel
+from sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
 import pdb
@@ -66,3 +68,29 @@ class TerminologyMapping(Resource):
         response = TerminologyMappings.get_mappings(t.id)
 
         return (response, 201, default_headers)
+
+class MappingRelationship(Resource):
+
+    def put(self, id, code, mapped_code):
+        body = request.get_json()
+
+        mapping_relationship = body.get("mapping_relationship")
+        if mapping_relationship is None:
+            return (
+                "This endpoint requires mapping_relationship!",
+                400,
+                default_headers,
+            )
+
+        # Return session user, editor(request body), or None 
+        user_id = get_editor(body)
+
+        # Get the session id, or fallback to use the editor as the user_id
+        if not user_id:
+            raise ValueError (f"This task requires an editor")
+
+        response = MappingRelationshipModel.add_mapping_relationship(
+            user_id, id, code, mapped_code, mapping_relationship
+        )
+
+        return (response, 200, default_headers)
