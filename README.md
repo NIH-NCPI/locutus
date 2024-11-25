@@ -369,11 +369,14 @@ Example Body:
 {
   "mappings": [
     {
-      "code": "male",
-      "display": "Male",
-      "system": "http://hl7.org/fhir/administrative-gender"
+      "code": "Major depressive disorder",
+      "display": "",
+      "description": "",
+      "system": "https://anvil-all-terms.org/fhir/disease_1",
+      "mapping_relationship": "equivalent"
     }
-  ]
+  ],
+  "editor": "user525600"
 }
 ```
 
