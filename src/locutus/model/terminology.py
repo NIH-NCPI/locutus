@@ -23,6 +23,30 @@ class CodeAlreadyPresent(Exception):
         return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
 
+class RelationshipCodes(StrEnum):
+    def get_mapping_relationship_terminology(self):
+        termref = (
+            persistence()
+            .collection("Terminology")
+            .document("ftd-concept-map-relationship")
+            .get()
+        )
+        return termref.to_dict()
+
+    def validate_mapping_relationship_codes(self, mapping_relationship):
+        # Validate mapping_relationship to be set. Should be Enums or ""
+        relationship_dict = RelationshipCodes.get_mapping_relationship_terminology(self)
+        relationship_codeings = relationship_dict.get("codes", [])
+        relationship_codes = [entry.get("code") for entry in relationship_codeings]
+        if (
+            mapping_relationship != ""
+            and mapping_relationship not in relationship_codes
+        ):
+            raise ValueError(
+                f"Invalid mapping relationship: {mapping_relationship}. Must be one of {relationship_codes}"
+            )
+
+
 """
 A terminology exists on its own within the project but can be referenced by 
 variables as part of their data-type construction. 
@@ -472,6 +496,10 @@ class Terminology(Serializable):
         new_mappings = []
         for mapping in codings:
             coding_dict = mapping.to_dict()
+
+            RelationshipCodes.validate_mapping_relationship_codes(
+                self, coding_dict["mapping_relationship"]
+            )
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True

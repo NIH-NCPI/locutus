@@ -1,23 +1,10 @@
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
-from locutus.model.terminology import Terminology, Coding
+from locutus.model.terminology import Terminology, Coding, RelationshipCodes
 from locutus.api.terminology_mapping import TerminologyMappings
 from locutus.api import generate_paired_string
 from sessions import SessionManager
-
-
-class RelationshipCodes(StrEnum):
-    @classmethod
-    def get_mapping_relationship_terminology(cls):
-        termref = (
-            persistence()
-            .collection("Terminology")
-            .document("ftd-concept-map-relationship")
-            .get()
-        )
-        return termref.to_dict()
-
 
 class MappingRelationshipModel:
     @classmethod
@@ -25,14 +12,7 @@ class MappingRelationshipModel:
         cls, user_id, id, code, mapped_code, mapping_relationship
     ):
         try:
-            # Validate mapping_relationship to be set. Should be Enums or ""
-            relationship_dict = RelationshipCodes.get_mapping_relationship_terminology()
-            relationship_codeings = relationship_dict.get("codes", [])
-            relationship_codes = [entry.get("code") for entry in relationship_codeings]
-            if mapping_relationship != "" and mapping_relationship not in relationship_codes:
-                raise ValueError(
-                    f"Invalid mapping relationship: {mapping_relationship}. Must be one of {relationship_codes}"
-                )
+            RelationshipCodes.validate_mapping_relationship_codes(cls, mapping_relationship)
 
             mappingref = (
                 persistence()
