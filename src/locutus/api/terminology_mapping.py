@@ -23,10 +23,10 @@ class TerminologyMapping(Resource):
         response = {"code": code, "mappings": []}
 
         # We should recieve a dictionary with a single key
-        for coding in mappings[code]:
+        for codingmapping in mappings[code]:
             # Returns valid=true mappings or mappings without the 'valid' attribute.
-            if not hasattr(coding, 'valid') or coding.valid:
-                response["mappings"].append(coding.to_dict())
+            if not hasattr(codingmapping, 'valid') or codingmapping.valid:
+                response["mappings"].append(codingmapping.to_dict())
 
         return (response, 200, default_headers)
 
@@ -53,7 +53,7 @@ class TerminologyMapping(Resource):
             return ("This action requires an editor!", 400, default_headers)
 
         mappings = body["mappings"]
-        codings = [Coding(**x) for x in mappings]
+        codingmapping = [CodingMapping(**x) for x in mappings]
 
         tref = persistence().collection("Terminology").document(id)
 
@@ -63,7 +63,7 @@ class TerminologyMapping(Resource):
 
         t = Term(**term)
 
-        t.set_mapping(code, codings, editor=editor)
+        t.set_mapping(code, codingmapping, editor=editor)
 
         response = TerminologyMappings.get_mappings(t.id)
 

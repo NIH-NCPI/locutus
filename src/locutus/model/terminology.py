@@ -470,8 +470,8 @@ class Terminology(Serializable):
         doc = {"code": code, "codes": []}
 
         new_mappings = []
-        for coding in codings:
-            coding_dict = coding.to_dict()
+        for mapping in codings:
+            coding_dict = mapping.to_dict()
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True
@@ -480,7 +480,7 @@ class Terminology(Serializable):
             new_mappings.append(coding_dict["code"])
 
             for coding_obj in self.codes:
-                if coding_obj.code == coding.code:
+                if coding_obj.code == mapping.code:
                     coding_obj.valid = True
 
         tmref = (

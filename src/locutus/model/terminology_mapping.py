@@ -47,11 +47,11 @@ class MappingRelationshipModel:
                 raise ValueError(f"Mapping '{code}' does not exist in document '{id}'.")
 
             mapping_data = mappingref.to_dict()
-            coding = mapping_data.get("codes", [])
+            mappings = mapping_data.get("codes", [])
 
             # Find the entry for the mapped_code and update the mapping relationship
             updated = False
-            for entry in coding:
+            for entry in mappings:
                 if entry.get("code") == mapped_code:
                     entry["mapping_relationship"] = mapping_relationship
                     updated = True
@@ -62,7 +62,7 @@ class MappingRelationshipModel:
                     f"Mapping '{code}' | '{mapped_code}' not found in document '{id}'."
                 )
 
-            mappingref.reference.update({"codes": coding})
+            mappingref.reference.update({"codes": mappings})
 
             # Add provenance
             target = generate_paired_string(code, mapped_code)

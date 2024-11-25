@@ -2,7 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.table import Table
-from locutus.model.terminology import Terminology, Coding
+from locutus.model.terminology import Terminology, Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
@@ -24,8 +24,8 @@ class TableMappings(Resource):
 
         for code in mappings:
             mapping = {"code": code, "mappings": []}
-            for coding in mappings[code]:
-                mapping["mappings"].append(coding.to_dict())
+            for codingmapping in mappings[code]:
+                mapping["mappings"].append(codingmapping.to_dict())
 
             response["codes"].append(mapping)
 
@@ -65,8 +65,8 @@ class TableMapping(Resource):
         mappings = term.mappings(code)
         response = {"code": code, "mappings": []}
 
-        for coding in mappings[code]:
-            response["mappings"].append(coding.to_dict())
+        for codingmapping in mappings[code]:
+            response["mappings"].append(codingmapping.to_dict())
 
         return (response, 200, default_headers)
 
@@ -93,12 +93,12 @@ class TableMapping(Resource):
             return ("mappings DELETE requires an editor!", 400, default_headers)
 
         mappings = request.get_json()["mappings"]
-        codings = [Coding(**x) for x in mappings]
+        codingmapping = [CodingMapping(**x) for x in mappings]
 
         table = Table.get(id)
         term = table.terminology.dereference()
 
-        term.set_mapping(code, codings, editor)
+        term.set_mapping(code, codingmapping, editor)
 
         response = TerminologyMappings.get_mappings(term.id)
 
