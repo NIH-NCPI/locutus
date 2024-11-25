@@ -315,6 +315,7 @@ Returns all VALID mappings currently assigned to any code in the terminology.
                 {
                     "code": "female",
                     "display": "Female",
+                    "mapping_relationship":"",
                     "system": "http://hl7.org/fhir/administrative-gender",
                     "valid": true
                 }
@@ -344,6 +345,7 @@ Returns VALID mappings for the specific code (from the terminology)
                 {
                     "code": "femalee",
                     "display": "feMale",
+                    "mapping_relationship":"equivalent",
                     "system": "http://hl7.org/fhir/administrative-gender",
                     "valid": true
                 }
@@ -367,11 +369,14 @@ Example Body:
 {
   "mappings": [
     {
-      "code": "male",
-      "display": "Male",
-      "system": "http://hl7.org/fhir/administrative-gender"
+      "code": "Major depressive disorder",
+      "display": "",
+      "description": "",
+      "system": "https://anvil-all-terms.org/fhir/disease_1",
+      "mapping_relationship": "equivalent"
     }
-  ]
+  ],
+  "editor": "user525600"
 }
 ```
 
@@ -674,6 +679,25 @@ Request body example for `mapping_votes` :
     "vote": "up"
 }
 ```
+
+### https://[APPURL]/api/Terminology/[id]/mapping_relationship/[code]/mapping/[mapped_code]
+There is not currently a endpoint for getting a mappings(code/mapped_code) relationship 
+alone. Use the endpoint for getting all mappings for a single code. [more here](#httpsappurlapiterminologyidmappingcode)
+
+A mapping may not have the mapping_relationship value set. But a returned 
+mapping will always have a mapping_relationship attribute.
+
+#### PUT - Updating a mapping_relationship
+Mapping_relationship can be set to the codes in the `ftd-concept-map-relationship` `Terminology` or to an empty string "". <br>
+Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`source-is-narrower-than-target`,`source-is-broader-than-target` ]
+
+ ```json
+{
+  "mapping_relationship":"equivalent",
+  "editor": "me"
+}
+```
+
 
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 

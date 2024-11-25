@@ -90,21 +90,20 @@ class SessionManager:
         
     def create_user_id(editor=None):
         """
-        Retrieves the user ID from the session or uses the provided editor ID.
+        Attempts to retrieve the user ID from the session or the provided editor ID.
 
         Args:
-            editor (str, optional): The editor's user ID, if provided.
+            editor (str, optional): The editor specified by the request body, if provided.
 
         Returns:
-            str: The user ID.
-            dict: An error message if no user ID is found.
+            editor="editor" or editor=None
         """
         if 'user_id' in session:
             return session['user_id']
         elif editor:
             return editor
         else:
-            raise ValueError('User is not provided.')
+            editor = None
         
     def create_current_datetime():
         """

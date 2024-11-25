@@ -18,7 +18,7 @@ from locutus.api.terminology import (
     OntologyAPISearchPreferences,
     PreferredTerminology,
 )
-from locutus.api.terminology_mapping import TerminologyMapping
+from locutus.api.terminology_mapping import TerminologyMapping, MappingRelationship
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.api.table import (
     Table,
@@ -90,6 +90,10 @@ api.add_resource(Terminology, "/api/Terminology/<string:id>")
 api.add_resource(TerminologyMappings, "/api/Terminology/<string:id>/mapping")
 api.add_resource(
     TerminologyMapping, "/api/Terminology/<string:id>/mapping/<string:code>"
+)
+api.add_resource(
+    MappingRelationship,
+    "/api/Terminology/<string:id>/mapping_relationship/<string:code>/mapping/<string:mapped_code>",
 )
 api.add_resource(
     TerminologyRenameCode,
