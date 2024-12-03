@@ -25,7 +25,7 @@ class TerminologyMapping(Resource):
 
         user_input_param = request.args.get("user_input", default=None)
         user_id = (
-            SessionManager.create_user_id()
+            get_editor(body=None)
         )  # Retrieves the user_id or sets to None
 
         term = persistence().collection("Terminology").document(id).get().to_dict()
