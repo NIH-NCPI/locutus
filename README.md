@@ -302,6 +302,8 @@ If the code doesn't exist, a 404 error is returned.
 #### GET
 
 Returns all VALID mappings currently assigned to any code in the terminology.
+Optionally, it can include additional user input data if the user_input parameter is provided.<br>
+Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping?user_input=True)
 
 ```json
 {
@@ -324,6 +326,37 @@ Returns all VALID mappings currently assigned to any code in the terminology.
     ]
 }
 ```
+User_input example output. An active session is required to retrieve the 'users_vote'.
+If none exists, 'users_vote' will be an empty string.
+```json
+{
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+    },
+    "mappings": [
+        {
+            "code": "Female",
+            "codes": [
+                {
+                    "code": "female",
+                    "display": "Female",
+                    "mapping_relationship":"",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true,
+                    "user_input": {
+                        "comments_count": 1,
+                        "votes_count": {
+                            "up": 1,
+                            "down": 0
+                        },
+                        "users_vote": "up"
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
 
 #### DELETE
 
@@ -335,6 +368,8 @@ The 'valid' field for the mapping is set to 'false'
 #### GET
 
 Returns VALID mappings for the specific code (from the terminology)
+Optionally, it can include additional user input data if the user_input parameter is provided.<br>
+Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping/[code]?user_input=True)
 
 ```json
 {
@@ -356,6 +391,39 @@ Returns VALID mappings for the specific code (from the terminology)
         "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
     }
 }
+```
+User_input example output. An active session is required to retrieve the 'users_vote'.
+If none exists, 'users_vote' will be an empty string.
+```json
+{
+    "codes": [
+        {
+            "code": "female_ex",
+            "codes": [
+                {
+                    "code": "femalee",
+                    "display": "feMale",
+                    "mapping_relationship":"equivalent",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true,
+                    "user_input": {
+                        "comments_count": 1,
+                        "votes_count": {
+                            "up": 1,
+                            "down": 0
+                        },
+                        "users_vote": "up"
+                    }
+                }
+            ]
+        }
+    ],
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+    }
+}
+
+
 ```
 
 #### PUT

@@ -4,6 +4,7 @@ from locutus import persistence
 from locutus.api import delete_collection
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
+from locutus.api import generate_paired_string
 import time
 
 from locutus.model.user_input import UserInput
@@ -733,10 +734,12 @@ class CodingMapping(Coding):
         description="",
         valid=None,
         mapping_relationship=None,
+        user_input=None,
     ):
         super().__init__(code, display, system, description)
         self.valid = valid
         self.mapping_relationship = mapping_relationship
+        self.user_input = user_input
 
     class _Schema(Schema):
         code = fields.Str(
@@ -747,6 +750,7 @@ class CodingMapping(Coding):
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
+        user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
 
         @post_load
         def build_coding_mapping(self, data, **kwargs):
@@ -767,4 +771,73 @@ class CodingMapping(Coding):
             obj["mapping_relationship"] = self.mapping_relationship
         else:
             obj["mapping_relationship"] = ""
+
+        # Returns the user_input for a mapping if requested
+        if self.user_input is not None:
+            obj["user_input"] = self.user_input
+
         return obj
+
+
+class MappingUserInputModel:
+    def generate_mapping_user_input(id, code, mapped_code, user_id):
+        """Mappings may have user_input data stored seperate from the mapping itself.
+        This function collects and formats the user_input data for a given mapping,
+        then creates the user_input object to be included in a CodingMapping.
+        """
+
+        document_id = generate_paired_string(code, mapped_code)
+        doc_ref = (
+            persistence()
+            .collection("Terminology")
+            .document(id)
+            .collection("user_input")
+            .document(document_id)
+        )
+
+        comments_count = MappingUserInputModel.get_mapping_conversations_counts(doc_ref)
+        votes_count = MappingUserInputModel.get_mapping_votes_counts(doc_ref)
+        users_vote = MappingUserInputModel.get_users_mapping_vote(doc_ref, user_id)
+
+        return {
+            "comments_count": comments_count,
+            "votes_count": votes_count,
+            "users_vote": users_vote,
+        }
+
+    def get_mapping_conversations_counts(doc_ref):
+        """Counts the number of mapping_conversation records for a given mapping"""
+        document = doc_ref.get()
+        if document.exists:
+            data = document.to_dict()
+            conversations = data.get("mapping_conversations", [])
+            return len(conversations)
+        return 0
+
+    def get_mapping_votes_counts(doc_ref):
+        """Counts up and down votes for a given mapping"""
+        document = doc_ref.get()
+        if document.exists:
+            data = document.to_dict()
+            mapping_votes = data.get("mapping_votes", {})
+            return {
+                "up": sum(
+                    1 for vote in mapping_votes.values() if vote.get("vote") == "up"
+                ),
+                "down": sum(
+                    1 for vote in mapping_votes.values() if vote.get("vote") == "down"
+                ),
+            }
+        return {"up": 0, "down": 0}
+
+    def get_users_mapping_vote(doc_ref, user_id):
+        """Retrieves the current user's vote for a given mapping. If the user_id
+        is not found(no vote exists for the user, or user_id is unknown/None) an
+        empty string is returned."""
+        document = doc_ref.get()
+        if document.exists:
+            data = document.to_dict()
+            mapping_votes = data.get("mapping_votes", {})
+            user_vote = mapping_votes.get(user_id, {}).get("vote")
+            return user_vote if user_vote else ""
+        return ""
