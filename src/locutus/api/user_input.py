@@ -1,6 +1,7 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.terminology import Terminology as Term
+from locutus.model.exceptions import *
 from locutus.api import default_headers
 from sessions import SessionManager
 from locutus.model.user_input import UserInput
@@ -74,6 +75,11 @@ class TerminologyUserInput(Resource, UserInput):
         }
         """
         body = request.get_json()
+
+        # Raise error if the code is not in the terminology
+        t = Term.get(id)
+        if not t.has_code(code): 
+            raise CodeNotPresent(code, id)
 
         result = UserInput.create_or_replace_user_input(self,
                                                         self.resource_type,

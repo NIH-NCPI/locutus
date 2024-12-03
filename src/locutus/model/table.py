@@ -5,7 +5,8 @@ from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
-from locutus.model.terminology import Terminology, CodeAlreadyPresent
+from locutus.model.terminology import Terminology
+from locutus.model.exceptions import *
 
 from locutus.api import default_headers
 

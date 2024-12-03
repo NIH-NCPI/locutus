@@ -2,6 +2,9 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from locutus.api import delete_collection
+from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
+from locutus.model.enumerations import *
+from locutus.model.exceptions import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 from locutus.api import generate_paired_string
@@ -11,41 +14,6 @@ from locutus.model.user_input import UserInput
 from sessions import SessionManager
 
 import pdb
-
-class CodeAlreadyPresent(Exception):
-    def __init__(self, code, terminology_id, existing_coding):
-        self.code = code
-        self.existing_coding = existing_coding
-        self.terminology_id = terminology_id
-
-        super().__init__(self.message())
-
-    def message(self):
-        return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
-
-
-class RelationshipCodes(StrEnum):
-    def get_mapping_relationship_terminology(self):
-        termref = (
-            persistence()
-            .collection("Terminology")
-            .document("ftd-concept-map-relationship")
-            .get()
-        )
-        return termref.to_dict()
-
-    def validate_mapping_relationship_codes(self, mapping_relationship):
-        # Validate mapping_relationship to be set. Should be Enums or ""
-        relationship_dict = RelationshipCodes.get_mapping_relationship_terminology(self)
-        relationship_codeings = relationship_dict.get("codes", [])
-        relationship_codes = [entry.get("code") for entry in relationship_codeings]
-        if (
-            mapping_relationship != ""
-            and mapping_relationship not in relationship_codes
-        ):
-            raise ValueError(
-                f"Invalid mapping relationship: {mapping_relationship}. Must be one of {relationship_codes}"
-            )
 
 
 """
@@ -303,6 +271,14 @@ class Terminology(Serializable):
                     return True
         return False
 
+    def has_code(self, code):
+        """Check if a code exists in the terminology.
+        
+        If the terminology has the code already this will return True
+        """
+
+        return any(entry.code == code for entry in self.codes)
+
     def delete_mappings(self, editor, code=None):
         """
         Soft deletes mappings from a terminology document setting the mapping 
@@ -498,9 +474,13 @@ class Terminology(Serializable):
         for mapping in codings:
             coding_dict = mapping.to_dict()
 
-            RelationshipCodes.validate_mapping_relationship_codes(
-                self, coding_dict["mapping_relationship"]
-            )
+            # Validation of mapping_relationship
+            try:
+                ftd_terminology = FTDConceptMapTerminology()  
+                ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
+            except InvalidEnumValueError as e:
+                print(f"Validation failed: {e}")
+                raise
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True
