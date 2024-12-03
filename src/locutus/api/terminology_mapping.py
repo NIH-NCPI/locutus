@@ -4,6 +4,7 @@ from locutus import persistence
 from locutus.model.terminology import Terminology as Term, Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.model.terminology_mapping import MappingRelationshipModel
+from locutus.model.exceptions import *
 from sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
@@ -63,6 +64,10 @@ class TerminologyMapping(Resource):
 
         t = Term(**term)
 
+        # Raise error if the code is not in the terminology
+        if not t.has_code(code): 
+            raise CodeNotPresent(code, id)
+
         t.set_mapping(code, codingmapping, editor=editor)
 
         response = TerminologyMappings.get_mappings(t.id)
@@ -89,6 +94,11 @@ class MappingRelationship(Resource):
         if not user_id:
             raise ValueError (f"This task requires an editor")
 
+        # Raise error if the code is not in the terminology
+        t = Term.get(id)
+        if not t.has_code(code): 
+            raise CodeNotPresent(code, id)
+        
         response = MappingRelationshipModel.add_mapping_relationship(
             user_id, id, code, mapped_code, mapping_relationship
         )

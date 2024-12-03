@@ -1,7 +1,8 @@
 from flask_restful import Resource
 from flask import request
 from locutus import persistence
-from locutus.model.terminology import CodeAlreadyPresent, Coding, Terminology as Term
+from locutus.model.terminology import Coding, Terminology as Term
+from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 
@@ -178,6 +179,10 @@ class OntologyAPISearchPreferences(Resource):
             return {"message": "api_preference is required"}, 400
 
         api_preference = body["api_preference"]
+
+         # Raise error if the code is not in the terminology        
+        if not t.has_code(code): 
+            raise CodeNotPresent(code, id)
 
         t.add_or_update_pref(api_preference=api_preference, code=code)
         response = {

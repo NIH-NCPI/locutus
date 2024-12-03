@@ -1,7 +1,9 @@
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
-from locutus.model.terminology import Terminology, Coding, RelationshipCodes
+from locutus.model.terminology import Terminology, Coding
+from locutus.model.enumerations import FTDConceptMapTerminology
+from locutus.model.exceptions import *
 from locutus.api.terminology_mapping import TerminologyMappings
 from locutus.api import generate_paired_string
 from sessions import SessionManager
@@ -11,9 +13,16 @@ class MappingRelationshipModel:
     def add_mapping_relationship(
         cls, user_id, id, code, mapped_code, mapping_relationship
     ):
+        
+        # Validation of mapping_relationship
         try:
-            RelationshipCodes.validate_mapping_relationship_codes(cls, mapping_relationship)
+            ftd_terminology = FTDConceptMapTerminology()  
+            ftd_terminology.validate_codes_against(mapping_relationship, additional_enums=[""])
+        except InvalidEnumValueError as e:
+            print(f"Validation failed: {e}")
+            raise
 
+        try:
             mappingref = (
                 persistence()
                 .collection("Terminology")
