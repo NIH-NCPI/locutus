@@ -659,7 +659,7 @@ Create or replace references to a prefered `Terminology` for the terminology (sp
 Request body example:
  ```json
 {
-    "editor": "me",
+    "editor": "user24601",
     "preferred_terminologies": [
         {
             "preferred_terminology": "tm--example1"
@@ -686,7 +686,8 @@ from the `Terminology` specified by the id
 #### GET
 
 Return the reference to the `user_input` `type` related to the `Terminology` (specified by id).<br>
-Returns all records of the `type` at the `code` level. <br> 
+Returns all records of the `type` at the `code` level, in reverse order
+from whence they were stored, with newer records on top.
 
 Expected return for type `mapping_votes` below
 
@@ -696,7 +697,7 @@ Expected return for type `mapping_votes` below
     "code": "type 2 diabetes",
     "mapped_code": "Type 2 diabetes mellitus",
     "mapping_votes": {
-        "editorrr": {
+        "user24601": {
             "date": "Nov 17, 2024, 01:58:39.197679 PM",
             "vote": "up"
         }
@@ -762,7 +763,7 @@ Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`
  ```json
 {
   "mapping_relationship":"equivalent",
-  "editor": "me"
+  "editor": "user24601"
 }
 ```
 
