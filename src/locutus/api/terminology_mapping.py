@@ -1,7 +1,12 @@
 from flask_restful import Resource
 from flask import request
 from locutus import persistence
-from locutus.model.terminology import Terminology as Term, Coding, CodingMapping
+from locutus.model.terminology import (
+    Terminology as Term,
+    Coding,
+    CodingMapping,
+    MappingUserInputModel,
+)
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.model.terminology_mapping import MappingRelationshipModel
 from locutus.model.exceptions import *
@@ -14,6 +19,15 @@ import pdb
 class TerminologyMapping(Resource):
     @cross_origin()
     def get(self, id, code):
+        """
+        Retrieves terminology mappings for a given code, optionally including user input details.
+        """
+
+        user_input_param = request.args.get("user_input", default=None)
+        user_id = (
+            get_editor(body=None)
+        )  # Retrieves the user_id or sets to None
+
         term = persistence().collection("Terminology").document(id).get().to_dict()
         if "resource_type" in term:
             del term["resource_type"]
@@ -24,7 +38,12 @@ class TerminologyMapping(Resource):
         response = {"code": code, "mappings": []}
 
         # We should recieve a dictionary with a single key
-        for codingmapping in mappings[code]:
+        for codingmapping in mappings.get(code, []):
+            if user_input_param:
+                user_input_data = MappingUserInputModel.generate_mapping_user_input(
+                    id, code, codingmapping.code, user_id
+                )
+                codingmapping.user_input = user_input_data
             # Returns valid=true mappings or mappings without the 'valid' attribute.
             if not hasattr(codingmapping, 'valid') or codingmapping.valid:
                 response["mappings"].append(codingmapping.to_dict())

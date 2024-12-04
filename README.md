@@ -302,6 +302,8 @@ If the code doesn't exist, a 404 error is returned.
 #### GET
 
 Returns all VALID mappings currently assigned to any code in the terminology.
+Optionally, it can include additional user input data if the user_input parameter is provided.<br>
+Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping?user_input=True)
 
 ```json
 {
@@ -324,6 +326,37 @@ Returns all VALID mappings currently assigned to any code in the terminology.
     ]
 }
 ```
+User_input example output. An active session is required to retrieve the 'users_vote'.
+If none exists, 'users_vote' will be an empty string.
+```json
+{
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+    },
+    "mappings": [
+        {
+            "code": "Female",
+            "codes": [
+                {
+                    "code": "female",
+                    "display": "Female",
+                    "mapping_relationship":"",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true,
+                    "user_input": {
+                        "comments_count": 1,
+                        "votes_count": {
+                            "up": 1,
+                            "down": 0
+                        },
+                        "users_vote": "up"
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
 
 #### DELETE
 
@@ -335,6 +368,8 @@ The 'valid' field for the mapping is set to 'false'
 #### GET
 
 Returns VALID mappings for the specific code (from the terminology)
+Optionally, it can include additional user input data if the user_input parameter is provided.<br>
+Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping/[code]?user_input=True)
 
 ```json
 {
@@ -356,6 +391,39 @@ Returns VALID mappings for the specific code (from the terminology)
         "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
     }
 }
+```
+User_input example output. An active session is required to retrieve the 'users_vote'.
+If none exists, 'users_vote' will be an empty string.
+```json
+{
+    "codes": [
+        {
+            "code": "female_ex",
+            "codes": [
+                {
+                    "code": "femalee",
+                    "display": "feMale",
+                    "mapping_relationship":"equivalent",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true,
+                    "user_input": {
+                        "comments_count": 1,
+                        "votes_count": {
+                            "up": 1,
+                            "down": 0
+                        },
+                        "users_vote": "up"
+                    }
+                }
+            ]
+        }
+    ],
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+    }
+}
+
+
 ```
 
 #### PUT
@@ -591,7 +659,7 @@ Create or replace references to a prefered `Terminology` for the terminology (sp
 Request body example:
  ```json
 {
-    "editor": "me",
+    "editor": "user24601",
     "preferred_terminologies": [
         {
             "preferred_terminology": "tm--example1"
@@ -618,7 +686,8 @@ from the `Terminology` specified by the id
 #### GET
 
 Return the reference to the `user_input` `type` related to the `Terminology` (specified by id).<br>
-Returns all records of the `type` at the `code` level. <br> 
+Returns all records of the `type` at the `code` level, in reverse order
+from whence they were stored, with newer records on top.
 
 Expected return for type `mapping_votes` below
 
@@ -628,7 +697,7 @@ Expected return for type `mapping_votes` below
     "code": "type 2 diabetes",
     "mapped_code": "Type 2 diabetes mellitus",
     "mapping_votes": {
-        "editorrr": {
+        "user24601": {
             "date": "Nov 17, 2024, 01:58:39.197679 PM",
             "vote": "up"
         }
@@ -694,7 +763,7 @@ Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`
  ```json
 {
   "mapping_relationship":"equivalent",
-  "editor": "me"
+  "editor": "user24601"
 }
 ```
 
