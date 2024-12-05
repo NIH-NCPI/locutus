@@ -54,7 +54,7 @@ class TerminologyMapping(Resource):
         body = request.get_json()
         editor = get_editor(body)
         if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         t = Term.get(id)
         t.delete_mappings(editor=editor, code=code)
@@ -68,7 +68,7 @@ class TerminologyMapping(Resource):
         body = request.get_json()
         editor = get_editor(body)
         if editor is None:
-            return ("This action requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         mappings = body["mappings"]
         codingmapping = [CodingMapping(**x) for x in mappings]
@@ -104,12 +104,9 @@ class MappingRelationship(Resource):
                 default_headers,
             )
 
-        # Return session user, editor(request body), or None 
-        user_id = get_editor(body)
-
-        # Get the session id, or fallback to use the editor as the user_id
-        if not user_id:
-            raise ValueError (f"This task requires an editor")
+        editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
 
         # Raise error if the code is not in the terminology
         t = Term.get(id)
@@ -117,7 +114,7 @@ class MappingRelationship(Resource):
             raise CodeNotPresent(code, id)
         
         response = MappingRelationshipModel.add_mapping_relationship(
-            user_id, id, code, mapped_code, mapping_relationship
+            editor, id, code, mapped_code, mapping_relationship
         )
 
         return (response, 200, default_headers)

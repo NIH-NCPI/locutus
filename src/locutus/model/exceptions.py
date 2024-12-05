@@ -30,4 +30,10 @@ class InvalidEnumValueError(ValueError):
         message = f"Value '{value}' is not valid. Expected one of: {valid_values}."
         super().__init__(message)
 
-
+class LackingUserID(ValueError):
+    """
+    Raised when neither an editor(body) nor user_id(session) is supplied.
+    """
+    def __init__(self, editor):
+        message = f"This action requires an editor! Editor={editor}"
+        super().__init__(message)

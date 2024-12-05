@@ -17,6 +17,8 @@ class TerminologyEdit(Resource):
         description = body.get("description")
 
         editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
 
         t = Term.get(id)
         try:
@@ -31,6 +33,8 @@ class TerminologyEdit(Resource):
         t = Term.get(id)
         body = request.get_json()
         editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
 
         try:
             t.remove_code(code, editor=editor)
@@ -44,6 +48,8 @@ class TerminologyRenameCode(Resource):
     def patch(self, id):
         body = request.get_json()
         editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
         code_updates = body.get("code")
         display_updates = body.get("display")
         description_updates = body.get("description")
@@ -118,15 +124,16 @@ class Terminologies(Resource):
         term = request.get_json()
         body = request.get_json()
         editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
         if "resource_type" in term:
             del term["resource_type"]
 
         t = Term(**term)
         t.save()
-        if editor:
-            t.add_provenance(
-                t.ChangeType.AddTerm, editor=editor, target="self"
-            )
+        t.add_provenance(
+            t.ChangeType.AddTerm, editor=editor, target="self"
+        )
 
         return t.dump(), 201, default_headers
 
@@ -270,10 +277,14 @@ class PreferredTerminology(Resource):
         }
         """
         body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
+        
         t = Term.get(id)
 
-        if not isinstance(body, dict) or "editor" not in body or not isinstance(body.get("preferred_terminologies", []), list):
-            return {"message": "'editor' is required and 'preferred_terminologies' should be a list"}, 400
+        if not isinstance(body, dict) or not isinstance(body.get("preferred_terminologies", []), list):
+            return {"message": "'preferred_terminologies' should be a list"}, 400
 
 
         preferred_terminologies = body["preferred_terminologies"]
@@ -281,8 +292,6 @@ class PreferredTerminology(Resource):
         # Ensure each item in preferred_terminologies contains the key 'preferred_terminology'
         if not all("preferred_terminology" in item for item in preferred_terminologies):
             return {"message": "Each item in 'preferred_terminologies' must contain 'preferred_terminology'"}, 400
-
-        editor = body["editor"]
 
         # Replace all preferred terminologies and store the editor
         t.replace_preferred_terminology(editor=editor, preferred_terminology=preferred_terminologies)

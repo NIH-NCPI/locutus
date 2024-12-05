@@ -5,6 +5,7 @@ from locutus.model.table import Table
 from locutus.model.terminology import Terminology, Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
+from locutus.model.exceptions import *
 from locutus.api import default_headers, delete_collection, get_editor
 
 
@@ -37,7 +38,7 @@ class TableMappings(Resource):
 
         editor = get_editor(body)
         if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         table = Table.get(id)
         mapping_count = table.terminology.dereference().delete_mappings(editor=editor)
@@ -74,7 +75,7 @@ class TableMapping(Resource):
         body = request.get_json()
         editor = get_editor(body)
         if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         table = Table.get(id)
         mapping_count = table.terminology.dereference().delete_mappings(
@@ -90,7 +91,7 @@ class TableMapping(Resource):
         body = request.get_json()
         editor = get_editor(body)
         if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         mappings = request.get_json()["mappings"]
         codingmapping = [CodingMapping(**x) for x in mappings]

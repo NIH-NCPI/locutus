@@ -2,6 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term, MappingUserInputModel
+from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 from sessions import SessionManager
@@ -60,7 +61,7 @@ class TerminologyMappings(Resource):
         body = request.get_json()
         editor = get_editor(body)
         if editor is None:
-            return ("Terminology DELETE requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         t = Term.get(id)
         t.delete_mappings(editor=editor)

@@ -5,6 +5,7 @@ from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
+from locutus.model.exceptions import LackingUserID
 from copy import deepcopy
 
 import pdb
@@ -18,7 +19,7 @@ class TableRenameCode(Resource):
 
         editor = get_editor(body)
         if editor is None:
-            return ("table edit requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         table = mTable.get(id)
         # print(f"Variable name updates requested: {varname_updates}")
@@ -73,7 +74,7 @@ class TableEdit(Resource):
 
         editor = get_editor(body)
         if editor is None:
-            return ("table PUT requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         vardef = deepcopy(body)
         vardef["name"] = code
@@ -90,7 +91,7 @@ class TableEdit(Resource):
 
         editor = get_editor(body)
         if editor is None:
-            return ("table edit requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         try:
             table.remove_variable(code, editor=editor)
@@ -118,9 +119,9 @@ class Tables(Resource):
         tbl = request.get_json()
 
         editor = get_editor(tbl)
-
         if editor is None:
-            return ("table edit requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
+        
         if "resource_type" in tbl:
             del tbl["resource_type"]
 
@@ -137,8 +138,9 @@ class Table(Resource):
     def put(self, id):
         tbl = request.get_json()
 
-        if "editor" not in tbl:
-            return ("table PUT requires an editor!", 400, default_headers)
+        editor = get_editor(tbl)
+        if editor is None:
+            raise LackingUserID(editor)
 
         if "id" not in tbl:
             tbl["id"] = id
@@ -152,9 +154,10 @@ class Table(Resource):
 
     def delete(self, id):
         body = request.get_json()
+        
         editor = get_editor(body)
         if editor is None:
-            return ("table DELETE requires an editor!", 400, default_headers)
+            raise LackingUserID(editor)
 
         # This is a bit "out of band"
         t = mTable.get(id)
