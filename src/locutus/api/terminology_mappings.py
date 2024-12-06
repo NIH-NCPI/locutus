@@ -58,12 +58,7 @@ class TerminologyMappings(Resource):
 
     @classmethod
     def delete(cls, id):
-        if request.data:
-            body = request.get_json()
-        else:
-            body = None
-            
-        editor = get_editor(body)
+        editor = get_editor()
         if editor is None:
             raise LackingUserID(editor)
 
