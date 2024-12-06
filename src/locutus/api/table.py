@@ -17,7 +17,7 @@ class TableRenameCode(Resource):
         varname_updates = body.get("variable")
         description_updates = body.get("description")
 
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -72,7 +72,7 @@ class TableEdit(Resource):
         table = mTable.get(id)
         body = request.get_json()
 
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -89,7 +89,7 @@ class TableEdit(Resource):
         table = mTable.get(id)
         body = request.get_json()
 
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -118,7 +118,7 @@ class Tables(Resource):
     def post(self):
         tbl = request.get_json()
 
-        editor = get_editor(tbl)
+        editor = get_editor(body=tbl, editor=None)
         if editor is None:
             raise LackingUserID(editor)
         
@@ -138,7 +138,7 @@ class Table(Resource):
     def put(self, id):
         tbl = request.get_json()
 
-        editor = get_editor(tbl)
+        editor = get_editor(body=tbl, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -155,7 +155,7 @@ class Table(Resource):
     def delete(self, id):
         body = request.get_json()
         
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 

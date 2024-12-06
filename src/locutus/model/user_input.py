@@ -110,7 +110,7 @@ class UserInput:
         # Prep the data
         try:
             mapped_pair=generate_paired_string(code, mapped_code)
-            editor = get_editor(body)
+            editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
 

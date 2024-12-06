@@ -16,7 +16,7 @@ class TerminologyEdit(Resource):
         display = body.get("display")
         description = body.get("description")
 
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -30,7 +30,7 @@ class TerminologyEdit(Resource):
         """Remove a code from an existing terminology."""
         t = Term.get(id)
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -45,7 +45,7 @@ class TerminologyEdit(Resource):
 class TerminologyRenameCode(Resource):
     def patch(self, id):
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
         code_updates = body.get("code")
@@ -121,7 +121,7 @@ class Terminologies(Resource):
     def post(self):
         term = request.get_json()
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
         if "resource_type" in term:
@@ -275,7 +275,7 @@ class PreferredTerminology(Resource):
         }
         """
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
         

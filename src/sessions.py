@@ -100,7 +100,6 @@ class SessionManager:
         if 'user_id' in session:
             return session['user_id']
         elif editor:
-            print(session)
             return editor
         
         else:

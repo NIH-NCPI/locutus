@@ -36,7 +36,7 @@ class TableMappings(Resource):
     def delete(cls, id):
         body = request.get_json()
 
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -73,7 +73,7 @@ class TableMapping(Resource):
 
     def delete(self, id, code):
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -89,7 +89,7 @@ class TableMapping(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 

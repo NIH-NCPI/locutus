@@ -54,7 +54,9 @@ class TerminologyMapping(Resource):
 
     def delete(self, id, code):
         """Soft deletes all mappings for the identified terminology code."""
-        editor = get_editor()
+        body = request.get_json()
+
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -68,7 +70,7 @@ class TerminologyMapping(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         body = request.get_json()
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 
@@ -106,7 +108,7 @@ class MappingRelationship(Resource):
                 default_headers,
             )
 
-        editor = get_editor(body)
+        editor = get_editor(body=body, editor=None)
         if editor is None:
             raise LackingUserID(editor)
 

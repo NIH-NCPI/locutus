@@ -7,7 +7,7 @@ from locutus.model.enumerations import *
 from locutus.model.exceptions import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
-from locutus.api import generate_paired_string, get_editor
+from locutus.api import generate_paired_string
 import time
 
 from locutus.model.user_input import UserInput
