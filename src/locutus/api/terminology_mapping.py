@@ -49,9 +49,12 @@ class TerminologyMapping(Resource):
         return (response, 200, default_headers)
 
     def delete(self, id, code):
-        """Soft deletes all mappings for the identified terminology code.
-        """
-        body = request.get_json()
+        """Soft deletes all mappings for the identified terminology code."""
+        if request.data:
+            body = request.get_json()
+        else:
+            body = None
+
         editor = get_editor(body)
         if editor is None:
             raise LackingUserID(editor)
