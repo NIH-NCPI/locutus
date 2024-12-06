@@ -475,12 +475,9 @@ class Terminology(Serializable):
             coding_dict = mapping.to_dict()
 
             # Validation of mapping_relationship
-            try:
-                ftd_terminology = FTDConceptMapTerminology()  
-                ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
-            except InvalidEnumValueError as e:
-                print(f"Validation failed: {e}")
-                raise
+
+            ftd_terminology = FTDConceptMapTerminology()  
+            ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True

@@ -21,10 +21,8 @@ class TerminologyEdit(Resource):
             raise LackingUserID(editor)
 
         t = Term.get(id)
-        try:
-            t.add_code(code=code, display=display, description=description, editor=editor)
-        except CodeAlreadyPresent as e:
-            return str(e), 400, default_headers
+
+        t.add_code(code=code, display=display, description=description, editor=editor)
 
         return t.dump(), 201, default_headers
 

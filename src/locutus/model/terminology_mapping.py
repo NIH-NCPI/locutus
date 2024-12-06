@@ -15,12 +15,8 @@ class MappingRelationshipModel:
     ):
         
         # Validation of mapping_relationship
-        try:
-            ftd_terminology = FTDConceptMapTerminology()  
-            ftd_terminology.validate_codes_against(mapping_relationship, additional_enums=[""])
-        except InvalidEnumValueError as e:
-            print(f"Validation failed: {e}")
-            raise
+        ftd_terminology = FTDConceptMapTerminology()  
+        ftd_terminology.validate_codes_against(mapping_relationship, additional_enums=[""])
 
         try:
             mappingref = (

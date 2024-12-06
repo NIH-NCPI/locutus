@@ -246,12 +246,9 @@ class Table(Serializable):
         else:
             self._insert_variable(variable)
 
-        try:
-            self.terminology.dereference().add_code(
-                code=v.code, display=v.name, editor=editor
-            )
-        except CodeAlreadyPresent as e:
-            pass
+        self.terminology.dereference().add_code(
+            code=v.code, display=v.name, editor=editor
+        )
 
     def build_harmony_row(self, local_coding, mapped_coding):
 

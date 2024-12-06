@@ -1,4 +1,6 @@
 from locutus import persistence
+from flask import session
+from flask_session import Session
 
 
 class APIError(Exception):
@@ -23,7 +25,7 @@ class CodeAlreadyPresent(APIError):
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
 
-        message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is {existing_coding.display}."
+        message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({existing_coding.display})."
         super().__init__(message, status_code=400)
 
 
@@ -52,5 +54,5 @@ class LackingUserID(ValueError):
     """
     def __init__(self, editor):
         self.editor = editor
-        message = f"This action requires an editor or user_id(session)! Current editor or user_id: {self.editor}"
+        message = f"This action requires an editor or user_id(session)! Current editor or user_id: ({self.editor}) session:({session})"
         super().__init__(message, status_code=400)
