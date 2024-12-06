@@ -18,7 +18,7 @@ class TerminologyMappings(Resource):
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
 
-        editor = get_editor(editor_param)
+        editor = get_editor(body=None, editor=editor_param)
         if editor is None:
             raise LackingUserID(editor)
 
