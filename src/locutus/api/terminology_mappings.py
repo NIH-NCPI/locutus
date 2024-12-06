@@ -16,9 +16,11 @@ class TerminologyMappings(Resource):
         Retrieves all mappings for a given terminology, optionally including user input details.
         """
         user_input_param = request.args.get("user_input", default=None)
-        user_id = (
-            SessionManager.create_user_id()
-        )  # Retrieves the user_id or sets to None
+
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
 
         termref = persistence().collection("Terminology").document(id)
         term = termref.get().to_dict()
@@ -43,7 +45,7 @@ class TerminologyMappings(Resource):
                     if user_input_param:
                         user_input_data = (
                             MappingUserInputModel.generate_mapping_user_input(
-                                id, code, codingmapping.code, user_id
+                                id, code, codingmapping.code, editor
                             )
                         )
                         codingmapping.user_input = user_input_data

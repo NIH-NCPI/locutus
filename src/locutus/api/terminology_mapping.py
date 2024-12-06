@@ -24,7 +24,11 @@ class TerminologyMapping(Resource):
         """
 
         user_input_param = request.args.get("user_input", default=None)
-        user_id = get_editor()  # Retrieves the user_id or sets to None
+
+        body = request.get_json()
+        editor = get_editor(body)
+        if editor is None:
+            raise LackingUserID(editor)
 
         term = persistence().collection("Terminology").document(id).get().to_dict()
         if "resource_type" in term:
@@ -39,7 +43,7 @@ class TerminologyMapping(Resource):
         for codingmapping in mappings.get(code, []):
             if user_input_param:
                 user_input_data = MappingUserInputModel.generate_mapping_user_input(
-                    id, code, codingmapping.code, user_id
+                    id, code, codingmapping.code, editor
                 )
                 codingmapping.user_input = user_input_data
             # Returns valid=true mappings or mappings without the 'valid' attribute.

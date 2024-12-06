@@ -1,39 +1,56 @@
 from locutus import persistence
 
 
-class CodeAlreadyPresent(Exception):
+class APIError(Exception):
+    """
+    Base class for all API exceptions.
+    """
+    def __init__(self, message, details=None, status_code=400):
+        self.message = message
+        self.details = details or {}
+        self.status_code = status_code
+        super().__init__(self.message)
+
+    def to_dict(self):
+        return {
+            "error": self.__class__.__name__,
+            "message": self.message
+        }
+
+class CodeAlreadyPresent(APIError):
     def __init__(self, code, terminology_id, existing_coding):
         self.code = code
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
 
-        super().__init__(self.message())
+        message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is {existing_coding.display}."
+        super().__init__(message, status_code=400)
 
-    def message(self):
-        return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
-class CodeNotPresent(Exception):
+class CodeNotPresent(APIError):
     def __init__(self, code, terminology_id):
         self.code = code
         self.terminology_id = terminology_id
 
-        super().__init__(self.message())
-
-    def message(self):
-        return f"The code, {self.code}, is not present in the terminology, {self.terminology_id}."
+        message = f"The code({self.code}) is not present in the terminology({self.terminology_id})."
+        super().__init__(message, status_code=404)
     
-class InvalidEnumValueError(ValueError):
+class InvalidEnumValueError(APIError):
     """
     Raised when a value is not in the allowed set of enum values.
     """
     def __init__(self, value, valid_values):
-        message = f"Value '{value}' is not valid. Expected one of: {valid_values}."
-        super().__init__(message)
+        self.value = value
+        self.valid_values = valid_values
+
+        message = f"Value({self.value}) is not valid. The value should be one of:({self.valid_values})"
+        super().__init__(message, status_code=400)
 
 class LackingUserID(ValueError):
     """
     Raised when neither an editor(body) nor user_id(session) is supplied.
     """
     def __init__(self, editor):
-        message = f"This action requires an editor! Editor={editor}"
-        super().__init__(message)
+        self.editor = editor
+        message = f"This action requires an editor or user_id(session)! Current editor or user_id: {self.editor}"
+        super().__init__(message, status_code=400)
