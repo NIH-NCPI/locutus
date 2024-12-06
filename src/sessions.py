@@ -42,13 +42,13 @@ class SessionManager:
         """
         if not affiliation:
             affiliation = 'basic'
-        
+
         session['user_id'] = user_id
         session['affiliation'] = affiliation
 
         # Adjust session timeout based on affiliation.
         self.set_timeout_based_on_affiliation(affiliation)
-        
+
         return {"message": f"Session started for user {user_id} with the" \
                  f"{affiliation} affiliation "}, 200
 
@@ -61,14 +61,13 @@ class SessionManager:
         else: 
             # If no affiliation is recognized
             timeout_hours = 8
-        
-        self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=timeout_hours)
 
+        self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=timeout_hours)
 
     def terminate_session(self):
         session.clear()
         return {"message": "Session terminated"}, 200
-    
+
     def get_session_status(self):
         """
         Sets the session timeout based on the user's affiliation.
@@ -87,7 +86,7 @@ class SessionManager:
             }, 200
         else:
             return {"message": "No active session"}, 404
-        
+
     def create_user_id(editor=None):
         """
         Attempts to retrieve the user ID from the session or the provided editor ID.
@@ -103,8 +102,8 @@ class SessionManager:
         elif editor:
             return editor
         else:
-            editor = None
-        
+            raise ValueError(f"Session not active editor: {editor}")
+
     def create_current_datetime():
         """
         Creates a formatted string of the current date and time.
