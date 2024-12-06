@@ -23,10 +23,10 @@ class SessionStart(Resource):
             started, along with HTTP status code.
         """
         body = request.get_json()
-
-        user_id = get_editor(body)
-        if user_id is None:
-            raise LackingUserID(user_id)
+        
+        user_id = body.get('user_id')
+        if "user_id" not in body:
+            return {"message": "user_id is required"}, 400
 
         affiliation = body.get('affiliation')
 
