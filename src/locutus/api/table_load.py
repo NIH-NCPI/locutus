@@ -59,7 +59,7 @@ class TableLoader(Resource):
 
         t = mTable(**tbl)
         t.save()
-        editor = get_editor(tblData)
+        editor = get_editor(body=tblData, editor=None)
 
         # Iterate over the csvContent to build up the list of variables and
         # optionally, the enumerations if that is appropriate.
@@ -155,7 +155,7 @@ class TableLoader2(Resource):
 
         # pdb.set_trace()
         tbl = mTable.get(id)
-        editor = get_editor(tblData)
+        editor = get_editor(body=tblData, editor=None)
 
       
         # check if csvContents exist. Otherwise, return error

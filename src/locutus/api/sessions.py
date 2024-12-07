@@ -1,5 +1,7 @@
 from flask_restful import Resource
 from flask import request
+from locutus.model.exceptions import *
+from locutus.api import get_editor
 
 class SessionStart(Resource):
     """API resource for starting a user session.
@@ -21,7 +23,7 @@ class SessionStart(Resource):
             started, along with HTTP status code.
         """
         body = request.get_json()
-
+        
         user_id = body.get('user_id')
         if "user_id" not in body:
             return {"message": "user_id is required"}, 400

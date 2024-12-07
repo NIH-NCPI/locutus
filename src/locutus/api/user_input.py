@@ -78,20 +78,23 @@ class TerminologyUserInput(Resource, UserInput):
 
         # Raise error if the code is not in the terminology
         t = Term.get(id)
-        if not t.has_code(code): 
-            raise CodeNotPresent(code, id)
+        try:
+            if not t.has_code(code): 
+                raise CodeNotPresent(code, id)
 
-        result = UserInput.create_or_replace_user_input(self,
-                                                        self.resource_type,
-                                                        self.collection_type,
-                                                        id,
-                                                        code,
-                                                        mapped_code,
-                                                        type,
-                                                        body)
-        
-        if isinstance(result, tuple):
-            return result
+            result = UserInput.create_or_replace_user_input(self,
+                                                            self.resource_type,
+                                                            self.collection_type,
+                                                            id,
+                                                            code,
+                                                            mapped_code,
+                                                            type,
+                                                            body)
+            
+            if isinstance(result, tuple):
+                return result
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
         
         response = UserInput.get_user_input(self, self.resource_type, self.collection_type,
                                         id, code, mapped_code, type)
