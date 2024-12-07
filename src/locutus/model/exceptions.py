@@ -25,7 +25,7 @@ class CodeAlreadyPresent(APIError):
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
 
-        message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({existing_coding.display})."
+        message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({self.existing_coding.display})."
         super().__init__(message, status_code=400)
 
 
@@ -48,11 +48,11 @@ class InvalidEnumValueError(APIError):
         message = f"Value({self.value}) is not valid. The value should be one of:({self.valid_values})"
         super().__init__(message, status_code=400)
 
-class LackingUserID(ValueError):
+class LackingUserID(APIError):
     """
     Raised when neither an editor(body) nor user_id(session) is supplied.
     """
     def __init__(self, editor):
         self.editor = editor
-        message = f"This action requires an editor or user_id(session)! Current editor or user_id: ({self.editor}) session:({session})"
+        message = f"This action requires an editor or session! Current editor or user_id: ({self.editor}) session:({session})"
         super().__init__(message, status_code=400)

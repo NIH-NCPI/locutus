@@ -101,9 +101,8 @@ class SessionManager:
             return session['user_id']
         elif editor:
             return editor
-        
         else:
-            raise ValueError(f"Session not active editor: {editor}")
+            return None 
 
     def create_current_datetime():
         """

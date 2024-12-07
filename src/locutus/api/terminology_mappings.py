@@ -17,43 +17,45 @@ class TerminologyMappings(Resource):
         """
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
+        try:
+            editor = get_editor(body=None, editor=editor_param)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        editor = get_editor(body=None, editor=editor_param)
-        if editor is None:
-            raise LackingUserID(editor)
+            termref = persistence().collection("Terminology").document(id)
+            term = termref.get().to_dict()
 
-        termref = persistence().collection("Terminology").document(id)
-        term = termref.get().to_dict()
+            if term is not None:
+                if "resource_type" in term:
+                    del term["resource_type"]
 
-        if term is not None:
-            if "resource_type" in term:
-                del term["resource_type"]
+                t = Term(**term)
 
-            t = Term(**term)
+                response = {
+                    "terminology": {
+                        "Reference": f"Terminology/{t.id}",
+                    },
+                    "codes": [],
+                }
+                mappings = t.mappings()
 
-            response = {
-                "terminology": {
-                    "Reference": f"Terminology/{t.id}",
-                },
-                "codes": [],
-            }
-            mappings = t.mappings()
-
-            for code in mappings:
-                mapping = {"code": code, "mappings": []}
-                for codingmapping in mappings.get(code, []):
-                    if user_input_param:
-                        user_input_data = (
-                            MappingUserInputModel.generate_mapping_user_input(
-                                id, code, codingmapping.code, editor
+                for code in mappings:
+                    mapping = {"code": code, "mappings": []}
+                    for codingmapping in mappings.get(code, []):
+                        if user_input_param:
+                            user_input_data = (
+                                MappingUserInputModel.generate_mapping_user_input(
+                                    id, code, codingmapping.code, editor
+                                )
                             )
-                        )
-                        codingmapping.user_input = user_input_data
-                    # Returns valid=true mappings or mappings without the 'valid' attribute.
-                    if not hasattr(codingmapping, "valid") or codingmapping.valid:
-                        mapping["mappings"].append(codingmapping.to_dict())
+                            codingmapping.user_input = user_input_data
+                        # Returns valid=true mappings or mappings without the 'valid' attribute.
+                        if not hasattr(codingmapping, "valid") or codingmapping.valid:
+                            mapping["mappings"].append(codingmapping.to_dict())
 
-                response["codes"].append(mapping)
+                    response["codes"].append(mapping)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
             return response
         return None
@@ -61,15 +63,17 @@ class TerminologyMappings(Resource):
     @classmethod
     def delete(cls, id):
         body = request.get_json()
-        editor = get_editor(body=body, editor=None)
-        if editor is None:
-            raise LackingUserID(editor)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        t = Term.get(id)
-        t.delete_mappings(editor=editor)
+            t = Term.get(id)
+            t.delete_mappings(editor=editor)
 
-        response = TerminologyMappings.get_mappings(id)
-
+            response = TerminologyMappings.get_mappings(id)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
         return (response, 200, default_headers)
 
     @classmethod
