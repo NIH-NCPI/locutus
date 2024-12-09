@@ -7,7 +7,7 @@ class UserPrefOntoFilters(Resource):
     def get(self):
 
         try:
-            editor = get_editor(body=None, editor=None) # Session or nothing
+            editor = get_editor({})
         except:
             editor = "Application Default"
         # For now, we will just return a constant

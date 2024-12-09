@@ -160,9 +160,9 @@ class Terminology(Serializable):
         return codes
 
     def add_code(self, code, display, description=None, editor=None):
-        for cc in self.codes:
-            if cc.code == code:
-                raise CodeAlreadyPresent(code, self.id, cc)
+        # for cc in self.codes:
+            # if cc.code == code:
+            #     raise CodeAlreadyPresent(code, self.id, cc)
         new_coding = Coding(
             code=code, display=display, system=self.url, description=description
         )
@@ -183,6 +183,7 @@ class Terminology(Serializable):
                 editor=editor,
                 target=code,
             )
+
 
     def remove_code(self, code, editor):
         code_found = False
