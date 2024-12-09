@@ -23,7 +23,7 @@ def delete_collection(collection, batch_size=100):
     return total_deleted
 
 
-def get_editor(body=None, editor=None):
+def get_editor(body, editor):
     if body and "editor" in body:
         editor = body["editor"]
         del body["editor"]

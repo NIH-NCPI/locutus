@@ -1,6 +1,7 @@
 from locutus import persistence
 from flask import session
 from flask_session import Session
+from locutus import logger
 
 
 class APIError(Exception):
@@ -54,5 +55,6 @@ class LackingUserID(APIError):
     """
     def __init__(self, editor):
         self.editor = editor
-        message = f"This action requires an editor or session! Current editor or user_id: ({self.editor}) session:({session})"
+        message = f"This action requires an editor or session! Current editor or user_id: ({self.editor})"
+        logger.error(message)
         super().__init__(message, status_code=400)

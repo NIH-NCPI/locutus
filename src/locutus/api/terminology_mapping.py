@@ -28,7 +28,7 @@ class TerminologyMapping(Resource):
 
         try:
             editor = get_editor(body=None, editor=editor_param)
-            if editor is None:
+            if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
 
             term = persistence().collection("Terminology").document(id).get().to_dict()
@@ -50,10 +50,12 @@ class TerminologyMapping(Resource):
                 # Returns valid=true mappings or mappings without the 'valid' attribute.
                 if not hasattr(codingmapping, 'valid') or codingmapping.valid:
                     response["mappings"].append(codingmapping.to_dict())
+
+            return (response, 200, default_headers)
+     
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
         
-        return (response, 200, default_headers)
 
     def delete(self, id, code):
         """Soft deletes all mappings for the identified terminology code."""

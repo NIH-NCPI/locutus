@@ -19,7 +19,7 @@ class TerminologyMappings(Resource):
         editor_param = request.args.get("user", default=None)
         try:
             editor = get_editor(body=None, editor=editor_param)
-            if editor is None:
+            if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
 
             termref = persistence().collection("Terminology").document(id)
