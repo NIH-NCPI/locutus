@@ -41,7 +41,9 @@ class TableMappings(Resource):
                 raise LackingUserID(editor)
 
             table = Table.get(id)
-            mapping_count = table.terminology.dereference().delete_mappings(editor=editor)
+            mapping_count = table.terminology.dereference().delete_mappings(
+                editor=editor
+            )
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -86,7 +88,9 @@ class TableMapping(Resource):
                 editor=editor, code=code
             )
 
-            response = TerminologyMappings.get_mappings(table.terminology.reference_id())
+            response = TerminologyMappings.get_mappings(
+                table.terminology.reference_id()
+            )
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 

@@ -22,9 +22,11 @@ class TerminologyEdit(Resource):
                 raise LackingUserID(editor)
 
             t = Term.get(id)
-            t.add_code(code=code, display=display, description=description, editor=editor)
+            t.add_code(
+                code=code, display=display, description=description, editor=editor
+            )
             return t.dump(), 201, default_headers
-        
+
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
@@ -36,7 +38,6 @@ class TerminologyEdit(Resource):
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
-            
             t.remove_code(code, editor=editor)
         except KeyError as e:
             return str(e), 404, default_headers
@@ -186,7 +187,7 @@ class OntologyAPISearchPreferences(Resource):
         pref = t.get_preference(code=code)
 
         return (pref, 200, default_headers)
-        
+
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
@@ -196,8 +197,8 @@ class OntologyAPISearchPreferences(Resource):
 
         api_preference = body["api_preference"]
         try:
-            # Raise error if the code is not in the terminology        
-            if not t.has_code(code): 
+            # Raise error if the code is not in the terminology
+            if not t.has_code(code):
                 raise CodeNotPresent(code, id)
 
             t.add_or_update_pref(api_preference=api_preference, code=code)
@@ -239,7 +240,7 @@ class OntologyAPISearchPreferences(Resource):
         }
 
         return (response, 200, default_headers)
-    
+
 class PreferredTerminology(Resource):
     def get(self, id=None):
         """
@@ -265,7 +266,7 @@ class PreferredTerminology(Resource):
         pref = t.get_preferred_terminology()
 
         return (pref, 200, default_headers)
-        
+
     def put(self, id):
         """
         Creates one or more preferred terminologies to a specific Terminology.
@@ -292,21 +293,28 @@ class PreferredTerminology(Resource):
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
-            
+
             t = Term.get(id)
 
-            if not isinstance(body, dict) or not isinstance(body.get("preferred_terminologies", []), list):
+            if not isinstance(body, dict) or not isinstance(
+                body.get("preferred_terminologies", []), list
+            ):
                 return {"message": "'preferred_terminologies' should be a list"}, 400
-
 
             preferred_terminologies = body["preferred_terminologies"]
 
             # Ensure each item in preferred_terminologies contains the key 'preferred_terminology'
-            if not all("preferred_terminology" in item for item in preferred_terminologies):
-                return {"message": "Each item in 'preferred_terminologies' must contain 'preferred_terminology'"}, 400
+            if not all(
+                "preferred_terminology" in item for item in preferred_terminologies
+            ):
+                return {
+                    "message": "Each item in 'preferred_terminologies' must contain 'preferred_terminology'"
+                }, 400
 
             # Replace all preferred terminologies and store the editor
-            t.replace_preferred_terminology(editor=editor, preferred_terminology=preferred_terminologies)
+            t.replace_preferred_terminology(
+                editor=editor, preferred_terminology=preferred_terminologies
+            )
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
         response = {
@@ -314,7 +322,7 @@ class PreferredTerminology(Resource):
             "references": preferred_terminologies
         }
         return (response, 200, default_headers)
-    
+
     def delete(self, id):
         pref_terms = (
             persistence().collection("Terminology").document(id).collection("preferred_terminology")
@@ -323,5 +331,5 @@ class PreferredTerminology(Resource):
 
         response = {
             "message": f"The preferred_terminology collection was deleted for terminology {id}."}
-        
+
         return response, 200, default_headers

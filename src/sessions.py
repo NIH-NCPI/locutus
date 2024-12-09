@@ -51,7 +51,9 @@ class SessionManager:
         # Adjust session timeout based on affiliation.
         self.set_timeout_based_on_affiliation(affiliation)
 
-        return {"message": f"Session started for user {user_id} with the {affiliation} affiliation "}, 200
+        return {
+            "message": f"Session started for user {user_id} with the {affiliation} affiliation "
+        }, 200
 
     def set_timeout_based_on_affiliation(self, affiliation):
         # Dynamically adjust timeout based on affiliation
@@ -66,7 +68,7 @@ class SessionManager:
         # self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=timeout_hours)
 
     def terminate_session(self):
-        user_id = session['user_id']
+        user_id = session["user_id"]
         logging.info(f"Terminating the Session for user:{user_id}")
         session.clear()
         return {"message": "Session terminated"}, 200
@@ -104,11 +106,15 @@ class SessionManager:
             logging.info(f"The session is active. Session object: {session}")
             return session['user_id']
         elif editor:
-            logging.info(f"The session is not active. Falling back to the existing editor: {editor}")
+            logging.info(
+                f"The session is not active. Falling back to the existing editor: {editor}"
+            )
             return editor
         else:
-            logging.info(f"The session is not active. There is no editor defined. editor: {editor}")
-            return None 
+            logging.info(
+                f"The session is not active. There is no editor defined. editor: {editor}"
+            )
+            return None
 
     def create_current_datetime():
         """

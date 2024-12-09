@@ -85,7 +85,7 @@ class TableEdit(Resource):
             table.add_variable(vardef, editor=editor)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        
+
         table.save()
         return table.dump(), 201, default_headers
 
@@ -130,7 +130,6 @@ class Tables(Resource):
                 raise LackingUserID(editor)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        
         if "resource_type" in tbl:
             del tbl["resource_type"]
 
