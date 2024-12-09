@@ -15,15 +15,10 @@ class MappingRelationshipModel:
     ):
 
         # Validation of mapping_relationship
-<<<<<<< Updated upstream
-        ftd_terminology = FTDConceptMapTerminology()  
-        ftd_terminology.validate_codes_against(mapping_relationship, additional_enums=[""])
-=======
         ftd_terminology = FTDConceptMapTerminology()
         ftd_terminology.validate_codes_against(
             mapping_relationship, additional_enums=[""]
         )
->>>>>>> Stashed changes
 
         try:
             mappingref = (
