@@ -54,11 +54,11 @@ class TerminologyMappings(Resource):
                             mapping["mappings"].append(codingmapping.to_dict())
 
                     response["codes"].append(mapping)
-        except APIError as e:
-            return e.to_dict(), e.status_code, default_headers
 
             return response
-        return None
+
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
     @classmethod
     def delete(cls, id):
