@@ -16,15 +16,15 @@ class SessionManager:
         self.app.config['SESSION_PERMANENT'] = True
 
         # Generates a secure 32-character hex key to encrypt session data
-        # self.app.config['SECRET_KEY'] = secrets.token_hex(16)
+        self.app.config['SECRET_KEY'] = secrets.token_hex(16)
 
         # Store session info on server filesystem
         self.app.config['SESSION_TYPE'] = 'filesystem'
 
         # Extra security
-        # self.app.config['SESSION_COOKIE_HTTPONLY'] = True
-        # self.app.config['SESSION_COOKIE_SECURE'] = True
-        # self.app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Option: 'Strict'
+        self.app.config['SESSION_COOKIE_HTTPONLY'] = True
+        self.app.config['SESSION_COOKIE_SECURE'] = True
+        self.app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Option: 'Strict'
 
         Session(self.app)
 
@@ -65,7 +65,7 @@ class SessionManager:
             # If no affiliation is recognized
             timeout_hours = 8
         logging.info(f"Session timeout is being set for {timeout_hours} hours.")
-        # self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=timeout_hours)
+        self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=timeout_hours)
 
     def terminate_session(self):
         user_id = session["user_id"]

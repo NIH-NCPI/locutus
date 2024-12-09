@@ -25,8 +25,8 @@ class CodeAlreadyPresent(APIError):
         self.code = code
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
-
         message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({self.existing_coding.display})."
+        logger.error(message)
         super().__init__(message, status_code=400)
 
 
@@ -34,10 +34,10 @@ class CodeNotPresent(APIError):
     def __init__(self, code, terminology_id):
         self.code = code
         self.terminology_id = terminology_id
-
         message = f"The code({self.code}) is not present in the terminology({self.terminology_id})."
+        logger.error(message)
         super().__init__(message, status_code=404)
-    
+
 class InvalidEnumValueError(APIError):
     """
     Raised when a value is not in the allowed set of enum values.
@@ -45,8 +45,8 @@ class InvalidEnumValueError(APIError):
     def __init__(self, value, valid_values):
         self.value = value
         self.valid_values = valid_values
-
         message = f"Value({self.value}) is not valid. The value should be one of:({self.valid_values})"
+        logger.error(message)
         super().__init__(message, status_code=400)
 
 class LackingUserID(APIError):
