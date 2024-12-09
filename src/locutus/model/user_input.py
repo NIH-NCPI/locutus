@@ -9,8 +9,9 @@ Current Use:
 """
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
-from locutus.api import generate_paired_string
+from locutus.api import generate_paired_string, get_editor
 from sessions import SessionManager
+from locutus.model.exceptions import *
 
 USER_INPUT_CHAR_LIMIT = 1000
 
@@ -109,7 +110,9 @@ class UserInput:
         # Prep the data
         try:
             mapped_pair=generate_paired_string(code, mapped_code)
-            editor = body.get('editor') if 'editor' in body else None
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
             # Instantiate the appropriate UserInput subclass
             user_input_instance = self.get_input_class(type)
@@ -148,12 +151,6 @@ class UserInput:
             if type not in existing_data:
                 existing_data[type] = user_input_instance.return_format()
 
-            # Get user_id to identify existing data for the user.
-            try:
-                user_id = SessionManager.create_user_id(editor=editor)
-            except ValueError as e:
-                print(f"An error occurred while getting the user_id. {e}")
-
         except Exception as e:
             return (f"An error occured during update setup {e}"), 500
 
@@ -169,7 +166,7 @@ class UserInput:
             try:
                 self.update_or_append_input(
                     existing_data[type],
-                    user_id,
+                    editor,
                     formatted_user_input,
                     user_input_instance.return_format,
                 )

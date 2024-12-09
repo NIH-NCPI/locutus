@@ -3,6 +3,7 @@ from flask_session import Session
 
 import secrets
 from datetime import timedelta, datetime
+import logging
 
 class SessionManager:
     """
@@ -42,15 +43,17 @@ class SessionManager:
         """
         if not affiliation:
             affiliation = 'basic'
-        
+        logging.info(f"Setting the session user_id to {user_id}")
+        logging.info(f"Setting the session affiliation to {affiliation}")
         session['user_id'] = user_id
         session['affiliation'] = affiliation
 
         # Adjust session timeout based on affiliation.
         self.set_timeout_based_on_affiliation(affiliation)
-        
-        return {"message": f"Session started for user {user_id} with the" \
-                 f"{affiliation} affiliation "}, 200
+
+        return {
+            "message": f"Session started for user {user_id} with the {affiliation} affiliation "
+        }, 200
 
     def set_timeout_based_on_affiliation(self, affiliation):
         # Dynamically adjust timeout based on affiliation
@@ -61,14 +64,15 @@ class SessionManager:
         else: 
             # If no affiliation is recognized
             timeout_hours = 8
-        
+        logging.info(f"Session timeout is being set for {timeout_hours} hours.")
         self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=timeout_hours)
 
-
     def terminate_session(self):
+        user_id = session["user_id"]
+        logging.info(f"Terminating the Session for user:{user_id}")
         session.clear()
         return {"message": "Session terminated"}, 200
-    
+
     def get_session_status(self):
         """
         Sets the session timeout based on the user's affiliation.
@@ -86,9 +90,9 @@ class SessionManager:
                 "affiliation": session.get('affiliation')
             }, 200
         else:
-            return {"message": "No active session"}, 404
-        
-    def create_user_id(editor=None):
+            return {"message": f"No active session. Session object: {session}"}, 404
+
+    def create_user_id(editor):
         """
         Attempts to retrieve the user ID from the session or the provided editor ID.
 
@@ -99,12 +103,19 @@ class SessionManager:
             editor="editor" or editor=None
         """
         if 'user_id' in session:
+            logging.info(f"The session is active. Session object: {session}")
             return session['user_id']
         elif editor:
+            logging.info(
+                f"The session is not active. Falling back to the existing editor: {editor}"
+            )
             return editor
         else:
-            editor = None
-        
+            logging.info(
+                f"The session is not active. There is no editor defined. editor: {editor}"
+            )
+            return None
+
     def create_current_datetime():
         """
         Creates a formatted string of the current date and time.

@@ -5,6 +5,7 @@ from locutus.model.table import Table
 from locutus.model.terminology import Terminology, Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
+from locutus.model.exceptions import *
 from locutus.api import default_headers, delete_collection, get_editor
 
 
@@ -34,13 +35,18 @@ class TableMappings(Resource):
     @classmethod
     def delete(cls, id):
         body = request.get_json()
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        editor = get_editor(body)
-        if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+            table = Table.get(id)
+            mapping_count = table.terminology.dereference().delete_mappings(
+                editor=editor
+            )
 
-        table = Table.get(id)
-        mapping_count = table.terminology.dereference().delete_mappings(editor=editor)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         response = {
             "terminology_id": table.terminology.dereference().id,
@@ -72,34 +78,42 @@ class TableMapping(Resource):
 
     def delete(self, id, code):
         body = request.get_json()
-        editor = get_editor(body)
-        if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        table = Table.get(id)
-        mapping_count = table.terminology.dereference().delete_mappings(
-            editor=editor, code=code
-        )
+            table = Table.get(id)
+            mapping_count = table.terminology.dereference().delete_mappings(
+                editor=editor, code=code
+            )
 
-        response = TerminologyMappings.get_mappings(table.terminology.reference_id())
+            response = TerminologyMappings.get_mappings(
+                table.terminology.reference_id()
+            )
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         return (response, 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         body = request.get_json()
-        editor = get_editor(body)
-        if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        mappings = request.get_json()["mappings"]
-        codingmapping = [CodingMapping(**x) for x in mappings]
+            mappings = request.get_json()["mappings"]
+            codingmapping = [CodingMapping(**x) for x in mappings]
 
-        table = Table.get(id)
-        term = table.terminology.dereference()
+            table = Table.get(id)
+            term = table.terminology.dereference()
 
-        term.set_mapping(code, codingmapping, editor)
+            term.set_mapping(code, codingmapping, editor)
 
-        response = TerminologyMappings.get_mappings(term.id)
+            response = TerminologyMappings.get_mappings(term.id)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         return (response, 201, default_headers)

@@ -11,16 +11,14 @@ from sessions import SessionManager
 class MappingRelationshipModel:
     @classmethod
     def add_mapping_relationship(
-        cls, user_id, id, code, mapped_code, mapping_relationship
+        cls, editor, id, code, mapped_code, mapping_relationship
     ):
-        
+
         # Validation of mapping_relationship
-        try:
-            ftd_terminology = FTDConceptMapTerminology()  
-            ftd_terminology.validate_codes_against(mapping_relationship, additional_enums=[""])
-        except InvalidEnumValueError as e:
-            print(f"Validation failed: {e}")
-            raise
+        ftd_terminology = FTDConceptMapTerminology()
+        ftd_terminology.validate_codes_against(
+            mapping_relationship, additional_enums=[""]
+        )
 
         try:
             mappingref = (
@@ -58,7 +56,7 @@ class MappingRelationshipModel:
             term = Terminology(id)
             term.add_provenance(
                 change_type=Terminology.ChangeType.EditMapping,
-                editor=user_id,
+                editor=editor,
                 target=target,
                 new_value=mapping_relationship,
             )

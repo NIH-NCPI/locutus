@@ -5,6 +5,7 @@ from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
+from locutus.model.exceptions import *
 from copy import deepcopy
 
 import pdb
@@ -16,9 +17,12 @@ class TableRenameCode(Resource):
         varname_updates = body.get("variable")
         description_updates = body.get("description")
 
-        editor = get_editor(body)
-        if editor is None:
-            return ("table edit requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         table = mTable.get(id)
         # print(f"Variable name updates requested: {varname_updates}")
@@ -70,15 +74,18 @@ class TableEdit(Resource):
 
         table = mTable.get(id)
         body = request.get_json()
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        editor = get_editor(body)
-        if editor is None:
-            return ("table PUT requires an editor!", 400, default_headers)
+            vardef = deepcopy(body)
+            vardef["name"] = code
 
-        vardef = deepcopy(body)
-        vardef["name"] = code
+            table.add_variable(vardef, editor=editor)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
-        table.add_variable(vardef, editor=editor)
         table.save()
         return table.dump(), 201, default_headers
 
@@ -87,16 +94,17 @@ class TableEdit(Resource):
 
         table = mTable.get(id)
         body = request.get_json()
-
-        editor = get_editor(body)
-        if editor is None:
-            return ("table edit requires an editor!", 400, default_headers)
-
         try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
+
             table.remove_variable(code, editor=editor)
             table.save()
         except KeyError as e:
             return str(e), 404, default_headers
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         return table.dump(), 200, default_headers
 
@@ -116,11 +124,12 @@ class Tables(Resource):
 
     def post(self):
         tbl = request.get_json()
-
-        editor = get_editor(tbl)
-
-        if editor is None:
-            return ("table edit requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=tbl, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
         if "resource_type" in tbl:
             del tbl["resource_type"]
 
@@ -136,9 +145,12 @@ class Table(Resource):
 
     def put(self, id):
         tbl = request.get_json()
-
-        if "editor" not in tbl:
-            return ("table PUT requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=tbl, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         if "id" not in tbl:
             tbl["id"] = id
@@ -152,23 +164,27 @@ class Table(Resource):
 
     def delete(self, id):
         body = request.get_json()
-        editor = get_editor(body)
-        if editor is None:
-            return ("table DELETE requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        # This is a bit "out of band"
-        t = mTable.get(id)
-        t.terminology.dereference().add_provenance(
-            change_type=Terminology.ChangeType.RemoveTable,
-            target="self",
-            old_value=f"Table Name: {t.name}",
-            editor=editor,
-        )
+            # This is a bit "out of band"
+            t = mTable.get(id)
+            t.terminology.dereference().add_provenance(
+                change_type=Terminology.ChangeType.RemoveTable,
+                target="self",
+                old_value=f"Table Name: {t.name}",
+                editor=editor,
+            )
 
-        dref = persistence().collection("Table").document(id)
+            dref = persistence().collection("Table").document(id)
 
-        # Delete any references to the table from any data-dictionaries:
-        DataDictionaries().delete_table_references(id)
+            # Delete any references to the table from any data-dictionaries:
+            DataDictionaries().delete_table_references(id)
+
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         t = dref.get().to_dict()
         time_of_delete = dref.delete()
