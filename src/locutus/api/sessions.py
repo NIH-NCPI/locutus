@@ -2,7 +2,6 @@ from flask_restful import Resource
 from flask import request
 from locutus.model.exceptions import *
 from locutus.api import get_editor, default_headers
-import pdb
 
 class SessionStart(Resource):
     """API resource for starting a user session.
@@ -73,8 +72,7 @@ class SessionStatus(Resource):
         and affiliation.
 
         Returns:
-            dict: A message indicating the session status, user ID, and 
+            dict: A message indicating the session status, user ID, and
             affiliation, along with HTTP status code.
         """
-        # pdb.set_trace()
         return self.session_manager.get_session_status()
