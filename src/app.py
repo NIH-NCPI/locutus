@@ -55,7 +55,7 @@ from locutus.api.user_prefs import UserPrefOntoFilters
 
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 api = Api(app)
 
 # Sessions
