@@ -5,7 +5,8 @@ from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
-from locutus.model.terminology import Terminology, CodeAlreadyPresent
+from locutus.model.terminology import Terminology
+from locutus.model.exceptions import *
 
 from locutus.api import default_headers
 
@@ -245,12 +246,9 @@ class Table(Serializable):
         else:
             self._insert_variable(variable)
 
-        try:
-            self.terminology.dereference().add_code(
-                code=v.code, display=v.name, editor=editor
-            )
-        except CodeAlreadyPresent as e:
-            pass
+        self.terminology.dereference().add_code(
+            code=v.code, display=v.name, editor=editor
+        )
 
     def build_harmony_row(self, local_coding, mapped_coding):
 
@@ -316,9 +314,8 @@ class Table(Serializable):
         try:
             pref = self.terminology.dereference().get_preference(code=code)
 
-            # Check if pref is a dictionary and has keys with empty dictionaries as values
-            if isinstance(pref, dict) and any(isinstance(value, dict) and not value for value in pref.values()):
-                # Trigger retrieval for 'self'
+            # If code exists as a key and is empty get the Table preferences.
+            if code in pref and not pref[code]:
                 table_pref = self.terminology.dereference().get_preference(code="self")
                 return table_pref if table_pref else {}
 
