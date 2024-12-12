@@ -58,8 +58,12 @@ app = Flask(__name__)
 CORS(
     app,
     origins=[
-        "https://localhost:5173",
         "https://localhost",
+        "http://localhost",
+        "https://localhost:*",
+        "http://localhost:*",
+        "https://localhost:5173",
+        "https://localhost:5173/",
         "https://mapdragon-dev-159970607373.us-central1.run.app",
     ],
     supports_credentials=True,
