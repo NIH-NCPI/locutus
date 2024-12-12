@@ -24,7 +24,7 @@ class SessionManager:
         # Extra security
         self.app.config['SESSION_COOKIE_HTTPONLY'] = True
         self.app.config['SESSION_COOKIE_SECURE'] = True
-        self.app.config["SESSION_COOKIE_SAMESITE"] = "None"  # Option: 'Lax', 'Strict'
+        self.app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # Option: 'Strict'
 
         Session(self.app)
 
@@ -83,20 +83,14 @@ class SessionManager:
         Args:
             affiliation (str): The user's affiliation, which determines the session timeout.
         """
-        try:
-            if 'user_id' in session:
-                return {
-                    "message": "Session active", 
-                    "user_id": session.get('user_id'), 
-                    "affiliation": session.get('affiliation')
-                }, 200
-            elif 'user_id' not in session:
-                return {"message": f"No active session. Session object: {session}"}, 401
-            else:
-                return {"message": f"An unexpected error has occurred"}, 400
-        except Exception as e:
-            print(f"An error occurred while retrieving the session status: {str(e)}")
-            raise
+        if 'user_id' in session:
+            return {
+                "message": "Session active", 
+                "user_id": session.get('user_id'), 
+                "affiliation": session.get('affiliation')
+            }, 200
+        else:
+            return {"message": f"No active session. Session object: {session}"}, 404
 
     def create_user_id(editor):
         """

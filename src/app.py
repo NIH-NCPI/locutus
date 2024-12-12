@@ -53,9 +53,8 @@ from locutus.api.metadata import Version
 
 from locutus.api.user_prefs import UserPrefOntoFilters
 
-# Access-Control-Allow-Origin
 app = Flask(__name__)
-CORS(app, origins=['https://localhost:5173','https://localhost','https://mapdragon-dev-159970607373.us-central1.run.app'], supports_credentials=True)
+CORS(app)
 api = Api(app)
 
 # Sessions
@@ -191,7 +190,7 @@ api.add_resource(
 
 
 @app.errorhandler(404)
-@cross_origin(allow_headers=["Content-Type", "Access-Control-Allow-Origin"])
+@cross_origin(allow_headers=["Content-Type"])
 def not_found(e):
     # pdb.set_trace()
     return (
