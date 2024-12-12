@@ -89,8 +89,10 @@ class SessionManager:
                 "user_id": session.get('user_id'), 
                 "affiliation": session.get('affiliation')
             }, 200
+        elif 'user_id' not in session:
+            return {"message": f"No active session. Session object: {session}"}, 401
         else:
-            return {"message": f"No active session. Session object: {session}"}, 404
+            return {"message": f"An unexpected error has occurred"}, 400
 
     def create_user_id(editor):
         """
