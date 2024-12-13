@@ -53,6 +53,7 @@ from locutus.api.metadata import Version
 
 from locutus.api.user_prefs import UserPrefOntoFilters
 
+
 app = Flask(__name__)
 CORS(app)
 api = Api(app)

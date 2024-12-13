@@ -24,7 +24,7 @@ class SessionManager:
         # Extra security
         self.app.config['SESSION_COOKIE_HTTPONLY'] = True
         self.app.config['SESSION_COOKIE_SECURE'] = True
-        self.app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # Option: 'Strict'
+        self.app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Option: 'Strict'
 
         Session(self.app)
 
