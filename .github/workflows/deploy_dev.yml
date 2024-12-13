@@ -8,6 +8,12 @@ on:
   pull_request_review:
     types: [submitted, edited] # submitted, reviewer edits the PR (ex comments)
   workflow_dispatch: # This enables manual triggers
+    inputs:
+      version:
+        description: 'Optional version for the deployment'
+        required: true
+        type: string
+        default: 'dispatch'
   
 env:
 
@@ -53,12 +59,16 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       
-      - name: Extract Version from PR Number
-        id: extract_version
+      - name: Set Version
+        id: set_version
         run: |
-          VERSION=${{ github.event.pull_request.number }} 
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.event.pull_request.number }}"
+          fi
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "Extracted Version: ${VERSION}"
+          echo "Set Version: ${VERSION}"
   
       - name: 'Build and Push Container'
         run: |
@@ -72,4 +82,4 @@ jobs:
           service: '${{ env.SERVICE }}-dev'
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}-dev/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${VERSION}
+          env_vars: VERSION=${{ env.VERSION }}
