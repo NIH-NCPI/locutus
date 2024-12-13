@@ -22,7 +22,9 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'main'
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'main'
     
     environment:
       name: dev
