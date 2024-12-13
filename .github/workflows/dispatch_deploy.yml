@@ -67,7 +67,7 @@ jobs:
       
       - name: 'Set Version'
         run: |
-          VERSION="${{ github.event.inputs.tag }}"
+          VERSION="${{ github.event.inputs.version }}"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "Extracted Version: ${VERSION}"
 
