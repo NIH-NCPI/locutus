@@ -1,6 +1,7 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.terminology import Terminology as Term
+from locutus.model.exceptions import *
 from locutus.api import default_headers
 from sessions import SessionManager
 from locutus.model.user_input import UserInput
@@ -21,7 +22,7 @@ class TerminologyUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
-    def get(self, id, code, type):
+    def get(self, id, code, mapped_code, type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -29,7 +30,8 @@ class TerminologyUserInput(Resource, UserInput):
 
         Args:
             id (str): Defines the terminology of interest
-            code (str): Defines the target document(mapping)
+            code (str): Defines the target code with the mapping.
+            mapped_code (str): Defines the code being mapped to the target.
             type (str): The type of input to retrieve
                 (e.g., "mapping_conversations" or "mapping_votes").
 
@@ -37,6 +39,7 @@ class TerminologyUserInput(Resource, UserInput):
         {
             "Terminology": "tm--2VjOxekLP8m28EPRqk95",
             "code": "TEST_0001",
+            "mapped_code": Study Code,
             "mapping_votes": [
                 {
                     "user2": "up"
@@ -48,11 +51,11 @@ class TerminologyUserInput(Resource, UserInput):
         }
         """
         user_input = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        id, code, type)
+                                        id, code, mapped_code, type)
         
         return (user_input, 200, default_headers)
             
-    def put(self, id, code, type):
+    def put(self, id, code, mapped_code, type):
         """
         Update the user input 
 
@@ -73,19 +76,28 @@ class TerminologyUserInput(Resource, UserInput):
         """
         body = request.get_json()
 
-        result = UserInput.create_or_replace_user_input(self,
-                                                        self.resource_type,
-                                                        self.collection_type,
-                                                        id,
-                                                        code,
-                                                        type,
-                                                        body)
-        
-        if isinstance(result, tuple):
-            return result
+        # Raise error if the code is not in the terminology
+        t = Term.get(id)
+        try:
+            if not t.has_code(code): 
+                raise CodeNotPresent(code, id)
 
-        response = {
-            "message": f"The {type} were updated for {id}-{code}"
-        }
+            result = UserInput.create_or_replace_user_input(self,
+                                                            self.resource_type,
+                                                            self.collection_type,
+                                                            id,
+                                                            code,
+                                                            mapped_code,
+                                                            type,
+                                                            body)
+            
+            if isinstance(result, tuple):
+                return result
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
+        
+        response = UserInput.get_user_input(self, self.resource_type, self.collection_type,
+                                        id, code, mapped_code, type)
+
         return (response, 200, default_headers)
         
