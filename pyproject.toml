@@ -25,8 +25,7 @@ dependencies = ["marshmallow",
                 "nanoid",
                 "PyYAML",
                 "rich",
-                "firebase-admin",
-                "git+https://github.com/NIH-NCPI/search-dragon.git@bg/fd_1858#egg=search_dragon"                
+                "firebase-admin"
                 ]
 
 dynamic = ["version"]

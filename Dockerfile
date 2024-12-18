@@ -9,6 +9,10 @@ COPY pyproject.toml .
 COPY README.md .
 RUN pip install . 
 
+# Install github packages that do not conform to the toml file 
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 # Cloud Run expects 8080, need to figure out how to change that
 EXPOSE 8080 
 CMD ["flask", "run"] 
