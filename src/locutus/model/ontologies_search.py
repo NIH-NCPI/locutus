@@ -2,6 +2,7 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from search_dragon.search import run_search
+from locutus.model.enumerations import OntologyAPICollection
 
 class Ontology:
     """
@@ -106,6 +107,9 @@ class OntologyAPI(Serializable):
             return processed_data
         
 class OntologyAPISearchModel():
+
     def run_search_dragon(keywords=None, ontologies=None, apis=None):
-        search_result = run_search(keywords,ontologies,apis)
+        onto_seed_data = OntologyAPICollection()
+        onto_data = onto_seed_data.get_ontology_data("system")
+        search_result = run_search(onto_data, keywords, ontologies, apis)
         return search_result
