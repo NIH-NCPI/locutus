@@ -17,9 +17,12 @@ RUN pip install .
 COPY requirements.txt .
 # install git to enable installing the github package in the requirements
 # file then uninstall it as it is no longer necessary 
-RUN apt-get update && apt-get install -y git && \
+RUN apt-get update && \
+    apt-get install -y git && \
     pip install --no-cache-dir -r requirements.txt && \
-    apt-get remove -y git && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+    apt-get remove -y git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 
 # Cloud Run expects 8080, need to figure out how to change that
