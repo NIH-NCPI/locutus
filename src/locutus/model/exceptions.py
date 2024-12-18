@@ -58,3 +58,13 @@ class LackingUserID(APIError):
         message = f"This action requires an editor or session! Current editor or user_id: ({self.editor})"
         logger.error(message)
         super().__init__(message, status_code=400)
+
+class LackingRequiredParameter(APIError):
+    """
+    Raised when a required parameter is missing.
+    """
+    def __init__(self, param):
+        self.param = param
+        message = f"This action requires the parameter: '{self.param}'"
+        logger.error(message)
+        super().__init__(message, status_code=400)
