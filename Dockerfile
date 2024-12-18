@@ -1,9 +1,6 @@
 
 FROM python:3.11-alpine
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y git
-
 #WORKDIR .
 ENV FLASK_APP=src/app.py
 ENV FLASK_RUN_HOST=0.0.0.0
