@@ -16,7 +16,7 @@ COPY requirements.txt .
 # file then uninstall it as it is no longer necessary 
 RUN apk update && \
     apk add --no-cache git && \
-    pip install . && \
+    pip install --no-cache-dir -r requirements.txt && \
     apk del git
 
 # Cloud Run expects 8080, need to figure out how to change that
