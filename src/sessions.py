@@ -24,7 +24,7 @@ class SessionManager:
         # Extra security
         self.app.config['SESSION_COOKIE_HTTPONLY'] = True
         self.app.config['SESSION_COOKIE_SECURE'] = True
-        self.app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Option: 'Strict'
+        self.app.config["SESSION_COOKIE_SAMESITE"] = "None"  # Option: 'Lax', 'Strict'
 
         Session(self.app)
 
@@ -89,8 +89,10 @@ class SessionManager:
                 "user_id": session.get('user_id'), 
                 "affiliation": session.get('affiliation')
             }, 200
+        elif 'user_id' not in session:
+            return {"message": f"No active session. Session object: {session}"}, 401
         else:
-            return {"message": f"No active session. Session object: {session}"}, 404
+            return {"message": f"An unexpected error has occurred"}, 400
 
     def create_user_id(editor):
         """
