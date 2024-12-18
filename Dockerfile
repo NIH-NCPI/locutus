@@ -18,9 +18,7 @@ RUN apt-get update && \
     apt-get install -y git && \
     pip install --no-cache-dir -r requirements.txt && \
     apt-get remove -y git && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
-
+    apt-get autoremove -y
 
 # Cloud Run expects 8080, need to figure out how to change that
 EXPOSE 8080 
