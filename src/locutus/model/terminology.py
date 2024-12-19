@@ -2,25 +2,18 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from locutus.api import delete_collection
+from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
+from locutus.model.enumerations import *
+from locutus.model.exceptions import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
+from locutus.api import generate_paired_string
 import time
 
 from locutus.model.user_input import UserInput
 from sessions import SessionManager
 
 import pdb
-
-class CodeAlreadyPresent(Exception):
-    def __init__(self, code, terminology_id, existing_coding):
-        self.code = code
-        self.existing_coding = existing_coding
-        self.terminology_id = terminology_id
-
-        super().__init__(self.message())
-
-    def message(self):
-        return f"The code, {self.code}, is already present in the terminology, {self.terminology_id}. It's current display is '{self.existing_coding.display}"
 
 
 """
@@ -48,6 +41,7 @@ the "codes" array.
 
 
 class Coding:
+
     def __init__(self, code, display="", system=None, description=""):
         self.code = code
         self.display = display
@@ -91,13 +85,14 @@ class Terminology(Serializable):
         RemoveTerm = "Remove Term"
         EditTerm = "Edit Term"
         AddMapping = "Add Mapping"
-        RemoveMapping = "Remove Mapping"
-        RemoveAllMappings = "Remove All Mappings"
+        SoftDeleteMapping = "Soft Delete Mapping"
+        SoftDeleteAllMappings = "Soft Delete All Mappings"
         EditMapping = "Edit Mapping"
         ApprovalRequested = "Approval Requested"
         Approved = "Approved"
         ApprovalDenied = "Approval Denied"
         ReplacePrefTerm = "Add/Replace Preferred Terminology"
+        AddMappingQuality = "Add Mapping Quality"
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -159,8 +154,8 @@ class Terminology(Serializable):
         codes = []
         code_id = mapping["code"]
 
-        for coding in mapping["codes"]:
-            codes.append(Coding(**coding))
+        for codingmapping in mapping["codes"]:
+            codes.append(CodingMapping(**codingmapping))
 
         return codes
 
@@ -188,6 +183,7 @@ class Terminology(Serializable):
                 editor=editor,
                 target=code,
             )
+
 
     def remove_code(self, code, editor):
         code_found = False
@@ -220,7 +216,7 @@ class Terminology(Serializable):
 
         for code in self.codes:
             if code.code == original_code:
-                
+
                 # It's not unreasonable we have only been asked to update the
                 # display, so no need to wastefully change all of the details
                 # about the code when the end result is the same
@@ -276,7 +272,24 @@ class Terminology(Serializable):
                     return True
         return False
 
+    def has_code(self, code):
+        """Check if a code exists in the terminology.
+        
+        If the terminology has the code already this will return True
+        """
+
+        return any(entry.code == code for entry in self.codes)
+
     def delete_mappings(self, editor, code=None):
+        """
+        Soft deletes mappings from a terminology document setting the mapping 
+        valid field to false.
+
+        Args:
+            editor (str): The ID of the user performing the deletion.
+            code (str, optional): The specific mapping code to delete. 
+
+        """
         if code is not None:
             tmref = (
                 persistence()
@@ -289,22 +302,23 @@ class Terminology(Serializable):
             mapping = tmref.get().to_dict()
             time_of_delete = 0
             if mapping is not None:
-                # This is not super helpful, but at least we get some detail about which mappings were removed
-                mapping = ",".join([x["code"] for x in mapping["codes"]])
+                # Iterate over the codes in the mapping and toggle 'valid' to False
+                for coding in mapping["codes"]:
+                    coding["valid"] = False
 
-                time_of_delete = tmref.delete()
+                # Save the updated mapping with the 'valid' field set to False
+                tmref.set(mapping)
+
                 self.add_provenance(
-                    change_type=Terminology.ChangeType.RemoveMapping,
+                    change_type=Terminology.ChangeType.SoftDeleteMapping,
                     target=code,
                     old_value=mapping,
                     editor=editor,
-                    timestamp=time_of_delete,
                 )
             else:
                 print(
-                    f"Deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings to be deleted."
+                    f"Soft deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings."
                 )
-            return time_of_delete
         else:
             mapref = (
                 persistence()
@@ -313,14 +327,22 @@ class Terminology(Serializable):
                 .collection("mappings")
             )
 
-            mapping_count = delete_collection(mapref)
+            for mapping_doc in mapref.stream():
+                mapping = mapping_doc.to_dict()
+                for coding in mapping["codes"]:
+                    if "valid" in coding:
+                        coding["valid"] = False
+
+                # Save the updated mapping
+                mapref.document(mapping["code"]).set(mapping)
+
             self.add_provenance(
-                change_type=Terminology.ChangeType.RemoveAllMappings,
+                change_type=Terminology.ChangeType.SoftDeleteAllMappings,
                 target="self",
-                old_value=f"{mapping_count} codes",
+                old_value="valid=True",
+                new_value="valid=False",
                 editor=editor,
             )
-            return mapping_count
 
     def mappings(self, code=None):
         codes = {}
@@ -450,10 +472,23 @@ class Terminology(Serializable):
         doc = {"code": code, "codes": []}
 
         new_mappings = []
-        for coding in codings:
-            doc["codes"].append(coding.to_dict())
-            new_mappings.append(doc["codes"][-1]["code"])
-        new_mappings = ",".join(new_mappings)
+        for mapping in codings:
+            coding_dict = mapping.to_dict()
+
+            # Validation of mapping_relationship
+
+            ftd_terminology = FTDConceptMapTerminology()  
+            ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
+
+            # Add 'valid' explicitly to the mapping document
+            coding_dict['valid'] = True
+
+            doc["codes"].append(coding_dict)
+            new_mappings.append(coding_dict["code"])
+
+            for coding_obj in self.codes:
+                if coding_obj.code == mapping.code:
+                    coding_obj.valid = True
 
         tmref = (
             persistence()
@@ -480,7 +515,7 @@ class Terminology(Serializable):
             change_type=change_type,
             target=code,
             old_value=old_mappings,
-            new_value=new_mappings,
+            new_value=",".join(new_mappings),
             editor=editor,
         )
 
@@ -488,27 +523,27 @@ class Terminology(Serializable):
 
     def get_preference(self, code=None):
         pref = {}
+        term_pref_id = "self"  # Identifier for terminology preference
 
         try:
-            # If no specific code is provided, get all preferences
+            # If no code is provided, retrieve the terminology preference directly
             if code is None:
-                for prv in (
+                terminology_pref = (
                     persistence()
                     .collection(self.resource_type)
                     .document(self.id)
                     .collection('onto_api_preference')
-                    .stream()
-                ):
-                    try:
-                        prv_dict = prv.to_dict()
-                        id = "self"  # Use "self" for unspecific code retrieval
-                        pref[id] = prv_dict
-                    except TypeError as e:
-                        raise TypeError(
-                            "Encountered an issue converting a document to a dictionary."
-                        ) from e
-            
-            # If a specific code is provided, get only that preference
+                    .document(term_pref_id)
+                    .get()
+                )
+
+                if terminology_pref.exists:
+                    pref[term_pref_id] = terminology_pref.to_dict() or {}
+                else:
+                    # Return an empty object if terminology preference doesn't exist
+                    pref[term_pref_id] = {}
+
+            # If a specific code is provided, get the preference
             else:
                 prv = (
                     persistence()
@@ -518,19 +553,19 @@ class Terminology(Serializable):
                     .document(code)
                     .get()
                 )
-                
+
                 if prv.exists:
                     pref[code] = prv.to_dict() or {}
                 else:
-                    pref[code] = {}
-        
+                    # Fall back to terminology preference if no specific code preference is found
+                    pref = self.get_preference()
+
         except Exception as e:
             print(f"An error occurred while retrieving preferences: {str(e)}")
             raise
 
         return pref
 
-    
     def add_or_update_pref(self, api_preference, code=None):
         if code is None:
             code = "self"
@@ -545,7 +580,7 @@ class Terminology(Serializable):
             # Save the updated preferences back to the Firestore sub-collection
             persistence().collection(self.resource_type).document(self.id) \
                 .collection("onto_api_preference").document(code).set(cur_pref)
-            
+
         except Exception as e:
             print(f"An error occurred while updating preferences: {e}")
             raise
@@ -558,10 +593,10 @@ class Terminology(Serializable):
             # Define the collection reference
             collection_ref = persistence().collection(self.resource_type) \
                 .document(self.id).collection("onto_api_preference")
-            
+
             doc_ref = collection_ref.document(code)
             doc_snapshot = doc_ref.get()
-            
+
             if doc_snapshot.exists:
                 # Delete the document if it exists
                 doc_ref.delete()
@@ -612,7 +647,6 @@ class Terminology(Serializable):
             print(f"An error occurred while retrieving preferred terminology: {e}")
             raise
 
-
     def replace_preferred_terminology(self, editor, preferred_terminology):
         """
         Creates or replaces a document in the 'preferred_terminology' sub-collection
@@ -652,8 +686,6 @@ class Terminology(Serializable):
             print(f"An error occurred while adding preferred terminology: {e}")
             raise
 
-
-
     class _Schema(Schema):
         id = fields.Str()
         name = fields.Str(required=True)
@@ -665,3 +697,125 @@ class Terminology(Serializable):
         @post_load
         def build_terminology(self, data, **kwargs):
             return Terminology(**data)
+
+class CodingMapping(Coding):
+    """
+    Inherits Terminonlogy.Coding. Adds mapping specific attributes.
+    Note: Placed here to avoid circular imports. Move only with refactor.
+    """
+
+    def __init__(
+        self,
+        code,
+        display=None,
+        system=None,
+        description="",
+        valid=None,
+        mapping_relationship=None,
+        user_input=None,
+    ):
+        super().__init__(code, display, system, description)
+        self.valid = valid
+        self.mapping_relationship = mapping_relationship
+        self.user_input = user_input
+
+    class _Schema(Schema):
+        code = fields.Str(
+            required=True, error_messages={"required": "Codings *must* have a code "}
+        )
+        display = fields.Str()
+        system = fields.URL()
+        description = fields.Str()
+        valid = fields.Bool()
+        mapping_relationship = fields.Str()
+        user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
+
+        @post_load
+        def build_coding_mapping(self, data, **kwargs):
+            return CodingMapping(**data)
+
+    def to_dict(self):
+        """Inherits Terminonlogy.Coding. Adds mapping specific attributes."""
+        obj = super().to_dict()
+
+        # Marks the mapping valid if the attribute does not exist in the database
+        if self.valid is not None:
+            obj["valid"] = self.valid
+        else:
+            self.valid = True
+
+        # Returns the mapping_relationship as "" if the attribute does not exist in database
+        if self.mapping_relationship is not None:
+            obj["mapping_relationship"] = self.mapping_relationship
+        else:
+            obj["mapping_relationship"] = ""
+
+        # Returns the user_input for a mapping if requested
+        if self.user_input is not None:
+            obj["user_input"] = self.user_input
+
+        return obj
+
+
+class MappingUserInputModel:
+    def generate_mapping_user_input(id, code, mapped_code, user_id):
+        """Mappings may have user_input data stored seperate from the mapping itself.
+        This function collects and formats the user_input data for a given mapping,
+        then creates the user_input object to be included in a CodingMapping.
+        """
+
+        document_id = generate_paired_string(code, mapped_code)
+        doc_ref = (
+            persistence()
+            .collection("Terminology")
+            .document(id)
+            .collection("user_input")
+            .document(document_id)
+        )
+
+        comments_count = MappingUserInputModel.get_mapping_conversations_counts(doc_ref)
+        votes_count = MappingUserInputModel.get_mapping_votes_counts(doc_ref)
+        users_vote = MappingUserInputModel.get_users_mapping_vote(doc_ref, user_id)
+
+        return {
+            "comments_count": comments_count,
+            "votes_count": votes_count,
+            "users_vote": users_vote,
+        }
+
+    def get_mapping_conversations_counts(doc_ref):
+        """Counts the number of mapping_conversation records for a given mapping"""
+        document = doc_ref.get()
+        if document.exists:
+            data = document.to_dict()
+            conversations = data.get("mapping_conversations", [])
+            return len(conversations)
+        return 0
+
+    def get_mapping_votes_counts(doc_ref):
+        """Counts up and down votes for a given mapping"""
+        document = doc_ref.get()
+        if document.exists:
+            data = document.to_dict()
+            mapping_votes = data.get("mapping_votes", {})
+            return {
+                "up": sum(
+                    1 for vote in mapping_votes.values() if vote.get("vote") == "up"
+                ),
+                "down": sum(
+                    1 for vote in mapping_votes.values() if vote.get("vote") == "down"
+                ),
+            }
+        return {"up": 0, "down": 0}
+
+    def get_users_mapping_vote(doc_ref, user_id):
+        """Retrieves the current user's vote for a given mapping. If the user_id
+        is not found(no vote exists for the user, or user_id is unknown/None) an
+        empty string is returned."""
+        document = doc_ref.get()
+        if document.exists:
+            data = document.to_dict()
+            mapping_votes = data.get("mapping_votes", {})
+            user_vote = mapping_votes.get(user_id, {}).get("vote")
+            return user_vote if user_vote else ""
+        return ""
