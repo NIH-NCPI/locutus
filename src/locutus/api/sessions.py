@@ -72,7 +72,7 @@ class SessionStatus(Resource):
         and affiliation.
 
         Returns:
-            dict: A message indicating the session status, user ID, and 
+            dict: A message indicating the session status, user ID, and
             affiliation, along with HTTP status code.
         """
         return self.session_manager.get_session_status()
