@@ -23,6 +23,8 @@ jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
+
+    if: github.event.pull_request.base.ref == 'release'
     
     environment:
       name: qa
