@@ -198,7 +198,7 @@ class OntologyAPISearchPreferences(Resource):
         api_preference = body["api_preference"]
         try:
             # Raise error if the code is not in the terminology
-            if not t.has_code(code):
+            if code and not t.has_code(code):
                 raise CodeNotPresent(code, id)
 
             t.add_or_update_pref(api_preference=api_preference, code=code)
