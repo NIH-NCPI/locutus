@@ -99,7 +99,7 @@ class OntologyAPICollection(ResourceSingletonBase):
 
                 # Check if the requested field exists in the details
                 if field in ontology_details:
-                    ontology_data[ontology_code] = ontology_details[field]
+                    ontology_data[ontology_code.upper()] = ontology_details[field]
 
         logger.info(f"ontology data {ontology_data}")
         return ontology_data
