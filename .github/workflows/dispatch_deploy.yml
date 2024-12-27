@@ -1,7 +1,7 @@
 # This workflow build and push a Docker container to Google Artifact Registry
 # and deploy it on Cloud Run when triggered manually. 
 
-name: "Dispatch Deploy - ${{ github.event.inputs.environment }}"
+name: "Dispatch Deploy"
 
 on:
   workflow_dispatch:
@@ -48,8 +48,8 @@ jobs:
         with:
           ref: ${{ github.event.inputs.deploy_branch }} # This branch is deployed
 
-      - name: Set up environment
-        run: echo "Deploying to ${{ github.event.inputs.environment }} environment"
+      - name: "Deploying ${{ github.event.inputs.deploy_branch }} to ${{ github.event.inputs.environment }}"
+        run: echo "Deploying ${{ github.event.inputs.deploy_branch }} to ${{ github.event.inputs.environment }}"
 
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
