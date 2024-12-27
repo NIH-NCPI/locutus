@@ -1,7 +1,7 @@
 # This workflow build and push a Docker container to Google Artifact Registry
 # and deploy it on Cloud Run when triggered manually. 
 
-name: 'Dispatch Deploy'
+name: "Dispatch Deploy - ${{ github.event.inputs.environment }}"
 
 on:
   workflow_dispatch:
