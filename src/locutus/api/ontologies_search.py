@@ -37,13 +37,17 @@ class OntologyAPISearch(Resource):
             if keyword_param is None:
                 raise LackingRequiredParameter("keyword")
 
-            ontology_param = request.args.get("preferred_ontologies", default=None)
+            ontology_param = request.args.get("selected_ontologies", default=None)
             if ontology_param:
-                ontology_param = ["preferred_ontologies".strip() for onto in ontology_param.split(",")]
-
-            pref_api = request.args.get("api", default=None)
+                ontology_param = [onto.strip() for onto in ontology_param.split(",")]
+            if ontology_param is None:
+                raise LackingRequiredParameter("selected_ontologies")
+            
+            pref_api = request.args.get("selected_api", default=None)
             if pref_api:
                 pref_api = [api.strip() for api in pref_api.split(",")]
+            if pref_api is None:
+                raise LackingRequiredParameter("selected_api")
 
             search_results = OntologyAPISearchModel.run_search_dragon(
                 keyword_param, ontology_param, pref_api
