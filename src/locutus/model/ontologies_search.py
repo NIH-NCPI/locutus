@@ -3,6 +3,7 @@ from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from search_dragon.search import run_search
 from locutus.model.enumerations import OntologyAPICollection
+from locutus.model.exceptions import InvalidEnumValueError
 
 class Ontology:
     """
@@ -108,8 +109,16 @@ class OntologyAPI(Serializable):
         
 class OntologyAPISearchModel():
 
-    def run_search_dragon(keywords=None, ontologies=None, apis=None):
+    def run_search_dragon(keywords, ontologies, apis):
         onto_seed_data = OntologyAPICollection()
         onto_data = onto_seed_data.get_ontology_data("system")
+
+        # Validate ontologies(FE provided) against expected ontologies(firestore)
+        onto_curies = onto_seed_data.get_ontology_data("curie")
+        valid_curies = onto_curies.values()
+        for onto in ontologies:
+            if onto not in valid_curies:
+                raise InvalidEnumValueError(value=f"{onto}",valid_values=valid_curies)
+
         search_result = run_search(onto_data, keywords, ontologies, apis)
         return search_result
