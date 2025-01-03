@@ -1578,8 +1578,10 @@ end points themselves will be related to the table and it's ID.
 
 #### GET
 
-Returns a list of all mappings from the table (See example of the matching
+Returns a list of all mappings from the table and their associated 'user_input'
+if requested. (See example of the matching
 terminology endpoint for details.)
+
 
 #### DELETE
 
@@ -1590,7 +1592,9 @@ The mappings 'valid' field is set to 'false'
 
 #### GET
 
-Returns mappings for a specific code (from the shadow terminology)
+Returns mappings for a specific code and their associated 'user_input'
+if requested. (from the shadow terminology. See example of the matching
+terminology endpoint for details.)
 
 #### PUT
 
