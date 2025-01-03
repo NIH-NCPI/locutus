@@ -48,14 +48,13 @@ class TerminologyMapping(Resource):
                     )
                     codingmapping.user_input = user_input_data
                 # Returns valid=true mappings or mappings without the 'valid' attribute.
-                if not hasattr(codingmapping, 'valid') or codingmapping.valid:
+                if codingmapping.valid != False:
                     response["mappings"].append(codingmapping.to_dict())
 
             return (response, 200, default_headers)
-     
+
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        
 
     def delete(self, id, code):
         """Soft deletes all mappings for the identified terminology code."""
@@ -71,7 +70,7 @@ class TerminologyMapping(Resource):
             response = TerminologyMappings.get_mappings(id)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-    
+
         return (response, 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])

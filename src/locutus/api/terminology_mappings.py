@@ -50,7 +50,7 @@ class TerminologyMappings(Resource):
                             )
                             codingmapping.user_input = user_input_data
                         # Returns valid=true mappings or mappings without the 'valid' attribute.
-                        if not hasattr(codingmapping, "valid") or codingmapping.valid:
+                        if codingmapping.valid != False:
                             mapping["mappings"].append(codingmapping.to_dict())
 
                     response["codes"].append(mapping)
