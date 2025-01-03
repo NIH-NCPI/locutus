@@ -2182,73 +2182,52 @@ In the example return above, no session existed, so we return this under the "Ap
 #### GET
 Three parameters are available, the `keyword` parameter is required. 
 
-**NOTE** `preferred_ontologies` does not CURRENTLY filter down results, as it is possible the FE wants to get all results from the backend. This parameter may be removed in the future, or will be put to use.
-
 * keyword
     * Description: Keyword to search against the APIs
     * Required: YES
 
 * preferred_ontologies
-    * Description: User preferred Ontologies
-    * Default: A default list of approved ontologies is provided. If none are selected, data from all ontologies on this list will be returned.
-    * Required: No
+    * Description: User selected Ontologies
+    * Required: Yes
 
 * api
     * Description: APIs to include in the search
     * Choices:
         * `ols`: Gather data with the Ontology Lookup Service API.
-        * `all`: Gather data using all available ontology APIs.
-    * Required: No
-    * default: "all"
+    * Required: Yes
 
-Example endpoints: 
-* https://[APPURL]/api/ontology_search?keyword=cat scratch fever
-* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=MONDO,BTO
-* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=MONDO,BTO&api=ols
+Example endpoint: 
+* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols
 
-Example return(reduced to two 'results'):
+The following are **example results**  Not real data. <br>
+**NOTE** `more_results_available` is not an active feature yet, currently returns only `true`:
 
 ```json
 {
-    "search_query": "https://www.ebi.ac.uk/ols4/api/search?q=cat%20scratch%20fever&ontology=MAXO,HP,MONDO,UBERON,EDAM,NCIT,OBI,DUO,ORDO,CL,SNOMED",
+    "search_query": "https://www.ebi.ac.uk/ols4/api/search?q=cat%20scratch%20fever&ontology=CL,DUO",
     "results": [
         {
-            "code": "CHEBI:133326",
-            "system": "http://purl.obolibrary.org/obo/maxo.owl",
-            "code_iri": "http://purl.obolibrary.org/obo/CHEBI_133326",
-            "display": "barium sulfate",
-            "description": [
-                "A metal sulfate with formula BaO4S. Virtually insoluble in water at room temperature, it is mostly used as a component in oil well drilling fluid it occurs naturally as the mineral barite."
-            ],
-            "ontology_prefix": "MAXO"
+            "code": "NCBITaxon:9681",
+            "system": "http://purl.obolibrary.org/obo/cl.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9681",
+            "display": "Felidae",
+            "description": [],
+            "ontology_prefix": "CL"
         },
         {
-            "code": "CHEBI:35493",
-            "system": "http://purl.obolibrary.org/obo/mondo.owl",
-            "code_iri": "http://purl.obolibrary.org/obo/CHEBI_35493",
-            "display": "antipyretic",
-            "description": [
-                "A drug that prevents or reduces fever by lowering the body temperature from a raised state. An antipyretic will not affect the normal body temperature if one does not have fever. Antipyretics cause the hypothalamus to override an interleukin-induced increase in temperature. The body will then work to lower the temperature and the result is a reduction in fever."
-            ],
-            "ontology_prefix": "MONDO"
+            "code": "NCBITaxon:9685",
+            "system": "http://purl.obolibrary.org/obo/duo.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9685",
+            "display": "Felis catus",
+            "description": [],
+            "ontology_prefix": "DUO"
         }
     ],
     "results_per_ontology": {
-        "MONDO": 599,
-        "NCIT": 525,
-        "SNOMED": 727,
-        "ORDO": 208,
-        "HP": 74,
-        "Orphanet": 41,
-        "MAXO": 17,
-        "1516": 1,
-        "EDAM": 1,
-        "NCBITaxon": 11,
-        "UBERON": 18,
-        "OBI": 3,
-        "PR": 1,
-        "CHEBI": 2
+        "CL": 1,
+        "DUO": 1
     },
-    "results_count": 2228
+    "results_count": 2,
+    "more_results_available": true
 }
 ```
