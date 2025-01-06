@@ -1,8 +1,16 @@
 from flask_restful import Resource
 from flask import request
 from locutus import persistence
-from locutus.model.terminology import Terminology as Term, Coding
+from locutus.model.terminology import (
+    Terminology as Term,
+    Coding,
+    CodingMapping,
+    MappingUserInputModel,
+)
 from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.model.terminology_mapping import MappingRelationshipModel
+from locutus.model.exceptions import *
+from sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
 import pdb
@@ -11,54 +19,117 @@ import pdb
 class TerminologyMapping(Resource):
     @cross_origin()
     def get(self, id, code):
-        term = persistence().collection("Terminology").document(id).get().to_dict()
-        if "resource_type" in term:
-            del term["resource_type"]
+        """
+        Retrieves terminology mappings for a given code, optionally including user input details.
+        """
 
-        t = Term(**term)
+        user_input_param = request.args.get("user_input", default=None)
+        editor_param = request.args.get("user", default=None)
 
-        mappings = t.mappings(code)
-        response = {"code": code, "mappings": []}
+        try:
+            editor = get_editor(body=None, editor=editor_param)
+            if user_input_param is not None and editor is None:
+                raise LackingUserID(editor)
 
-        # We should recieve a dictionary with a single key
-        for coding in mappings[code]:
-            response["mappings"].append(coding.to_dict())
+            term = persistence().collection("Terminology").document(id).get().to_dict()
+            if "resource_type" in term:
+                del term["resource_type"]
 
-        return (response, 200, default_headers)
+            t = Term(**term)
+
+            mappings = t.mappings(code)
+            response = {"code": code, "mappings": []}
+
+            # We should recieve a dictionary with a single key
+            for codingmapping in mappings.get(code, []):
+                if user_input_param:
+                    user_input_data = MappingUserInputModel.generate_mapping_user_input(
+                        id, code, codingmapping.code, editor
+                    )
+                    codingmapping.user_input = user_input_data
+                # Returns valid=true mappings or mappings without the 'valid' attribute.
+                if codingmapping.valid != False:
+                    response["mappings"].append(codingmapping.to_dict())
+
+            return (response, 200, default_headers)
+
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
     def delete(self, id, code):
+        """Soft deletes all mappings for the identified terminology code."""
         body = request.get_json()
-        editor = get_editor(body)
-        if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        t = Term.get(id)
-        mapping_count = t.delete_mappings(editor=editor, code=code)
+            t = Term.get(id)
+            t.delete_mappings(editor=editor, code=code)
 
-        response = TerminologyMappings.get_mappings(id)
+            response = TerminologyMappings.get_mappings(id)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         return (response, 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         body = request.get_json()
-        editor = get_editor(body)
-        if editor is None:
-            return ("mappings DELETE requires an editor!", 400, default_headers)
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
 
-        mappings = body["mappings"]
-        codings = [Coding(**x) for x in mappings]
+            mappings = body["mappings"]
+            codingmapping = [CodingMapping(**x) for x in mappings]
 
-        tref = persistence().collection("Terminology").document(id)
+            tref = persistence().collection("Terminology").document(id)
 
-        term = tref.get().to_dict()
-        if "resource_type" in term:
-            del term["resource_type"]
+            term = tref.get().to_dict()
+            if "resource_type" in term:
+                del term["resource_type"]
 
-        t = Term(**term)
+            t = Term(**term)
 
-        t.set_mapping(code, codings, editor=editor)
+            # Raise error if the code is not in the terminology
+            if not t.has_code(code): 
+                raise CodeNotPresent(code, id)
 
-        response = TerminologyMappings.get_mappings(t.id)
+            t.set_mapping(code, codingmapping, editor=editor)
+
+            response = TerminologyMappings.get_mappings(t.id)
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
         return (response, 201, default_headers)
+
+class MappingRelationship(Resource):
+
+    def put(self, id, code, mapped_code):
+        body = request.get_json()
+
+        mapping_relationship = body.get("mapping_relationship")
+        if mapping_relationship is None:
+            return (
+                "This endpoint requires mapping_relationship!",
+                400,
+                default_headers,
+            )
+        try:
+            editor = get_editor(body=body, editor=None)
+            if editor is None:
+                raise LackingUserID(editor)
+
+            # Raise error if the code is not in the terminology
+            t = Term.get(id)
+            if not t.has_code(code): 
+                raise CodeNotPresent(code, id)
+            
+            response = MappingRelationshipModel.add_mapping_relationship(
+                editor, id, code, mapped_code, mapping_relationship
+            )
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
+
+        return (response, 200, default_headers)

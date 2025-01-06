@@ -8,21 +8,29 @@ on:
   pull_request_review:
     types: [submitted, edited] # submitted, reviewer edits the PR (ex comments)
   workflow_dispatch: # This enables manual triggers
+    inputs:
+      version:
+        description: 'Optional version for the deployment'
+        required: true
+        type: string
+        default: 'dispatch'
   
 env:
 
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
   REGION: ${{ secrets.REGION_LOC_1 }}
-  SERVICE: 'locutus'
+  SERVICE: ${{ secrets.SERVICE }}
   IMAGE_NAME: 'locutus_img'
-  GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
+  GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
 
 jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
 
-    if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'main'
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'main')
     
     environment:
       name: dev
@@ -39,10 +47,10 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ env.GCP_CREDENTIALS }}'
+          credentials_json: ${{ env.GCP_CREDENTIALS }}
 
       - name: 'Docker Auth'
-        run: |-
+        run: |
           gcloud auth configure-docker '${{ env.REGION }}-docker.pkg.dev'
 
 
@@ -51,16 +59,19 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       
-      - name: Extract Version from PR Number
-        id: extract_version
+      - name: Set Version
+        id: set_version
         run: |
-          VERSION=${{ github.event.pull_request.number }} 
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "::set-output name=VERSION::$VERSION"
-          echo "Extracted Version: $VERSION"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.event.pull_request.number }}"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "Set Version: ${VERSION}"
   
       - name: 'Build and Push Container'
-        run: |-
+        run: |
           DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker build --tag "${DOCKER_TAG}" .
           docker push "${DOCKER_TAG}"
@@ -71,4 +82,4 @@ jobs:
           service: '${{ env.SERVICE }}'
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ steps.extract_version.outputs.VERSION }}
+          env_vars: VERSION=${{ env.VERSION }}

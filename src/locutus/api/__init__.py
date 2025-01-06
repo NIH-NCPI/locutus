@@ -1,3 +1,5 @@
+from sessions import SessionManager
+
 default_headers = [
     ("Content-Type", "application/fhir+json"),
 ]
@@ -21,11 +23,15 @@ def delete_collection(collection, batch_size=100):
     return total_deleted
 
 
-def get_editor(body):
-    editor = None
-
-    if "editor" in body:
+def get_editor(body, editor):
+    if body and "editor" in body:
         editor = body["editor"]
         del body["editor"]
+    return SessionManager.create_user_id(editor=editor)
 
-    return editor
+
+def generate_paired_string(thing_one, thing_two):
+    ''' Returns the parameters as a string separated by a pipe.
+    Use case: Identifying a mapping. code|mapping
+    '''
+    return f'{thing_one}|{thing_two}'

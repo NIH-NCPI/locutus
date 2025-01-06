@@ -183,7 +183,8 @@ Replace terminology at the given ID
   ],
   "id": "tm-5AKcaQ-QLe3REWzaJYoUA",
   "resource_type": "Terminology",
-  "name": "Sex"
+  "name": "Sex",
+  "editor": "test_editor"
 }
 ```
 
@@ -300,59 +301,129 @@ If the code doesn't exist, a 404 error is returned.
 
 #### GET
 
-Returns all mappings currently assigned to any code in the terminology.
+Returns all VALID mappings currently assigned to any code in the terminology.
+Optionally, it can include additional user input data if the user_input parameter is provided.<br>
+Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping?user_input=True)
 
 ```json
 {
-  "terminology": {
-    "Reference": "Terminology/tm-aIzCqJJkThKoxC2LiI6pP"
-  },
-  "codes": [
-    {
-      "code": "Female",
-      "mappings": [
-        {
-          "code": "female",
-          "display": "Female",
-          "system": "http://hl7.org/fhir/administrative-gender"
-        }
-      ]
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
     },
-    {
-      "code": "Male",
-      "mappings": [
+    "mappings": [
         {
-          "code": "male",
-          "display": "Male",
-          "system": "http://hl7.org/fhir/administrative-gender"
+            "code": "Female",
+            "codes": [
+                {
+                    "code": "female",
+                    "display": "Female",
+                    "mapping_relationship":"",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
+}
+```
+User_input example output. An active session is required to retrieve the 'users_vote'.
+If none exists, 'users_vote' will be an empty string.
+```json
+{
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+    },
+    "mappings": [
+        {
+            "code": "Female",
+            "codes": [
+                {
+                    "code": "female",
+                    "display": "Female",
+                    "mapping_relationship":"",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true,
+                    "user_input": {
+                        "comments_count": 1,
+                        "votes_count": {
+                            "up": 1,
+                            "down": 0
+                        },
+                        "users_vote": "up"
+                    }
+                }
+            ]
+        }
+    ]
 }
 ```
 
 #### DELETE
 
-Removes all mappings associated with all codes in the given terminology.
+Soft deletes all mappings associated with all codes in the given terminology.
+The 'valid' field for the mapping is set to 'false'
 
 ### https://[APPURL]/api/Terminology/[id]/mapping/[code]
 
 #### GET
 
-Returns mappings for the specific code (from the terminology)
+Returns VALID mappings for the specific code (from the terminology)
+Optionally, it can include additional user input data if the user_input parameter is provided.<br>
+Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping/[code]?user_input=True)
 
 ```json
 {
-  "code": "Female",
-  "mappings": [
-    {
-      "code": "female",
-      "display": "Female",
-      "system": "http://hl7.org/fhir/administrative-gender"
+    "codes": [
+        {
+            "code": "female_ex",
+            "codes": [
+                {
+                    "code": "femalee",
+                    "display": "feMale",
+                    "mapping_relationship":"equivalent",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true
+                }
+            ]
+        }
+    ],
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
     }
-  ]
 }
+```
+User_input example output. An active session is required to retrieve the 'users_vote'.
+If none exists, 'users_vote' will be an empty string.
+```json
+{
+    "codes": [
+        {
+            "code": "female_ex",
+            "codes": [
+                {
+                    "code": "femalee",
+                    "display": "feMale",
+                    "mapping_relationship":"equivalent",
+                    "system": "http://hl7.org/fhir/administrative-gender",
+                    "valid": true,
+                    "user_input": {
+                        "comments_count": 1,
+                        "votes_count": {
+                            "up": 1,
+                            "down": 0
+                        },
+                        "users_vote": "up"
+                    }
+                }
+            ]
+        }
+    ],
+    "terminology": {
+        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+    }
+}
+
+
 ```
 
 #### PUT
@@ -366,11 +437,14 @@ Example Body:
 {
   "mappings": [
     {
-      "code": "male",
-      "display": "Male",
-      "system": "http://hl7.org/fhir/administrative-gender"
+      "code": "Major depressive disorder",
+      "display": "",
+      "description": "",
+      "system": "https://anvil-all-terms.org/fhir/disease_1",
+      "mapping_relationship": "equivalent"
     }
-  ]
+  ],
+  "editor": "user525600"
 }
 ```
 
@@ -379,8 +453,8 @@ after the change.
 
 #### DELETE
 
-Remove the mappings currently associated with the given code from the specified
-terminology.
+Soft delete the mappings currently associated with the given code from the specified
+terminology. The mappings 'valid' field will be set to 'false'
 
 The response is a listing of all mappings for that terminology
 after the change.
@@ -511,7 +585,11 @@ This is the expected result after removing preferences with the URL without spec
 
 Return the api search preference for the code within a specific terminology
 (specified by id).<br> 
-The response below would be the result of specifying 'T21' as the `code` in the request.
+The response below would be the result of specifying 'T21' as the `code` in the request.<br>
+ - If preferences for the `code` do not exist the endpoint will fallback to use any
+preferences found for the `Terminology`(code:'self'). Example seen [HERE](#httpsappurlapiterminologyidfilter)<br>
+ - If preferences for neither the `code` nor the `Terminology` exist an empty object 
+ is returned.<br>
 
 ```json
 {
@@ -525,6 +603,7 @@ The response below would be the result of specifying 'T21' as the `code` in the 
     }
 }
 ```
+
 
 #### PUT
 
@@ -580,7 +659,7 @@ Create or replace references to a prefered `Terminology` for the terminology (sp
 Request body example:
  ```json
 {
-    "editor": "me",
+    "editor": "user24601",
     "preferred_terminologies": [
         {
             "preferred_terminology": "tm--example1"
@@ -596,31 +675,30 @@ Request body example:
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
 
-### https://[APPURL]/api/Terminology/[id]/user_input/[code]/[type]
+### https://[APPURL]/api/Terminology/[id]/user_input/[code]/mapping/[mapped_code]/[type]
   
   * id (str): The document ID.
   * code (str): The target document (mapping) identifier.
+  * mapped_code (str): The code being mapped to the target.
   * type (str): The type of input to retrieve 
      - currently available: "mapping_conversations","mapping_votes".
 
 #### GET
 
 Return the reference to the `user_input` `type` related to the `Terminology` (specified by id).<br>
-Returns all records of the `type` at the `code` level. <br> 
+Returns all records of the `type` at the `code` level, in reverse order
+from whence they were stored, with newer records on top.
 
 Expected return for type `mapping_votes` below
 
 ```json
 {
-    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-    "code": "TEST_0001",
+    "Terminology": "tm-C8IP8Cw_0M_hHWeLl5WP3",
+    "code": "type 2 diabetes",
+    "mapped_code": "Type 2 diabetes mellitus",
     "mapping_votes": {
-        "bg_test_session2": {
-            "date": "Oct 09, 2024, 03:51:01.088284 PM",
-            "vote": "up"
-        },
-        "bg_test_session": {
-            "date": "Oct 09, 2024, 03:49:50.742381 PM",
+        "user24601": {
+            "date": "Nov 17, 2024, 01:58:39.197679 PM",
             "vote": "up"
         }
     }
@@ -632,16 +710,17 @@ Expected return for type `mapping_conversations` below
 ```json
 {
     "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-    "code": "TEST_0001",
+    "code": "type 2 diabetes",
+    "mapped_code": "Type 2 diabetes mellitus",
     "mapping_conversations": [
         {
             "date": "Oct 04, 2024, 04:17:43.043579 PM",
-            "user_id": "test_session",
+            "user_id": "user24601",
             "note": "I like this mapping"
         },
         {
             "date": "Oct 04, 2024, 04:21:15.460040 PM",
-            "user_id": "test_session2",
+            "user_id": "user525600",
             "note": "I dont like this mapping"
         }
     ]
@@ -656,7 +735,7 @@ Request body example for `mapping_conversations` :
 # editor is only required if not using sessions
  ```json
 {
-    "editor": "editor name",
+    "editor": "user24601",
     "note": "I dont like this mapping"
 }
 ```
@@ -665,10 +744,29 @@ Request body example for `mapping_votes` :
 # editor is only required if not using sessions
  ```json
 {
-    "editor": "editor name",
+    "editor": "user525600",
     "vote": "up"
 }
 ```
+
+### https://[APPURL]/api/Terminology/[id]/mapping_relationship/[code]/mapping/[mapped_code]
+There is not currently a endpoint for getting a mappings(code/mapped_code) relationship 
+alone. Use the endpoint for getting all mappings for a single code. [more here](#httpsappurlapiterminologyidmappingcode)
+
+A mapping may not have the mapping_relationship value set. But a returned 
+mapping will always have a mapping_relationship attribute.
+
+#### PUT - Updating a mapping_relationship
+Mapping_relationship can be set to the codes in the `ftd-concept-map-relationship` `Terminology` or to an empty string "". <br>
+Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`source-is-narrower-than-target`,`source-is-broader-than-target` ]
+
+ ```json
+{
+  "mapping_relationship":"equivalent",
+  "editor": "user24601"
+}
+```
+
 
 ## Terminology Provenance
 Provenance is tracked for all changes to a terminology or one of the terms 
@@ -1480,18 +1578,23 @@ end points themselves will be related to the table and it's ID.
 
 #### GET
 
-Returns a list of all mappings from the table (See example of the matching
+Returns a list of all mappings from the table and their associated 'user_input'
+if requested. (See example of the matching
 terminology endpoint for details.)
+
 
 #### DELETE
 
-Remove all mappings associated with codes from the table's shadow terminology.
+Soft delete all mappings associated with codes from the table's shadow terminology.
+The mappings 'valid' field is set to 'false'
 
 ### https://[APPURL]/api/Table/[id]/mapping/[code]
 
 #### GET
 
-Returns mappings for a specific code (from the shadow terminology)
+Returns mappings for a specific code and their associated 'user_input'
+if requested. (from the shadow terminology. See example of the matching
+terminology endpoint for details.)
 
 #### PUT
 
@@ -1502,8 +1605,8 @@ See corresponding endpoint for Terminology for more details.
 
 #### DELETE
 
-Remove the mappings currently associated with a given code from the table's
-shadow terminology.
+Soft delete the mappings currently associated with a given code from the table's
+shadow terminology. The mappings 'valid' field is set to 'false'.
 
 ### https://[APPURL]/api/Table/[id]/rename
 
@@ -2051,4 +2154,80 @@ Returns the details for the Ontology API denoted by the API_ID
         ]
     ]
 ]
+```
+
+### https://[APPURL]/api/user/preferences/ontologies
+
+#### GET
+
+Returns the default preferences for the user (TBD) or, if not set, then the application defaults. 
+```json
+{
+    "Application Default": {
+        "api_preference": {
+            "ols": [
+                "mondo",
+                "hp",
+                "maxo",
+                "ncit"
+            ]
+        }
+    }
+}
+```
+In the example return above, no session existed, so we return this under the "Application Default". Otherwise, it will be associated with the user's ID (or email).  
+
+### https://[APPURL]/api/ontology_search?keyword=[KEYWORD]
+
+#### GET
+Three parameters are available, the `keyword` parameter is required. 
+
+* keyword
+    * Description: Keyword to search against the APIs
+    * Required: YES
+
+* preferred_ontologies
+    * Description: User selected Ontologies
+    * Required: Yes
+
+* api
+    * Description: APIs to include in the search
+    * Choices:
+        * `ols`: Gather data with the Ontology Lookup Service API.
+    * Required: Yes
+
+Example endpoint: 
+* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols
+
+The following are **example results**  Not real data. <br>
+**NOTE** `more_results_available` is not an active feature yet, currently returns only `true`:
+
+```json
+{
+    "search_query": "https://www.ebi.ac.uk/ols4/api/search?q=cat%20scratch%20fever&ontology=CL,DUO",
+    "results": [
+        {
+            "code": "NCBITaxon:9681",
+            "system": "http://purl.obolibrary.org/obo/cl.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9681",
+            "display": "Felidae",
+            "description": [],
+            "ontology_prefix": "CL"
+        },
+        {
+            "code": "NCBITaxon:9685",
+            "system": "http://purl.obolibrary.org/obo/duo.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9685",
+            "display": "Felis catus",
+            "description": [],
+            "ontology_prefix": "DUO"
+        }
+    ],
+    "results_per_ontology": {
+        "CL": 1,
+        "DUO": 1
+    },
+    "results_count": 2,
+    "more_results_available": true
+}
 ```
