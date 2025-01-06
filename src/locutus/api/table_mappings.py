@@ -117,6 +117,21 @@ class TableMapping(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
+            # We should recieve a dictionary with a single key
+            for codingmapping in mappings.get(code, []):
+                if user_input_param:
+                    user_input_data = MappingUserInputModel.generate_mapping_user_input(
+                        term.id, code, codingmapping.code, editor
+                    )
+                    codingmapping.user_input = user_input_data
+                # Returns valid=true mappings or mappings without the 'valid' attribute.
+                if codingmapping.valid != False:
+                    response["mappings"].append(codingmapping.to_dict())
+
+            return (response, 200, default_headers)
+
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
     def delete(self, id, code):
         body = request.get_json()
         try:

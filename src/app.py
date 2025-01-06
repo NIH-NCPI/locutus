@@ -108,6 +108,10 @@ api.add_resource(
     "/api/Terminology/<string:id>/mapping_relationship/<path:code>/mapping/<path:mapped_code>",
 )
 api.add_resource(
+    MappingRelationship,
+    "/api/Terminology/<string:id>/mapping_relationship/<string:code>/mapping/<string:mapped_code>",
+)
+api.add_resource(
     TerminologyRenameCode,
     "/api/Terminology/<string:id>/rename",
 )
