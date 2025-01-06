@@ -109,7 +109,7 @@ class OntologyAPI(Serializable):
         
 class OntologyAPISearchModel():
 
-    def run_search_dragon(keywords, ontologies, apis):
+    def run_search_dragon(keywords, ontologies, apis, results_per_page, start_index):
         onto_seed_data = OntologyAPICollection()
         onto_data = onto_seed_data.get_ontology_data("system")
 
@@ -120,5 +120,5 @@ class OntologyAPISearchModel():
             if onto not in valid_curies:
                 raise InvalidEnumValueError(value=f"{onto}",valid_values=valid_curies)
 
-        search_result = run_search(onto_data, keywords, ontologies, apis)
+        search_result = run_search(onto_data, keywords, ontologies, apis, results_per_page, start_index)
         return search_result
