@@ -15,7 +15,7 @@ env:
 
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
   REGION: ${{ secrets.REGION_LOC_1 }}
-  SERVICE: 'locutus'
+  SERVICE: ${{ secrets.SERVICE }}
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
 
@@ -23,6 +23,8 @@ jobs:
   
   deploy:
     runs-on: 'ubuntu-latest'
+
+    if: github.event.pull_request.base.ref == 'release'
     
     environment:
       name: qa
@@ -58,14 +60,14 @@ jobs:
 
       - name: 'Build and Push Container'
         run: |
-          DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}-uat/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker build --tag "${DOCKER_TAG}" .
           docker push "${DOCKER_TAG}"
 
       - name: 'Deploy to Cloud Run'
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
-          service: ${{ env.SERVICE }}-uat
+          service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}-uat/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           env_vars: VERSION=${{ env.VERSION }}
