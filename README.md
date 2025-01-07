@@ -2186,21 +2186,30 @@ Three parameters are available, the `keyword` parameter is required.
     * Description: Keyword to search against the APIs
     * Required: YES
 
-* preferred_ontologies
+* selected_ontologies
     * Description: User selected Ontologies
     * Required: Yes
 
-* api
+* selected_api
     * Description: APIs to include in the search
     * Choices:
         * `ols`: Gather data with the Ontology Lookup Service API.
     * Required: Yes
 
+  * results_per_page
+    * Description: Number of results requested from the ontology api.
+    * Required: Yes
+
+  * start_index
+    * Description: The number/index of the first requested result. 
+    * Ex: with a results_per_page of 100, the first page of results would have a start_index of 0. 
+    For the second page of results the start_index would be 100.
+    * Required: Yes
+
 Example endpoint: 
-* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols
+* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols&results_per_page=100&start_index=0
 
 The following are **example results**  Not real data. <br>
-**NOTE** `more_results_available` is not an active feature yet, currently returns only `true`:
 
 ```json
 {

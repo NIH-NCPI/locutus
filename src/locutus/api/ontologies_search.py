@@ -48,14 +48,22 @@ class OntologyAPISearch(Resource):
                 pref_api = [api.strip() for api in pref_api.split(",")]
             if pref_api is None:
                 raise LackingRequiredParameter("selected_api")
+            
+            results_n_param = request.args.get("results_per_page", default=None)
+            if results_n_param is None:
+                raise LackingRequiredParameter("results_per_page")
+            
+            start_param = request.args.get("start_index", default=None)
+            if start_param is None:
+                raise LackingRequiredParameter("start")
 
             search_results = OntologyAPISearchModel.run_search_dragon(
-                keyword_param, ontology_param, pref_api
+                keyword_param, ontology_param, pref_api, results_n_param, start_param
             )
             return (search_results, 200, default_headers)
         
         except ValueError as e:
-            return {f"error {keyword_param, ontology_param,pref_api}": str(e)}, 400, default_headers
+            return {f"error {keyword_param, ontology_param, pref_api, results_n_param, start_param}": str(e)}, 400, default_headers
         
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
