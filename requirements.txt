@@ -1,1 +1,1 @@
-git+https://github.com/NIH-NCPI/search-dragon.git@bg/fd_1745#egg=search_dragon
+git+https://github.com/NIH-NCPI/search-dragon.git#egg=search_dragon
