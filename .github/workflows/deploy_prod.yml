@@ -19,6 +19,7 @@ env:
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+  UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
 
 jobs:
   
@@ -76,7 +77,7 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ env.VERSION }}
+          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ secrets.API_KEY }}
       
       # If the tag already exists the Release process will fail
       - name: Create a Release
