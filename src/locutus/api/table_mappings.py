@@ -2,7 +2,7 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence
 from locutus.model.table import Table
-from locutus.model.terminology import Terminology, Coding, CodingMapping
+from locutus.model.terminology import Terminology, Coding, CodingMapping, MappingUserInputModel
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
 from locutus.model.exceptions import *
@@ -12,26 +12,44 @@ from locutus.api import default_headers, delete_collection, get_editor
 class TableMappings(Resource):
     @classmethod
     def get_mappings(cls, id):
-        table = Table.get(id)
-        term = table.terminology.dereference()
+        user_input_param = request.args.get("user_input", default=None)
+        editor_param = request.args.get("user", default=None)
+        try:
+            editor = get_editor(body=None, editor=editor_param)
+            if user_input_param is not None and editor is None:
+                raise LackingUserID(editor)
+            
+            table = Table.get(id)
+            term = table.terminology.dereference()
 
-        response = {
-            "terminology": {
-                "Reference": f"Terminology/{term.id}",
-            },
-            "codes": [],
-        }
-        mappings = term.mappings()
+            response = {
+                "terminology": {
+                    "Reference": f"Terminology/{term.id}",
+                },
+                "codes": [],
+            }
+            mappings = term.mappings()
 
-        for code in mappings:
-            mapping = {"code": code, "mappings": []}
-            for codingmapping in mappings[code]:
-                mapping["mappings"].append(codingmapping.to_dict())
+            for code in mappings:
+                mapping = {"code": code, "mappings": []}
+                for codingmapping in mappings.get(code, []):
+                    if user_input_param:
+                        user_input_data = (
+                            MappingUserInputModel.generate_mapping_user_input(
+                                term.id, code, codingmapping.code, editor
+                            )
+                        )
+                        codingmapping.user_input = user_input_data
+                    # Returns valid=true mappings or mappings without the 'valid' attribute.
+                    if codingmapping.valid != False:
+                        mapping["mappings"].append(codingmapping.to_dict())
 
-            response["codes"].append(mapping)
+                response["codes"].append(mapping)
 
-        return response
-
+            return response
+        
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
     @classmethod
     def delete(cls, id):
         body = request.get_json()
@@ -65,16 +83,36 @@ class TableMappings(Resource):
 
 class TableMapping(Resource):
     def get(self, id, code):
-        table = Table.get(id)
-        term = table.terminology.dereference()
 
-        mappings = term.mappings(code)
-        response = {"code": code, "mappings": []}
+        user_input_param = request.args.get("user_input", default=None)
+        editor_param = request.args.get("user", default=None)
 
-        for codingmapping in mappings[code]:
-            response["mappings"].append(codingmapping.to_dict())
+        try:
+            editor = get_editor(body=None, editor=editor_param)
+            if user_input_param is not None and editor is None:
+                raise LackingUserID(editor)
+            
+            table = Table.get(id)
+            term = table.terminology.dereference()
 
-        return (response, 200, default_headers)
+            mappings = term.mappings(code)
+            response = {"code": code, "mappings": []}
+
+            # We should recieve a dictionary with a single key
+            for codingmapping in mappings.get(code, []):
+                if user_input_param:
+                    user_input_data = MappingUserInputModel.generate_mapping_user_input(
+                        term.id, code, codingmapping.code, editor
+                    )
+                    codingmapping.user_input = user_input_data
+                # Returns valid=true mappings or mappings without the 'valid' attribute.
+                if codingmapping.valid != False:
+                    response["mappings"].append(codingmapping.to_dict())
+
+            return (response, 200, default_headers)
+
+        except APIError as e:
+            return e.to_dict(), e.status_code, default_headers
 
     def delete(self, id, code):
         body = request.get_json()

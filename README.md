@@ -1578,8 +1578,10 @@ end points themselves will be related to the table and it's ID.
 
 #### GET
 
-Returns a list of all mappings from the table (See example of the matching
+Returns a list of all mappings from the table and their associated 'user_input'
+if requested. (See example of the matching
 terminology endpoint for details.)
+
 
 #### DELETE
 
@@ -1590,7 +1592,9 @@ The mappings 'valid' field is set to 'false'
 
 #### GET
 
-Returns mappings for a specific code (from the shadow terminology)
+Returns mappings for a specific code and their associated 'user_input'
+if requested. (from the shadow terminology. See example of the matching
+terminology endpoint for details.)
 
 #### PUT
 
@@ -2172,3 +2176,67 @@ Returns the default preferences for the user (TBD) or, if not set, then the appl
 }
 ```
 In the example return above, no session existed, so we return this under the "Application Default". Otherwise, it will be associated with the user's ID (or email).  
+
+### https://[APPURL]/api/ontology_search?keyword=[KEYWORD]
+
+#### GET
+Three parameters are available, the `keyword` parameter is required. 
+
+* keyword
+    * Description: Keyword to search against the APIs
+    * Required: YES
+
+* selected_ontologies
+    * Description: User selected Ontologies
+    * Required: Yes
+
+* selected_api
+    * Description: APIs to include in the search
+    * Choices:
+        * `ols`: Gather data with the Ontology Lookup Service API.
+    * Required: Yes
+
+  * results_per_page
+    * Description: Number of results requested from the ontology api.
+    * Required: Yes
+
+  * start_index
+    * Description: The number/index of the first requested result. 
+    * Ex: with a results_per_page of 100, the first page of results would have a start_index of 0. 
+    For the second page of results the start_index would be 100.
+    * Required: Yes
+
+Example endpoint: 
+* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols&results_per_page=100&start_index=0
+
+The following are **example results**  Not real data. <br>
+
+```json
+{
+    "search_query": "https://www.ebi.ac.uk/ols4/api/search?q=cat%20scratch%20fever&ontology=CL,DUO",
+    "results": [
+        {
+            "code": "NCBITaxon:9681",
+            "system": "http://purl.obolibrary.org/obo/cl.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9681",
+            "display": "Felidae",
+            "description": [],
+            "ontology_prefix": "CL"
+        },
+        {
+            "code": "NCBITaxon:9685",
+            "system": "http://purl.obolibrary.org/obo/duo.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9685",
+            "display": "Felis catus",
+            "description": [],
+            "ontology_prefix": "DUO"
+        }
+    ],
+    "results_per_ontology": {
+        "CL": 1,
+        "DUO": 1
+    },
+    "results_count": 2,
+    "more_results_available": true
+}
+```

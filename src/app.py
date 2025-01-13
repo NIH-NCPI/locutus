@@ -42,7 +42,7 @@ from locutus.api.datadictionary import (
     DataDictionaries,
     DataDictionaryTable,
 )
-from locutus.api.ontologies_search import OntologyAPIs
+from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
 from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
 
 from sessions import SessionManager
@@ -68,6 +68,8 @@ api = Api(app)
 
 # Sessions
 session_manager = SessionManager(app)
+
+api.add_resource(OntologyAPISearch,"/api/ontology_search")
 
 # GET app version
 api.add_resource(Version, "/api/version")
