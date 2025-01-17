@@ -15,6 +15,8 @@ from locutus.api.terminology import (
     Terminologies,
     TerminologyRenameCode,
     TerminologyEdit,
+)
+from locutus.api.preferences import (
     OntologyAPISearchPreferences,
     PreferredTerminology,
 )
