@@ -11,7 +11,7 @@ class OntologyAPISearchPreferences(Resource):
     def get(self, id=None, code=None):
 
         # Optional parameter
-        table_id = request.args.get("table", default=None)
+        table_id = request.args.get("table_id", default=None)
 
         t = Term.get(id)
 
@@ -100,9 +100,20 @@ class PreferredTerminology(Resource):
             ]
         } 
         """
+        # Optional parameter
+        table_id = request.args.get("table_id", default=None)
+
         t = Term.get(id)
 
         pref = t.get_preferred_terminology()
+
+        # get the prefs from the table if none exist for the terminology
+        if table_id and not any(pref.values()):
+            tb=Table.get(table_id)
+            try:
+                pref = tb.get_preferred_terminology()
+            except KeyError as e:
+                return {"message_to_user": str(e)}, 400, default_headers
 
         return (pref, 200, default_headers)
 
@@ -162,11 +173,12 @@ class PreferredTerminology(Resource):
         }
         return (response, 200, default_headers)
 
-    def delete(self, id):
-        pref_terms = (
-            persistence().collection("Terminology").document(id).collection("preferred_terminology")
-        )
-        delete_collection(pref_terms)
+    def delete(self, id):    
+        """Remove a `terminology_preference` from a specific Terminology."""
+
+        t = Term.get(id)
+
+        t.remove_preferred_terminology()
 
         response = {
             "message": f"The preferred_terminology collection was deleted for terminology {id}."}

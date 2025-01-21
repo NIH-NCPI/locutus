@@ -328,7 +328,6 @@ class Table(Serializable):
             print(f"An error occurred while retrieving preferences: {str(e)}")
             raise
 
-
     def add_or_update_pref(self, api_preference, code=None):
         try:
             self.terminology.dereference().add_or_update_pref(
@@ -343,6 +342,84 @@ class Table(Serializable):
         try:
             message = self.terminology.dereference().remove_pref(code=code)
             return message
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {str(e)}")
+            raise
+
+    def get_preferred_terminology(self):
+        """
+        Retrieves all references from the 'preferred_terminology' sub-collection
+
+        Returns:
+            list: 'references" - An array of `Terminology` reference dictionaries
+        
+        Example output:
+        {
+            "references": [
+                {
+                    "reference": "Terminology/tm--example1"
+                },
+                {
+                    "reference": "Terminology/tm--example2"
+                }
+            ]
+        } 
+        """
+        try:
+            pref = self.terminology.dereference().get_preferred_terminology()
+
+            return pref
+
+        except Exception as e:
+            print(f"An error occurred while retrieving preferred terminology: {e}")
+            raise
+
+    def replace_preferred_terminology(self, editor, preferred_terminology):
+        """
+        Creates or replaces a document in the 'preferred_terminology' sub-collection
+
+        Args:
+            preferred_terminology (list): A dictionary representing the preferred terminology to be added.
+
+        JSON body with two additions example:
+        [
+            {
+                "preferred_terminology": "tm--example1"
+            },
+            {
+                "preferred_terminology": "tm--example2"
+            }
+        ]
+        """
+        try:
+            self.terminology.dereference().replace_preferred_terminology(
+                editor,preferred_terminology
+            )
+
+        except Exception as e:
+            print(f"An error occurred while updating preferences: {str(e)}")
+            raise
+
+    def remove_preferred_terminology(self):
+        """
+        Creates or replaces a document in the 'preferred_terminology' sub-collection
+
+        Args:
+            preferred_terminology (list): A dictionary representing the preferred terminology to be added.
+
+        JSON body with two additions example:
+        [
+            {
+                "preferred_terminology": "tm--example1"
+            },
+            {
+                "preferred_terminology": "tm--example2"
+            }
+        ]
+        """
+        try:
+            self.terminology.dereference().remove_preferred_terminology()
+
         except Exception as e:
             print(f"An error occurred while updating preferences: {str(e)}")
             raise
