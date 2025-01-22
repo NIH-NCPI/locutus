@@ -538,6 +538,9 @@ terminology.
 Return the api search preference for the terminology (specified by id).<br>
 Returns the api search preferences at the Terminology("self") level. <br> Expected return example below.
 
+Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
+
+Example endpoint: https://[APPURL]/api/Terminology/[id]/filter?table_id=[table_id]
 ```json
 {
     "self": {
@@ -585,11 +588,16 @@ This is the expected result after removing preferences with the URL without spec
 
 Return the api search preference for the code within a specific terminology
 (specified by id).<br> 
+
 The response below would be the result of specifying 'T21' as the `code` in the request.<br>
  - If preferences for the `code` do not exist the endpoint will fallback to use any
 preferences found for the `Terminology`(code:'self'). Example seen [HERE](#httpsappurlapiterminologyidfilter)<br>
  - If preferences for neither the `code` nor the `Terminology` exist an empty object 
  is returned.<br>
+
+ Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
+
+Example endpoint: https://[APPURL]/api/Terminology/[id]/filter[code]?table_id=[table_id]
 
 ```json
 {
@@ -639,6 +647,10 @@ This is the expected result after removing preferences with the URL code specify
 
 Return the reference to the preferred_terminology related to the `Terminology` (specified by id).<br>
 Returns the preferred_terminology at the Terminology("self") level. <br> Expected return example below.
+
+Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
+
+Example endpoint: https://[APPURL]/api/Terminology/[id]/preferred_terminology?table_id=[table_id]
 
 ```json
 {
@@ -1748,6 +1760,49 @@ This is the expected result after removing preferences with the URL code specify
     "study_code": {}
 }
 ```
+
+### https://[APPURL]/api/Table/[id]/preferred_terminology
+
+#### GET
+
+Return the reference to the preferred_terminology related to the `Table` (specified by id).<br>
+Returns the preferred_terminology at the Table("self") level. <br> Expected return example below.
+
+```json
+{
+    "references": [
+        {
+            "reference": "Terminology/tm--example1"
+        },
+        {
+            "reference": "Terminology/tm--example2"
+        }
+    ]
+}
+```
+
+#### PUT
+
+Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
+Request body example:
+ ```json
+{
+    "editor": "user24601",
+    "preferred_terminologies": [
+        {
+            "preferred_terminology": "tm--example1"
+        },
+        {
+            "preferred_terminology": "tm--example6"
+        }
+    ]
+}
+```
+
+#### DELETE
+Running the DELETE request will remove the preferred_terminology collection
+from the `Table` specified by the id
+
 ### https://[APPURL]/api/Provenance/Table/[id]
 #### GET
 Returns the provenance for the table itself. This includes information relating

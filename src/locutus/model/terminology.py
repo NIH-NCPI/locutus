@@ -686,6 +686,31 @@ class Terminology(Serializable):
             print(f"An error occurred while adding preferred terminology: {e}")
             raise
 
+    def remove_preferred_terminology(self):
+
+        try:
+            # Define the collection reference
+            collection_ref = persistence().collection(self.resource_type) \
+                .document(self.id).collection("preferred_terminology")
+
+            doc_ref = collection_ref.document("self")
+            doc_snapshot = doc_ref.get()
+
+            if doc_snapshot.exists:
+                # Delete the document if it exists
+                doc_ref.delete()
+                message = f"Successfully deleted preferences for '{self.id}'."
+            else:
+                message = f"No preferences found to delete for '{self.id}'."
+
+        except Exception as e:
+            message = f"An error occurred while deleting preferences for '{self.id}': {e}"
+            raise
+
+        print(message)
+
+        return message
+
     class _Schema(Schema):
         id = fields.Str()
         name = fields.Str(required=True)

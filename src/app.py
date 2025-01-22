@@ -15,6 +15,8 @@ from locutus.api.terminology import (
     Terminologies,
     TerminologyRenameCode,
     TerminologyEdit,
+)
+from locutus.api.preferences_term import (
     OntologyAPISearchPreferences,
     PreferredTerminology,
 )
@@ -26,7 +28,10 @@ from locutus.api.table import (
     HarmonyCSV,
     TableEdit,
     TableRenameCode,
+)
+from locutus.api.preferences_table import (
     TableOntologyAPISearchPreferences,
+    TablePreferredTerminology,
 )
 from locutus.api.table_mappings import TableMappings, TableMapping
 from locutus.api.table_load import TableLoader, TableLoader2
@@ -156,6 +161,10 @@ api.add_resource(
     endpoint="onto_var_preferences",
 )
 
+# GET/PUT/DELETE preferred_terminology sub-collection associated with a Table (shadow Terminology)
+api.add_resource(
+    TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
+)
 
 # POST
 api.add_resource(TableLoader, "/api/LoadTable")
