@@ -2299,7 +2299,8 @@ The following are **example results**  Not real data. <br>
 # Run Scripts
 ## sideloading scripts
 ### mapping_loader_table.py
-Map `Table` variables to `mappings` specified in a csv. Example csv below.
+Map existing `Table.variables` to the `mappings` specified in a csv. <br>
+Expected csv formatting seen below.<br>
 ```csv
 source_variable,source_enumeration,code,display,system,provenance,comment
 case_control_aaa,C99269,233985008,Abdominal aortic aneurysm,SNOMED,RJC,

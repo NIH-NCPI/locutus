@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+'''
+Map existing `Table.variables` to the `mappings` specified in a csv. 
+See more in the README.md
+'''
 
 import argparse
 import csv
