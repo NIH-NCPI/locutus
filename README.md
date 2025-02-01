@@ -2295,3 +2295,21 @@ The following are **example results**  Not real data. <br>
     "more_results_available": true
 }
 ```
+
+# Run Scripts
+## sideloading scripts
+### mapping_loader_table.py
+Map `Table` variables to `mappings` specified in a csv. Example csv below.
+```csv
+source_variable,source_enumeration,code,display,system,provenance,comment
+case_control_aaa,C99269,233985008,Abdominal aortic aneurysm,SNOMED,RJC,
+```
+Run an edited version of this script from the root directory.<br>
+* -e choices=["DEV", "UAT", "ALPHA", "PROD"]
+```bash
+# run command
+python -m scripts.mapping_loader_table -e {environment} -p {project_id} -f data/input/{filename}.csv -t {db table id}
+
+# For argument descriptions use the help command
+python -m scripts.mapping_loader_table -h
+```

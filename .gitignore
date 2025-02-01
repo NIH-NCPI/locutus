@@ -9,6 +9,10 @@ runlocal.sh
 .env
 flask_session
 
+# Data and temporary files
+*.log
+*.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
