@@ -8,10 +8,9 @@ import argparse
 import csv
 import logging
 from datetime import date
-from src.locutus.model.table import Table
-from src.locutus.model.user_input import MappingConversations
-from src.locutus.model.terminology import Terminology as Term, CodingMapping
-from locutus import clean_varname
+from locutus.model.table import Table
+from locutus.model.user_input import MappingConversations
+from locutus.model.terminology import Terminology as Term, CodingMapping
 from scripts import set_logging_config, update_gcloud_project
 
 import pdb
@@ -27,24 +26,43 @@ def process_csv(file, table):
     # Build a lookup that we can use to map the variable names to
     # their respective terminologies
     enumerations = {}
-
     # varname => reference to terminology
     for variable in table.variables:
-        if "/" in variable.code:
-            print(f"Whoops! {variable.code}")
-            pdb.set_trace()
-        enumerations[variable.code] = variable.enumerations
+        # Map to the Enumerations if available
+        if hasattr(variable, "enumerations"):
+            if "/" in variable.code:
+                print(f"Whoops! {variable.code}")
+                pdb.set_trace()
+            enumerations[variable.code] = variable.enumerations
+            print(f"Setting enumerations for {variable.enumerations}")
+        elif not hasattr(variable, "enumerations"):
+            if "/" in variable.code:
+                print(f"Whoops! {variable.code}")
+                pdb.set_trace()
+            enumerations[variable.code] = variable.code
+            print(f"Setting enumerations for {variable.code}")
+        else:
+            print(
+                f"SKIPPING:{variable.code}, DTYPE:{variable.data_type}, No enumerations to set. ")
 
     print(enumerations)
     # pdb.set_trace()
+
+    illegal_enums = ['NA',""]
 
     csv_reader = csv.DictReader(file)
     user_input = MappingConversations()
     for row in csv_reader:
         source_variable = row["source_variable"]  # Terminology
-        source_enumeration = clean_varname(
-            row["source_enumeration"].strip()
-        )  # Mapped Subject
+
+        # The code being mapped. A Variable, or a Variable's Enumeration.
+        source_enumeration = row.get("source_enumeration")
+        if source_enumeration is None or source_enumeration.strip() in illegal_enums:
+            source_enumeration = source_variable
+            print(f"MAPPING {source_variable} to 'source_variable' because no source_enumeration is supplied.")
+        else:
+            source_enumeration = source_enumeration.strip()  
+
         system = row.get("system")
         codes = [x.strip() for x in row["code"].split(",")]
         displays = row.get("display").split(",")
@@ -77,7 +95,13 @@ def process_csv(file, table):
                         print(
                             f"{source_variable}.{source_enumeration} + {code}({display})"
                         )
-                        t = enumerations[source_variable].dereference()
+
+                        # Use the Table's shadow Terminology to map Variables
+                        if source_variable == source_enumeration:
+                            t = table.terminology.dereference()
+                        # Use the Enumeration's Terminology to map Enumerations
+                        else:
+                            t = enumerations[source_variable].dereference()
 
                         codings = [
                             x
@@ -101,6 +125,8 @@ def process_csv(file, table):
                                 type="mapping_conversations",
                                 body=comment,
                             )
+                    else:
+                        print(f"skipping {source_variable}")
 
 
 def load_data(project_id, table_id, file):
@@ -136,6 +162,7 @@ if __name__ == "__main__":
         help="GCP Project to edit (if not part of a standard environment)",
     )
     parser.add_argument("-f", "--file", type=argparse.FileType("rt"))
+
     parser.add_argument(
         "-t", "--table-id", help="Which table the data can be found in."
     )

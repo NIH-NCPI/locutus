@@ -39,3 +39,13 @@ def update_gcloud_project(project_id):
         logging.info(f"Project updated successfully: {project_id}")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error updating project: {e}")
+
+def clean_varname(name):
+    # Does not lower the var name as the locutus function does.
+    return (
+        name.replace(" ", "_")
+        .replace("(", "")
+        .replace(")", "")
+        .replace("'", "")
+        .replace('"', "")
+    )
