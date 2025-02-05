@@ -15,7 +15,6 @@ from datetime import datetime
 import time
 
 from locutus.model.user_input import UserInput
-from sessions import SessionManager
 
 
 """
