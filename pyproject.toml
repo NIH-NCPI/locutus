@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 #version_file = "locutus/_version.py"
 
 [project]
-name = "lucutus"
+name = "locutus"
 authors = [
     {name = "Eric Torstenson", email="eric.s.torstenson@vumc.org"}
 ]
