@@ -10,7 +10,7 @@ Current Use:
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 from locutus.api import generate_paired_string, get_editor
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 from locutus.model.exceptions import *
 
 USER_INPUT_CHAR_LIMIT = 1000
