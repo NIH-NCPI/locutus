@@ -92,36 +92,4 @@ class SessionManager:
         else:
             return {"message": f"No active session. Session object: {session}"}, 404
 
-    def create_user_id(editor):
-        """
-        Attempts to retrieve the user ID from the session or the provided editor ID.
-
-        Args:
-            editor (str, optional): The editor specified by the request body, if provided.
-
-        Returns:
-            editor="editor" or editor=None
-        """
-        if 'user_id' in session:
-            logging.info(f"The session is active. Session object: {session}")
-            return session['user_id']
-        elif editor:
-            logging.info(
-                f"The session is not active. Falling back to the existing editor: {editor}"
-            )
-            return editor
-        else:
-            logging.info(
-                f"The session is not active. There is no editor defined. editor: {editor}"
-            )
-            return None
-
-    def create_current_datetime():
-        """
-        Creates a formatted string of the current date and time.
-
-        Returns:
-            str: The current date and time as a string.
-        """
-        current_date = datetime.now().strftime("%b %d, %Y, %I:%M:%S.%f %p")
-        return current_date    
+    

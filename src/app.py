@@ -50,7 +50,7 @@ from locutus.api.datadictionary import (
 from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
 from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
 
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 
 from locutus.api.user_input import TerminologyUserInput
 
