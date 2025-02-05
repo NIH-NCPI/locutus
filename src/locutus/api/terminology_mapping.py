@@ -15,7 +15,7 @@ from locutus.model.terminology import (
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.model.terminology_mapping import MappingRelationshipModel
 from locutus.model.exceptions import *
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
 

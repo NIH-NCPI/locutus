@@ -3,7 +3,7 @@ from flask import request
 from locutus.model.terminology import Terminology as Term
 from locutus.model.exceptions import *
 from locutus.api import default_headers
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 from locutus.model.user_input import UserInput
 
 class TerminologyUserInput(Resource, UserInput):

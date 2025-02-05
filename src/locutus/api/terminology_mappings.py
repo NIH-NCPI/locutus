@@ -5,7 +5,8 @@ from locutus.model.terminology import Terminology as Term, MappingUserInputModel
 from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
-from sessions import SessionManager
+from locutus.sessions import SessionManager
+import pdb
 
 
 class TerminologyMappings(Resource):
