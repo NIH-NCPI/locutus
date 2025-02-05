@@ -5,6 +5,7 @@ import logging
 
 _persistence = None
 
+PROVENANCE_TIMESTAMP_FORMAT = "%Y-%m-%d %I:%M:%S%p"
 
 def strip_none(value):
     if value is None or value.strip() == "":
