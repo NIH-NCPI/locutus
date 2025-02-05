@@ -1,7 +1,6 @@
 # For now, we'll use my dumb JSON persistence storage
 # from locutus.storage import JStore
 from locutus.storage.firestore import persistence
-
 import logging
 
 _persistence = None

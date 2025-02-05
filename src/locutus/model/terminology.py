@@ -11,7 +11,7 @@ from locutus.api import generate_paired_string
 import time
 
 from locutus.model.user_input import UserInput
-from locutus.sessions import SessionManager
+from sessions import SessionManager
 
 import pdb
 

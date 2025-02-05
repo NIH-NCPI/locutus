@@ -1,4 +1,4 @@
-from locutus.sessions import SessionManager
+from sessions import SessionManager
 
 default_headers = [
     ("Content-Type", "application/fhir+json"),
