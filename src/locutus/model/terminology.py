@@ -1,6 +1,6 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from src.locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT
+from locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT
 from locutus.api import delete_collection
 from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
 from locutus.model.enumerations import *
