@@ -92,12 +92,13 @@ class SessionManager:
         else:
             return {"message": f"No active session. Session object: {session}"}, 404
 
-    
     def create_user_id(editor):
         """
         Attempts to retrieve the user ID from the session or the provided editor ID.
+
         Args:
             editor (str, optional): The editor specified by the request body, if provided.
+
         Returns:
             editor="editor" or editor=None
         """
@@ -118,6 +119,7 @@ class SessionManager:
     def create_current_datetime():
         """
         Creates a formatted string of the current date and time.
+
         Returns:
             str: The current date and time as a string.
         """
