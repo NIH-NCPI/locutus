@@ -142,7 +142,10 @@ class TableLoader(Resource):
                         term = {"code": code, "system": url}
                         if description is not None:
                             term["display"] = description
+                        else:
+                            term["display"] = code
 
+                        code = clean_varname(code)
                         terminology["codes"].append(term)
 
                     rich.print(terminology)

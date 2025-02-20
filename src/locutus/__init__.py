@@ -25,6 +25,7 @@ def clean_varname(name):
         .replace(")", "")
         .replace("'", "")
         .replace('"', "")
+        .replace("/", "_")
     )
 
 # Set the logging config
