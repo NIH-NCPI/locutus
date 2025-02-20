@@ -1,6 +1,6 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
+from locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT
 from locutus.api import delete_collection
 from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
 from locutus.model.enumerations import *
@@ -402,7 +402,7 @@ class Terminology(Serializable):
                     if "timestamp" in change:
                         if type(change["timestamp"]) is not str:
                             change["timestamp"] = change["timestamp"].strftime(
-                                "%Y-%m-%d %I:%M%p"
+                                PROVENANCE_TIMESTAMP_FORMAT
                             )
                 prov[id] = prv
         else:
@@ -423,7 +423,7 @@ class Terminology(Serializable):
                     if "timestamp" in change:
                         if type(change["timestamp"]) is not str:
                             change["timestamp"] = change["timestamp"].strftime(
-                                "%Y-%m-%d %I:%M%p"
+                                PROVENANCE_TIMESTAMP_FORMAT
                             )
             else:
                 prov[code] = []
@@ -439,7 +439,7 @@ class Terminology(Serializable):
         if timestamp is None:
             timestamp = datetime.now()
 
-        timestamp = timestamp.strftime("%Y-%m-%d %I:%M%p")
+        timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
         # cur_prov = None
         cur_prov = self.get_provenance(target)[target]
         if cur_prov is None or type(cur_prov) is list:
