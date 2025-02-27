@@ -307,54 +307,56 @@ Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping?user_input=True)
 
 ```json
 {
-    "terminology": {
-        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
-    },
-    "mappings": [
+  "terminology": {
+    "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+  },
+  "mappings": [
+    {
+      "code": "Female",
+      "codes": [
         {
-            "code": "Female",
-            "codes": [
-                {
-                    "code": "female",
-                    "display": "Female",
-                    "mapping_relationship":"",
-                    "system": "http://hl7.org/fhir/administrative-gender",
-                    "valid": true
-                }
-            ]
+          "code": "female",
+          "display": "Female",
+          "mapping_relationship": "",
+          "system": "http://hl7.org/fhir/administrative-gender",
+          "valid": true
         }
-    ]
+      ]
+    }
+  ]
 }
 ```
+
 User_input example output. An active session is required to retrieve the 'users_vote'.
 If none exists, 'users_vote' will be an empty string.
+
 ```json
 {
-    "terminology": {
-        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
-    },
-    "mappings": [
+  "terminology": {
+    "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+  },
+  "mappings": [
+    {
+      "code": "Female",
+      "codes": [
         {
-            "code": "Female",
-            "codes": [
-                {
-                    "code": "female",
-                    "display": "Female",
-                    "mapping_relationship":"",
-                    "system": "http://hl7.org/fhir/administrative-gender",
-                    "valid": true,
-                    "user_input": {
-                        "comments_count": 1,
-                        "votes_count": {
-                            "up": 1,
-                            "down": 0
-                        },
-                        "users_vote": "up"
-                    }
-                }
-            ]
+          "code": "female",
+          "display": "Female",
+          "mapping_relationship": "",
+          "system": "http://hl7.org/fhir/administrative-gender",
+          "valid": true,
+          "user_input": {
+            "comments_count": 1,
+            "votes_count": {
+              "up": 1,
+              "down": 0
+            },
+            "users_vote": "up"
+          }
         }
-    ]
+      ]
+    }
+  ]
 }
 ```
 
@@ -373,57 +375,57 @@ Example endpoint: https://[APPURL]/api/Terminology/[id]/mapping/[code]?user_inpu
 
 ```json
 {
-    "codes": [
+  "codes": [
+    {
+      "code": "female_ex",
+      "codes": [
         {
-            "code": "female_ex",
-            "codes": [
-                {
-                    "code": "femalee",
-                    "display": "feMale",
-                    "mapping_relationship":"equivalent",
-                    "system": "http://hl7.org/fhir/administrative-gender",
-                    "valid": true
-                }
-            ]
+          "code": "femalee",
+          "display": "feMale",
+          "mapping_relationship": "equivalent",
+          "system": "http://hl7.org/fhir/administrative-gender",
+          "valid": true
         }
-    ],
-    "terminology": {
-        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+      ]
     }
+  ],
+  "terminology": {
+    "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+  }
 }
 ```
+
 User_input example output. An active session is required to retrieve the 'users_vote'.
 If none exists, 'users_vote' will be an empty string.
+
 ```json
 {
-    "codes": [
+  "codes": [
+    {
+      "code": "female_ex",
+      "codes": [
         {
-            "code": "female_ex",
-            "codes": [
-                {
-                    "code": "femalee",
-                    "display": "feMale",
-                    "mapping_relationship":"equivalent",
-                    "system": "http://hl7.org/fhir/administrative-gender",
-                    "valid": true,
-                    "user_input": {
-                        "comments_count": 1,
-                        "votes_count": {
-                            "up": 1,
-                            "down": 0
-                        },
-                        "users_vote": "up"
-                    }
-                }
-            ]
+          "code": "femalee",
+          "display": "feMale",
+          "mapping_relationship": "equivalent",
+          "system": "http://hl7.org/fhir/administrative-gender",
+          "valid": true,
+          "user_input": {
+            "comments_count": 1,
+            "votes_count": {
+              "up": 1,
+              "down": 0
+            },
+            "users_vote": "up"
+          }
         }
-    ],
-    "terminology": {
-        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+      ]
     }
+  ],
+  "terminology": {
+    "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+  }
 }
-
-
 ```
 
 #### PUT
@@ -541,45 +543,43 @@ Returns the api search preferences at the Terminology("self") level. <br> Expect
 Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
 
 Example endpoint: https://[APPURL]/api/Terminology/[id]/filter?table_id=[table_id]
+
 ```json
 {
-    "self": {
-        "api_preference": {
-            "ex_api": [
-                "ontology1",
-                "onto2"
-            ]
-        }
+  "self": {
+    "api_preference": {
+      "ex_api": ["ontology1", "onto2"]
     }
+  }
 }
 ```
 
 #### PUT
 
-Update a api search preference for the terminology (specified by id). <br> 
-See the [POST request](#term_id_filter_post) for this endpoint for a 
+Update a api search preference for the terminology (specified by id). <br>
+See the [POST request](#term_id_filter_post) for this endpoint for a
 request body example
 
 <h4 id="term_id_filter_post">POST</h4>
 
-Create the api search preference for the terminology (specified by id). <br> 
+Create the api search preference for the terminology (specified by id). <br>
 Request body example:
- ```json
- {
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
+
+```json
+{
+  "api_preference": {
+    "ex_api": ["ex_onto", "ex_onto2"]
+  }
 }
 ```
 
 #### DELETE
 
-Delete the api search preference for the terminology (specified by id). <br> 
+Delete the api search preference for the terminology (specified by id). <br>
 This is the expected result after removing preferences with the URL without specifying a code.
+
 ```json
-
 {}
-
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/filter/[code]
@@ -587,57 +587,56 @@ This is the expected result after removing preferences with the URL without spec
 <h4 id="term_id_filter_code_get">GET</h4>
 
 Return the api search preference for the code within a specific terminology
-(specified by id).<br> 
+(specified by id).<br>
 
 The response below would be the result of specifying 'T21' as the `code` in the request.<br>
- - If preferences for the `code` do not exist the endpoint will fallback to use any
-preferences found for the `Terminology`(code:'self'). Example seen [HERE](#httpsappurlapiterminologyidfilter)<br>
- - If preferences for neither the `code` nor the `Terminology` exist an empty object 
- is returned.<br>
 
- Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
+- If preferences for the `code` do not exist the endpoint will fallback to use any
+  preferences found for the `Terminology`(code:'self'). Example seen [HERE](#httpsappurlapiterminologyidfilter)<br>
+- If preferences for neither the `code` nor the `Terminology` exist an empty object
+  is returned.<br>
+
+Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
 
 Example endpoint: https://[APPURL]/api/Terminology/[id]/filter/[code]?table_id=[table_id]
 
 ```json
 {
-    "T21": {
-        "api_preference": {
-            "ex_api": [
-                "ex_onto",
-                "ex_onto2"
-            ]
-        }
+  "T21": {
+    "api_preference": {
+      "ex_api": ["ex_onto", "ex_onto2"]
     }
+  }
 }
 ```
 
-
 #### PUT
 
-Create a api search preference for the code within a specific terminology (specified by id). <br> 
+Create a api search preference for the code within a specific terminology (specified by id). <br>
 See [POST request](#term_id_filter_code_post) for an example request body.
 
 <h4 id="term_id_filter_code_post">POST</h4>
 
-Update the api search preference for the code within a specific terminology (specified by id). <br> 
+Update the api search preference for the code within a specific terminology (specified by id). <br>
 In the example below T21 was specified as the code.<br> Check out the [GET request](#term_id_filter_code_get) of this endpoint for a visual of the created preference.
 Request body example:
- ```json
- {
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
+
+```json
+{
+  "api_preference": {
+    "ex_api": ["ex_onto", "ex_onto2"]
+  }
 }
 ```
 
 #### DELETE
 
-Delete the api search preference for the code within a specific terminology (specified by id).  <br> \
+Delete the api search preference for the code within a specific terminology (specified by id). <br> \
 This is the expected result after removing preferences with the URL code specifying 'T21'.
+
 ```json
 {
-    "T21": {}
+  "T21": {}
 }
 ```
 
@@ -654,46 +653,48 @@ Example endpoint: https://[APPURL]/api/Terminology/[id]/preferred_terminology?ta
 
 ```json
 {
-    "references": [
-        {
-            "reference": "Terminology/tm--example1"
-        },
-        {
-            "reference": "Terminology/tm--example2"
-        }
-    ]
+  "references": [
+    {
+      "reference": "Terminology/tm--example1"
+    },
+    {
+      "reference": "Terminology/tm--example2"
+    }
+  ]
 }
 ```
 
 #### PUT
 
-Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
+Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br>
 Request body example:
- ```json
+
+```json
 {
-    "editor": "user24601",
-    "preferred_terminologies": [
-        {
-            "preferred_terminology": "tm--example1"
-        },
-        {
-            "preferred_terminology": "tm--example6"
-        }
-    ]
+  "editor": "user24601",
+  "preferred_terminologies": [
+    {
+      "preferred_terminology": "tm--example1"
+    },
+    {
+      "preferred_terminology": "tm--example6"
+    }
+  ]
 }
 ```
 
 #### DELETE
+
 Running the DELETE request will remove the preferred_terminology collection
 from the `Terminology` specified by the id
 
 ### https://[APPURL]/api/Terminology/[id]/user_input/[code]/mapping/[mapped_code]/[type]
-  
-  * id (str): The document ID.
-  * code (str): The target document (mapping) identifier.
-  * mapped_code (str): The code being mapped to the target.
-  * type (str): The type of input to retrieve 
-     - currently available: "mapping_conversations","mapping_votes".
+
+- id (str): The document ID.
+- code (str): The target document (mapping) identifier.
+- mapped_code (str): The code being mapped to the target.
+- type (str): The type of input to retrieve
+  - currently available: "mapping_conversations","mapping_votes".
 
 #### GET
 
@@ -705,15 +706,15 @@ Expected return for type `mapping_votes` below
 
 ```json
 {
-    "Terminology": "tm-C8IP8Cw_0M_hHWeLl5WP3",
-    "code": "type 2 diabetes",
-    "mapped_code": "Type 2 diabetes mellitus",
-    "mapping_votes": {
-        "user24601": {
-            "date": "Nov 17, 2024, 01:58:39.197679 PM",
-            "vote": "up"
-        }
+  "Terminology": "tm-C8IP8Cw_0M_hHWeLl5WP3",
+  "code": "type 2 diabetes",
+  "mapped_code": "Type 2 diabetes mellitus",
+  "mapping_votes": {
+    "user24601": {
+      "date": "Nov 17, 2024, 01:58:39.197679 PM",
+      "vote": "up"
     }
+  }
 }
 ```
 
@@ -721,80 +722,89 @@ Expected return for type `mapping_conversations` below
 
 ```json
 {
-    "Terminology": "tm--2VjOxekLP8m28EPRqk95",
-    "code": "type 2 diabetes",
-    "mapped_code": "Type 2 diabetes mellitus",
-    "mapping_conversations": [
-        {
-            "date": "Oct 04, 2024, 04:17:43.043579 PM",
-            "user_id": "user24601",
-            "note": "I like this mapping"
-        },
-        {
-            "date": "Oct 04, 2024, 04:21:15.460040 PM",
-            "user_id": "user525600",
-            "note": "I dont like this mapping"
-        }
-    ]
+  "Terminology": "tm--2VjOxekLP8m28EPRqk95",
+  "code": "type 2 diabetes",
+  "mapped_code": "Type 2 diabetes mellitus",
+  "mapping_conversations": [
+    {
+      "date": "Oct 04, 2024, 04:17:43.043579 PM",
+      "user_id": "user24601",
+      "note": "I like this mapping"
+    },
+    {
+      "date": "Oct 04, 2024, 04:21:15.460040 PM",
+      "user_id": "user525600",
+      "note": "I dont like this mapping"
+    }
+  ]
 }
 ```
 
 #### PUT
 
-Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br> 
+Create a `user_input` record of the `type` specified in `Terminology`(specified by id). <br>
 
 Request body example for `mapping_conversations` :
+
 # editor is only required if not using sessions
- ```json
+
+```json
 {
-    "editor": "user24601",
-    "note": "I dont like this mapping"
+  "editor": "user24601",
+  "note": "I dont like this mapping"
 }
 ```
 
 Request body example for `mapping_votes` :
+
 # editor is only required if not using sessions
- ```json
+
+```json
 {
-    "editor": "user525600",
-    "vote": "up"
+  "editor": "user525600",
+  "vote": "up"
 }
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/mapping_relationship/[code]/mapping/[mapped_code]
-There is not currently a endpoint for getting a mappings(code/mapped_code) relationship 
+
+There is not currently a endpoint for getting a mappings(code/mapped_code) relationship
 alone. Use the endpoint for getting all mappings for a single code. [more here](#httpsappurlapiterminologyidmappingcode)
 
-A mapping may not have the mapping_relationship value set. But a returned 
+A mapping may not have the mapping_relationship value set. But a returned
 mapping will always have a mapping_relationship attribute.
 
 #### PUT - Updating a mapping_relationship
+
 Mapping_relationship can be set to the codes in the `ftd-concept-map-relationship` `Terminology` or to an empty string "". <br>
 Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`source-is-narrower-than-target`,`source-is-broader-than-target` ]
 
- ```json
+```json
 {
-  "mapping_relationship":"equivalent",
+  "mapping_relationship": "equivalent",
   "editor": "user24601"
 }
 ```
 
-
 ## Terminology Provenance
-Provenance is tracked for all changes to a terminology or one of the terms 
-associated with the terminology. This includes adding and removing codes, 
-editing code properties as well as adding and removing mappings. 
+
+Provenance is tracked for all changes to a terminology or one of the terms
+associated with the terminology. This includes adding and removing codes,
+editing code properties as well as adding and removing mappings.
 
 ### https://[APPURL]/api/Provenance/Terminology/[id]
+
 #### GET
+
 This endpoint will return changes to the terminology itself, including adding,
-editing and removing codes. 
+editing and removing codes.
 
 Please see the documentation for the Table provenance for more details.
 
 ### https://[APPURL]/api/Provenance/Terminology/[id]/code/[code]
-This endpoint will return the provenance associated with the mappings of a 
-single code within the terminology. 
+
+This endpoint will return the provenance associated with the mappings of a
+single code within the terminology.
 
 Please see the documentation for the Table provenance for more details.
 
@@ -1541,9 +1551,9 @@ reflected in the response).
 
 If the variable doesn't exist, then a 404 error is returned.
 
-It should be noted that if you delete an enumerated variable, the terminology 
+It should be noted that if you delete an enumerated variable, the terminology
 referenced will not be deleted. The reason being that we can theoretically have
-many variables using the same terminology for similar variables. 
+many variables using the same terminology for similar variables.
 
 ### https://[APPURL]/api/Table/[id]/harmony
 
@@ -1594,7 +1604,6 @@ Returns a list of all mappings from the table and their associated 'user_input'
 if requested. (See example of the matching
 terminology endpoint for details.)
 
-
 #### DELETE
 
 Soft delete all mappings associated with codes from the table's shadow terminology.
@@ -1607,6 +1616,8 @@ The mappings 'valid' field is set to 'false'
 Returns mappings for a specific code and their associated 'user_input'
 if requested. (from the shadow terminology. See example of the matching
 terminology endpoint for details.)
+Optionally, it can include additional user input data if the user_input parameter is provided.
+Example endpoint: https://[APPURL]/api/Table/[id]/mapping?user_input=True&user=[user]
 
 #### PUT
 
@@ -1619,6 +1630,84 @@ See corresponding endpoint for Terminology for more details.
 
 Soft delete the mappings currently associated with a given code from the table's
 shadow terminology. The mappings 'valid' field is set to 'false'.
+
+### https://[APPURL]/api/Table/[id]/user_input/[code]/mapping/[mapped_code]/[type]
+
+- id (str): The document ID.
+- code (str): The target document (mapping) identifier.
+- mapped_code (str): The code being mapped to the target.
+- type (str): The type of input to retrieve
+  - currently available: "mapping_conversations","mapping_votes".
+
+#### GET
+
+Return the reference to the `user_input` `type` related to the `Table` (specified by id).
+Returns all records of the `type` at the `code` level, in reverse order
+from whence they were stored, with newer records on top.
+
+Expected return for type `mapping_votes` below
+
+```json
+{
+  "Table": "tb-SwBjPP_pLv0sOdybjsUMR",
+  "code": "participant_external_id",
+  "mapped_code": "NCIT:C25599",
+  "mapping_votes": {
+    "user123": {
+      "date": "Feb 25, 2025, 03:32:09.015505 PM",
+      "vote": "up"
+    }
+  }
+}
+```
+
+Expected return for type `mapping_conversations` below
+
+```json
+{
+  "Table": "tb-SwBjPP_pLv0sOdybjsUMR",
+  "code": "participant_external_id",
+  "mapped_code": "NCIT:C25599",
+  "mapping_conversations": [
+    {
+      "user_id": "user123",
+      "date": "Feb 25, 2025, 03:35:11.682232 PM",
+      "note": "I don't like this mapping"
+    },
+    {
+      "user_id": "user456",
+      "date": "Feb 25, 2025, 03:33:53.504690 PM",
+      "note": "I like this mapping"
+    }
+  ]
+}
+```
+
+#### PUT
+
+Create a `user_input` record of the `type` specified in `Table`(specified by id).
+
+Request body example for `mapping_conversations` :
+
+# editor is only required if not using sessions
+
+```json
+{
+  "editor": "user456",
+  "note": "I dont like this mapping"
+}
+```
+
+Request body example for `mapping_votes` :
+
+# editor is only required if not using sessions
+
+```json
+{
+  "editor": "user123",
+  "vote": "up"
+}
+```
 
 ### https://[APPURL]/api/Table/[id]/rename
 
@@ -1665,42 +1754,42 @@ Upon completion, 200 is returned along with the full table definition.
 
 <h4 id="table_id_filter_get">GET</h4>
 
-Return the api search preferences for a specific table (with a given id). <br> 
+Return the api search preferences for a specific table (with a given id). <br>
 Returns the api search preferences at the Table("self") level.
-Below is an example result body. 
+Below is an example result body.
+
 ```json
 {
-    "self": {
-        "api_preference": {
-            "ex_api": [
-                "ontology1",
-                "onto2"
-            ]
-        }
+  "self": {
+    "api_preference": {
+      "ex_api": ["ontology1", "onto2"]
     }
+  }
 }
 ```
 
 #### PUT
 
-Create a api search preference for a specific table (with a given id). <br> 
+Create a api search preference for a specific table (with a given id). <br>
 See the [POST request](#table_id_filter_post) an example request body for this endpoint.
 
 <h4 id="table_id_filter_post">POST</h4>
 
 Update the api search preferences for a specific table (with a given id). <br>
 Request body example:
- ```json
+
+```json
 {
-    "api_preference": {
-        "ex_api": ["ontology1", "onto2"]
-    }
+  "api_preference": {
+    "ex_api": ["ontology1", "onto2"]
+  }
 }
 ```
 
 #### DELETE
 
 Delete the api search preferences for a specific table (with a given id). An example of the data after removal shown below.
+
 ```json
 {}
 ```
@@ -1709,55 +1798,54 @@ Delete the api search preferences for a specific table (with a given id). An exa
 
 <h4 id="table_id_filter_code_get">GET</h4>
 
-Return the api search preference for the variable (specified by code) within 
-a specific table (specified by id). <br> 
-The response below would be the result of specifying 'study_code' as the `code` 
+Return the api search preference for the variable (specified by code) within
+a specific table (specified by id). <br>
+The response below would be the result of specifying 'study_code' as the `code`
 in the request. <br> **Note:** If no preferences for the code(ie 'study_code') exist the
 request will retrieve any existing preferences for at the Table level. [Example results](#table_id_filter_get)
+
 ```json
 {
-    "study_code": {
-        "api_preference": {
-            "ex_api": [
-                "ontology1",
-                "onto2"
-            ]
-        }
+  "study_code": {
+    "api_preference": {
+      "ex_api": ["ontology1", "onto2"]
     }
+  }
 }
 ```
 
 #### PUT
 
-Update a api search preference for the variable (specified by code) within 
-a specific table (specified by id). 
-See the [POST request](#table_id_filter_code_post) for an example request body. 
+Update a api search preference for the variable (specified by code) within
+a specific table (specified by id).
+See the [POST request](#table_id_filter_code_post) for an example request body.
 
 <h4 id="table_id_filter_code_post">POST</h4>
 
-Create the api search preferences for the variable (specified by code) within 
+Create the api search preferences for the variable (specified by code) within
 a specific table (specified by id). <br>
 Specifying 'study_code' as the `code` in the request will add this preference
 to the variable as seen in this endpoints [GET request](#table_id_filter_code_get). <br>
 Request body example:
+
 ```json
 {
-    "api_preference": {
-        "ex_api": ["ex_onto", "ex_onto2"]
-    }
+  "api_preference": {
+    "ex_api": ["ex_onto", "ex_onto2"]
+  }
 }
 ```
 
-
 #### DELETE
 
-Delete the api search preference for the variable (specified by code) within 
+Delete the api search preference for the variable (specified by code) within
 a specific table (specified by id).  
 This is the expected result after removing preferences with the URL code specifying
 'study_code'.
+
 ```json
 {
-    "study_code": {}
+  "study_code": {}
 }
 ```
 
@@ -1770,82 +1858,90 @@ Returns the preferred_terminology at the Table("self") level. <br> Expected retu
 
 ```json
 {
-    "references": [
-        {
-            "reference": "Terminology/tm--example1"
-        },
-        {
-            "reference": "Terminology/tm--example2"
-        }
-    ]
+  "references": [
+    {
+      "reference": "Terminology/tm--example1"
+    },
+    {
+      "reference": "Terminology/tm--example2"
+    }
+  ]
 }
 ```
 
 #### PUT
 
-Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br> 
+Create or replace references to a prefered `Terminology` for the terminology (specified by id). <br>
 Request body example:
- ```json
+
+```json
 {
-    "editor": "user24601",
-    "preferred_terminologies": [
-        {
-            "preferred_terminology": "tm--example1"
-        },
-        {
-            "preferred_terminology": "tm--example6"
-        }
-    ]
+  "editor": "user24601",
+  "preferred_terminologies": [
+    {
+      "preferred_terminology": "tm--example1"
+    },
+    {
+      "preferred_terminology": "tm--example6"
+    }
+  ]
 }
 ```
 
 #### DELETE
+
 Running the DELETE request will remove the preferred_terminology collection
 from the `Table` specified by the id
 
 ### https://[APPURL]/api/Provenance/Table/[id]
+
 #### GET
+
 Returns the provenance for the table itself. This includes information relating
-to adding, editing and removing variables. 
+to adding, editing and removing variables.
 
 Example results:
+
 ```json
 {
-    "table": {
-        "Reference": "Table/tb-Fyf0T0ujF_-qOmWbPLGoN"
-    },
-    "provenance": {
-        "self": {
-            "target": "self",
-            "changes": [
-                {
-                    "target": "self",
-                    "action": "Add Term",
-                    "new_value": "junk",
-                    "timestamp": "2024-Aug-01 11:41AM",
-                    "editor": "eric.s.torstenson@vumc.org"
-                },
-                {
-                    "target": "self",
-                    "action": "Remove Term",
-                    "new_value": "junk",
-                    "timestamp": "2024-08-01 11:41AM",
-                    "editor": "eric.s.torstenson@vumc.org"
-                }
-            ]
+  "table": {
+    "Reference": "Table/tb-Fyf0T0ujF_-qOmWbPLGoN"
+  },
+  "provenance": {
+    "self": {
+      "target": "self",
+      "changes": [
+        {
+          "target": "self",
+          "action": "Add Term",
+          "new_value": "junk",
+          "timestamp": "2024-Aug-01 11:41AM",
+          "editor": "eric.s.torstenson@vumc.org"
+        },
+        {
+          "target": "self",
+          "action": "Remove Term",
+          "new_value": "junk",
+          "timestamp": "2024-08-01 11:41AM",
+          "editor": "eric.s.torstenson@vumc.org"
         }
+      ]
     }
+  }
 }
 ```
 
 ### https://[APPURL]/api/Provenance/Table/[id]/code/[code]
+
 #### GET
+
 To get the provenance of an individual variable inside a table, use this form
-of the endpoint URL, where code is the variable's underlying code. A special 
-variable has been created, ALL, which will return the provenance for all 
-variables in the table. 
+of the endpoint URL, where code is the variable's underlying code. A special
+variable has been created, ALL, which will return the provenance for all
+variables in the table.
 
 Example:
+
 ```
 {
     "table": {
@@ -1883,9 +1979,10 @@ Example:
 }
 ```
 
-For ALL variables, each variable will appear as keys within the provenance object. 
+For ALL variables, each variable will appear as keys within the provenance object.
 
-A highly truncated example can be seen below. 
+A highly truncated example can be seen below.
+
 ```
 {
     "table": {
@@ -1918,7 +2015,6 @@ A highly truncated example can be seen below.
     }
 }
 ```
-
 
 ### https://[APPURL]/api/Study
 
@@ -2123,7 +2219,6 @@ Replace resource with the body at the given ID
 
 Removes the specified data dictionary associated with the given ID
 
-
 ## OntologyAPI:
 
 ### https://[APPURL]/api/OntologyAPI
@@ -2134,48 +2229,48 @@ Returns all availiable Ontology APIs and their details
 
 ```json
 [
-    {
-        "api_name": "LOINC API",
-        "api_id": "loinc",
-        "api_url": "https://loinc.regenstrief.org/searchapi/",
-        "ontologies": [
-            {
-                "ontology_code": "loinc",
-                "ontology_title": "Logical Observation Identifiers, Names and Codes (LOINC)",
-                "system": "https://loinc.regenstrief.org/searchapi/",
-                "curie": "",
-                "version": ""
-            }
-        ]
-    },
-    {
-        "api_name": "Monarch API",
-        "api_id": "monarch",
-        "api_url": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
-        "ontologies": [
-            {
-                "ontology_code": "ecto",
-                "ontology_title": "Environmental Conditions, Treatments and Exposures Ontology",
-                "system": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
-                "curie": "ECTO",
-                "version": ""
-            }
-        ]
-    },
-    {
-        "api_name": "Ontology Lookup Service",
-        "api_id": "ols",
-        "api_url": "https://www.ebi.ac.uk/ols4/api/",
-        "ontologies": [
-            {
-                "ontology_code": "ngbo",
-                "ontology_title": " Next generation biobanking ontology(NGBO).",
-                "system": "https://www.ebi.ac.uk/ols4/api/",
-                "curie": "NGBO",
-                "version": "http://purl.obolibrary.org/obo/ngbo/2022-10-05/ngbo.owl"
-            },
-        ]
-    }      
+  {
+    "api_name": "LOINC API",
+    "api_id": "loinc",
+    "api_url": "https://loinc.regenstrief.org/searchapi/",
+    "ontologies": [
+      {
+        "ontology_code": "loinc",
+        "ontology_title": "Logical Observation Identifiers, Names and Codes (LOINC)",
+        "system": "https://loinc.regenstrief.org/searchapi/",
+        "curie": "",
+        "version": ""
+      }
+    ]
+  },
+  {
+    "api_name": "Monarch API",
+    "api_id": "monarch",
+    "api_url": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
+    "ontologies": [
+      {
+        "ontology_code": "ecto",
+        "ontology_title": "Environmental Conditions, Treatments and Exposures Ontology",
+        "system": "https://api-v3.monarchinitiative.org/v3/api/search?q=",
+        "curie": "ECTO",
+        "version": ""
+      }
+    ]
+  },
+  {
+    "api_name": "Ontology Lookup Service",
+    "api_id": "ols",
+    "api_url": "https://www.ebi.ac.uk/ols4/api/",
+    "ontologies": [
+      {
+        "ontology_code": "ngbo",
+        "ontology_title": " Next generation biobanking ontology(NGBO).",
+        "system": "https://www.ebi.ac.uk/ols4/api/",
+        "curie": "NGBO",
+        "version": "http://purl.obolibrary.org/obo/ngbo/2022-10-05/ngbo.owl"
+      }
+    ]
+  }
 ]
 ```
 
@@ -2187,27 +2282,22 @@ Returns the details for the Ontology API denoted by the API_ID
 
 ```json
 [
-    {
-        "api_name": "LOINC API",
-        "api_id": "loinc",
-        "api_url": "https://loinc.regenstrief.org/searchapi/",
-        "ontologies": [
-            {
-                "ontology_code": "loinc",
-                "ontology_title": "Logical Observation Identifiers, Names and Codes (LOINC)",
-                "system": "https://loinc.regenstrief.org/searchapi/",
-                "curie": "",
-                "version": ""
-            }
-        ]
-    },
-    200,
-    [
-        [
-            "Content-Type",
-            "application/fhir+json"
-        ]
+  {
+    "api_name": "LOINC API",
+    "api_id": "loinc",
+    "api_url": "https://loinc.regenstrief.org/searchapi/",
+    "ontologies": [
+      {
+        "ontology_code": "loinc",
+        "ontology_title": "Logical Observation Identifiers, Names and Codes (LOINC)",
+        "system": "https://loinc.regenstrief.org/searchapi/",
+        "curie": "",
+        "version": ""
+      }
     ]
+  },
+  200,
+  [["Content-Type", "application/fhir+json"]]
 ]
 ```
 
@@ -2215,83 +2305,86 @@ Returns the details for the Ontology API denoted by the API_ID
 
 #### GET
 
-Returns the default preferences for the user (TBD) or, if not set, then the application defaults. 
+Returns the default preferences for the user (TBD) or, if not set, then the application defaults.
+
 ```json
 {
-    "Application Default": {
-        "api_preference": {
-            "ols": [
-                "mondo",
-                "hp",
-                "maxo",
-                "ncit"
-            ]
-        }
+  "Application Default": {
+    "api_preference": {
+      "ols": ["mondo", "hp", "maxo", "ncit"]
     }
+  }
 }
 ```
-In the example return above, no session existed, so we return this under the "Application Default". Otherwise, it will be associated with the user's ID (or email).  
+
+In the example return above, no session existed, so we return this under the "Application Default". Otherwise, it will be associated with the user's ID (or email).
 
 ### https://[APPURL]/api/ontology_search?keyword=[KEYWORD]
 
 #### GET
-Three parameters are available, the `keyword` parameter is required. 
 
-* keyword
-    * Description: Keyword to search against the APIs
-    * Required: YES
+Three parameters are available, the `keyword` parameter is required.
 
-* selected_ontologies
-    * Description: User selected Ontologies
-    * Required: Yes
+- keyword
 
-* selected_api
-    * Description: APIs to include in the search
-    * Choices:
-        * `ols`: Gather data with the Ontology Lookup Service API.
-    * Required: Yes
+  - Description: Keyword to search against the APIs
+  - Required: YES
 
-  * results_per_page
-    * Description: Number of results requested from the ontology api.
-    * Required: Yes
+- selected_ontologies
 
-  * start_index
-    * Description: The number/index of the first requested result. 
-    * Ex: with a results_per_page of 100, the first page of results would have a start_index of 0. 
-    For the second page of results the start_index would be 100.
-    * Required: Yes
+  - Description: User selected Ontologies
+  - Required: Yes
 
-Example endpoint: 
-* https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols&results_per_page=100&start_index=0
+- selected_api
 
-The following are **example results**  Not real data. <br>
+  - Description: APIs to include in the search
+  - Choices:
+    - `ols`: Gather data with the Ontology Lookup Service API.
+  - Required: Yes
+
+  - results_per_page
+
+    - Description: Number of results requested from the ontology api.
+    - Required: Yes
+
+  - start_index
+    - Description: The number/index of the first requested result.
+    - Ex: with a results_per_page of 100, the first page of results would have a start_index of 0.
+      For the second page of results the start_index would be 100.
+    - Required: Yes
+
+Example endpoint:
+
+- https://[APPURL]/api/ontology_search?keyword=cat scratch fever&preferred_ontologies=CL,DUO&api=ols&results_per_page=100&start_index=0
+
+The following are **example results** Not real data. <br>
 
 ```json
 {
-    "search_query": "https://www.ebi.ac.uk/ols4/api/search?q=cat%20scratch%20fever&ontology=CL,DUO",
-    "results": [
-        {
-            "code": "NCBITaxon:9681",
-            "system": "http://purl.obolibrary.org/obo/cl.owl",
-            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9681",
-            "display": "Felidae",
-            "description": [],
-            "ontology_prefix": "CL"
-        },
-        {
-            "code": "NCBITaxon:9685",
-            "system": "http://purl.obolibrary.org/obo/duo.owl",
-            "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9685",
-            "display": "Felis catus",
-            "description": [],
-            "ontology_prefix": "DUO"
-        }
-    ],
-    "results_per_ontology": {
-        "CL": 1,
-        "DUO": 1
+  "search_query": "https://www.ebi.ac.uk/ols4/api/search?q=cat%20scratch%20fever&ontology=CL,DUO",
+  "results": [
+    {
+      "code": "NCBITaxon:9681",
+      "system": "http://purl.obolibrary.org/obo/cl.owl",
+      "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9681",
+      "display": "Felidae",
+      "description": [],
+      "ontology_prefix": "CL"
     },
-    "results_count": 2,
-    "more_results_available": true
+    {
+      "code": "NCBITaxon:9685",
+      "system": "http://purl.obolibrary.org/obo/duo.owl",
+      "code_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9685",
+      "display": "Felis catus",
+      "description": [],
+      "ontology_prefix": "DUO"
+    }
+  ],
+  "results_per_ontology": {
+    "CL": 1,
+    "DUO": 1
+  },
+  "results_count": 2,
+  "more_results_available": true
 }
 ```
