@@ -354,38 +354,42 @@ If none exists, 'users_vote' will be an empty string.
             "users_vote": "up"
           }
         }
-    ]
+      ]
+    }
+  ]
 }
 ```
+
 User_input example output. An active session is required to retrieve the 'users_vote'.
 If none exists, 'users_vote' will be an empty string.
+
 ```json
 {
-    "terminology": {
-        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
-    },
-    "mappings": [
+  "terminology": {
+    "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+  },
+  "mappings": [
+    {
+      "code": "Female",
+      "codes": [
         {
-            "code": "Female",
-            "codes": [
-                {
-                    "code": "female",
-                    "display": "Female",
-                    "mapping_relationship":"",
-                    "system": "http://hl7.org/fhir/administrative-gender",
-                    "valid": true,
-                    "user_input": {
-                        "comments_count": 1,
-                        "votes_count": {
-                            "up": 1,
-                            "down": 0
-                        },
-                        "users_vote": "up"
-                    }
-                }
-            ]
+          "code": "female",
+          "display": "Female",
+          "mapping_relationship": "",
+          "system": "http://hl7.org/fhir/administrative-gender",
+          "valid": true,
+          "user_input": {
+            "comments_count": 1,
+            "votes_count": {
+              "up": 1,
+              "down": 0
+            },
+            "users_vote": "up"
+          }
         }
-    ]
+      ]
+    }
+  ]
 }
 ```
 
@@ -456,38 +460,38 @@ If none exists, 'users_vote' will be an empty string.
   }
 }
 ```
+
 User_input example output. An active session is required to retrieve the 'users_vote'.
 If none exists, 'users_vote' will be an empty string.
+
 ```json
 {
-    "codes": [
+  "codes": [
+    {
+      "code": "female_ex",
+      "codes": [
         {
-            "code": "female_ex",
-            "codes": [
-                {
-                    "code": "femalee",
-                    "display": "feMale",
-                    "mapping_relationship":"equivalent",
-                    "system": "http://hl7.org/fhir/administrative-gender",
-                    "valid": true,
-                    "user_input": {
-                        "comments_count": 1,
-                        "votes_count": {
-                            "up": 1,
-                            "down": 0
-                        },
-                        "users_vote": "up"
-                    }
-                }
-            ]
+          "code": "femalee",
+          "display": "feMale",
+          "mapping_relationship": "equivalent",
+          "system": "http://hl7.org/fhir/administrative-gender",
+          "valid": true,
+          "user_input": {
+            "comments_count": 1,
+            "votes_count": {
+              "up": 1,
+              "down": 0
+            },
+            "users_vote": "up"
+          }
         }
-    ],
-    "terminology": {
-        "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+      ]
     }
+  ],
+  "terminology": {
+    "Reference": "Terminology/tm-C8IP8Cw_0M_hHWeLl5WP3"
+  }
 }
-
-
 ```
 
 #### PUT
@@ -672,7 +676,6 @@ Example endpoint: https://[APPURL]/api/Terminology/[id]/filter/[code]?table_id=[
 }
 ```
 
-
 #### PUT
 
 Create a api search preference for the code within a specific terminology (specified by id). <br>
@@ -850,23 +853,24 @@ Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`
 ```
 
 ### https://[APPURL]/api/Terminology/[id]/mapping_relationship/[code]/mapping/[mapped_code]
-There is not currently a endpoint for getting a mappings(code/mapped_code) relationship 
+
+There is not currently a endpoint for getting a mappings(code/mapped_code) relationship
 alone. Use the endpoint for getting all mappings for a single code. [more here](#httpsappurlapiterminologyidmappingcode)
 
-A mapping may not have the mapping_relationship value set. But a returned 
+A mapping may not have the mapping_relationship value set. But a returned
 mapping will always have a mapping_relationship attribute.
 
 #### PUT - Updating a mapping_relationship
+
 Mapping_relationship can be set to the codes in the `ftd-concept-map-relationship` `Terminology` or to an empty string "". <br>
 Current `ftd-concept-map-relationship` codes(subject to change): [`equivalent`,`source-is-narrower-than-target`,`source-is-broader-than-target` ]
 
- ```json
+```json
 {
-  "mapping_relationship":"equivalent",
+  "mapping_relationship": "equivalent",
   "editor": "user24601"
 }
 ```
-
 
 ## Terminology Provenance
 
@@ -1685,7 +1689,6 @@ end points themselves will be related to the table and it's ID.
 Returns a list of all mappings from the table and their associated 'user_input'
 if requested. (See example of the matching
 terminology endpoint for details.)
-
 
 #### DELETE
 
