@@ -52,7 +52,7 @@ from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
 
 from locutus.sessions import SessionManager
 
-from locutus.api.user_input import TerminologyUserInput
+from locutus.api.user_input import TerminologyUserInput, TableUserInput
 
 from locutus.api.metadata import Version
 
@@ -164,6 +164,9 @@ api.add_resource(
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Table (shadow Terminology)
 api.add_resource(
     TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
+)
+api.add_resource(
+    TableUserInput, "/api/Table/<string:id>/user_input/<string:code>/mapping/<string:mapped_code>/<string:type>"
 )
 
 # POST
