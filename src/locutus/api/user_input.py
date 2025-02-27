@@ -111,10 +111,10 @@ class TableUserInput(Resource, UserInput):
 
     Attributes:
 
-        resource_type (str): The type of resource, default is "table".
+        resource_type (str): The type of resource, default is "Terminology", because we dereferenced the Table.
         collection_type (str): The sub-collection for user input, default is "user_input".
     """
-    def __init__(self, resource_type= "Table", collection_type="user_input"):
+    def __init__(self, resource_type= "Terminology", collection_type="user_input"):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
