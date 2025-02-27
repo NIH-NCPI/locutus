@@ -109,10 +109,11 @@ class TableUserInput(Resource, UserInput):
     table, including mapping conversations and votes. 
 
     Attributes:
-        resource_type (str): The type of resource, default is "table".
+
+        resource_type (str): The type of resource, default is "Terminology", because we dereferenced the Table.
         collection_type (str): The sub-collection for user input, default is "user_input".
     """
-    def __init__(self, resource_type= "Table", collection_type="user_input"):
+    def __init__(self, resource_type= "Terminology", collection_type="user_input"):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
@@ -144,8 +145,11 @@ class TableUserInput(Resource, UserInput):
             ]
         }
         """
+        table = Table.get(id)
+        term = table.terminology.dereference()
         user_input = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        id, code, mapped_code, type)
+                                        term.id, code, mapped_code, type)
+
         
         return (user_input, 200, default_headers)
             
@@ -181,7 +185,7 @@ class TableUserInput(Resource, UserInput):
             result = UserInput.create_or_replace_user_input(self,
                                                             self.resource_type,
                                                             self.collection_type,
-                                                            id,
+                                                            term.id,
                                                             code,
                                                             mapped_code,
                                                             type,
@@ -193,6 +197,6 @@ class TableUserInput(Resource, UserInput):
             return e.to_dict(), e.status_code, default_headers
         
         response = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        id, code, mapped_code, type)
+                                        term.id, code, mapped_code, type)
 
         return (response, 200, default_headers)
