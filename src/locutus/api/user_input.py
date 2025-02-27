@@ -110,10 +110,11 @@ class TableUserInput(Resource, UserInput):
     table, including mapping conversations and votes. 
 
     Attributes:
-        resource_type (str): The type of resource, default is "Terminology," because we are dereferencing the Table.
+
+        resource_type (str): The type of resource, default is "table".
         collection_type (str): The sub-collection for user input, default is "user_input".
     """
-    def __init__(self, resource_type= "Terminology", collection_type="user_input"):
+    def __init__(self, resource_type= "Table", collection_type="user_input"):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
@@ -149,6 +150,7 @@ class TableUserInput(Resource, UserInput):
         term = table.terminology.dereference()
         user_input = UserInput.get_user_input(self, self.resource_type, self.collection_type,
                                         term.id, code, mapped_code, type)
+
         
         return (user_input, 200, default_headers)
             
