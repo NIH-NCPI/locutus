@@ -1,9 +1,24 @@
 # For now, we'll use my dumb JSON persistence storage
 # from locutus.storage import JStore
-from locutus.storage.firestore import persistence
-import logging
+# from locutus.storage.firestore import persistence
+# from locutus.storage.mongo import persistence
+# from locutus.storage.firestore import persistence
 
-_persistence = None
+import logging
+import os
+# _persistence = None
+
+
+db_type = os.getenv("DB_TYPE", "firestore").lower()
+
+if db_type == "mongodb":
+    from locutus.storage.mongo import persistence
+    print("Using MongoDB")
+else:
+    from locutus.storage.firestore import persistence
+    print("Using Firestore")
+
+
 
 
 def strip_none(value):
@@ -26,6 +41,22 @@ def clean_varname(name):
         .replace('"', "")
     )
 
+# def initialize_persistence():
+#     global _persistence
+#     if _persistence is not None:
+#         return
+
+
+#     _persistence = persistence()
+    
+# # Initialize persistence on module load
+# initialize_persistence()
+
+
+# def get_persistence():
+#     return _persistence
+
+
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
@@ -42,17 +73,18 @@ console_handler.setLevel(logging.DEBUG)
 console_handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
 # Add handlers to the logger
 logger.addHandler(console_handler)
-
-"""
-def persistence():
-    global _persistence
-    return _persistence
+logger.info("Logger loggingingingingingingingingin")
 
 
-def init_base_storage(filepath="db"):
-    global _persistence
+# def persistence():
+#     global _persistence
+#     return _persistence
 
-    _persistence = JStore(filepath)
 
-    return _persistence
-"""
+# def init_base_storage(filepath="db"):
+#     global _persistence
+
+#     _persistence = JStore(filepath)
+
+#     return _persistence
+

@@ -25,7 +25,8 @@ dependencies = ["marshmallow",
                 "nanoid",
                 "PyYAML",
                 "rich",
-                "firebase-admin"
+                "firebase-admin",
+                "pymongo"
                 ]
 
 dynamic = ["version"]
