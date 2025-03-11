@@ -261,6 +261,7 @@ class Table(Serializable):
             "table_name": self.name,
             "parent_varname": "",  # I'm not sure if we can get this ATM
             "local code system": local_coding.system,
+            "mapping relationship": mapped_coding.mapping_relationship,
             "code": mapped_coding.code,
             "display": mapped_coding.display,
             "code system": mapped_coding.system,
