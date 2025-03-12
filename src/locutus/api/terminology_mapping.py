@@ -80,6 +80,10 @@ class TerminologyMapping(Resource):
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
+            
+            system = body.get("system")
+            if system is None:
+                raise LackingRequiredParameter("Missing required parameter: 'system'")
 
             mappings = body["mappings"]
             codingmapping = [CodingMapping(**x) for x in mappings]
