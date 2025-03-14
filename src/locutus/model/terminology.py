@@ -265,10 +265,12 @@ class Terminology(Serializable):
                         term_doc = persistence().collection(self.resource_type).document(self.id).collection(
                         "provenance"
                          )
-                        prov = term_doc.document(original_code).get().to_dict()
+                        ori_code_index = get_code_index(original_code)
+                        new_code_index = get_code_index(new_code)
+                        prov = term_doc.document(ori_code_index).get().to_dict()
                         prov["target"] = new_code
-                        term_doc.document(new_code).set(prov)
-                        term_doc.document(original_code).delete()
+                        term_doc.document(new_code_index).set(prov)
+                        term_doc.document(ori_code_index).delete()
                     return True
         return False
 
@@ -296,12 +298,13 @@ class Terminology(Serializable):
 
         """
         if code is not None:
+            code_index = get_code_index(code)
             tmref = (
                 persistence()
                 .collection("Terminology")
                 .document(self.id)
                 .collection("mappings")
-                .document(code)
+                .document(code_index)
             )
 
             mapping = tmref.get().to_dict()
@@ -386,7 +389,6 @@ class Terminology(Serializable):
 
     def get_provenance(self, code=None):
         prov = {}
-        code_index = get_code_index(code)
 
         if code is None:
             for prv in (
@@ -415,6 +417,7 @@ class Terminology(Serializable):
                             )
                 prov[id] = prv
         else:
+            code_index = get_code_index(code)
             prv = (
                 persistence()
                 .collection(self.resource_type)
@@ -435,6 +438,8 @@ class Terminology(Serializable):
                                 PROVENANCE_TIMESTAMP_FORMAT
                             )
             else:
+                code_index = get_code_index(code)
+
                 prov[code_index] = []
         # pdb.set_trace()
 
@@ -557,12 +562,13 @@ class Terminology(Serializable):
 
             # If a specific code is provided, get the preference
             else:
+                code_index = get_code_index(code)
                 prv = (
                     persistence()
                     .collection(self.resource_type)
                     .document(self.id)
                     .collection('onto_api_preference')
-                    .document(code)
+                    .document(code_index)
                     .get()
                 )
 
@@ -589,9 +595,11 @@ class Terminology(Serializable):
             # Add or update the preferences for the given API
             cur_pref["api_preference"] = api_preference
 
+            code_index = get_code_index(code)
+
             # Save the updated preferences back to the Firestore sub-collection
             persistence().collection(self.resource_type).document(self.id) \
-                .collection("onto_api_preference").document(code).set(cur_pref)
+                .collection("onto_api_preference").document(code_index).set(cur_pref)
 
         except Exception as e:
             print(f"An error occurred while updating preferences: {e}")
@@ -606,7 +614,9 @@ class Terminology(Serializable):
             collection_ref = persistence().collection(self.resource_type) \
                 .document(self.id).collection("onto_api_preference")
 
-            doc_ref = collection_ref.document(code)
+            code_index = get_code_index(code)
+
+            doc_ref = collection_ref.document(code_index)
             doc_snapshot = doc_ref.get()
 
             if doc_snapshot.exists:

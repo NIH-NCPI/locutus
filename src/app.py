@@ -115,7 +115,7 @@ api.add_resource(
 # GET/POST/PUT/DELETE Ontology API preferences at Code level
 api.add_resource(
     OntologyAPISearchPreferences,
-    "/api/Terminology/<string:id>/filter/<string:code>",
+    "/api/Terminology/<string:id>/filter/<path:code>",
     endpoint="onto_code_preferences",
 )
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Terminology
@@ -186,11 +186,11 @@ api.add_resource(
 api.add_resource(TerminologyProvenance, "/api/Provenance/Terminology/<string:id>")
 api.add_resource(
     TerminologyCodeProvenance,
-    "/api/Provenance/Terminology/<string:id>/code/<string:code>",
+    "/api/Provenance/Terminology/<string:id>/code/<path:code>",
 )
 api.add_resource(TableProvenance, "/api/Provenance/Table/<string:id>")
 api.add_resource(
-    TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<string:code>"
+    TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<path:code>"
 )
 
 # GET Ontology All OntologyAPIs and ontology details

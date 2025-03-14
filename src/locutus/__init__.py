@@ -44,7 +44,7 @@ def get_code_index(code):
       code(str): code. Ex: `given/code`
 
     Output:
-      code_index(str): Ex: `given%2Fcode'
+      code_index(str): Ex: `given0x2Fcode'
     """
     code_index = code 
     for key, value in sp_char_mappings.items():
