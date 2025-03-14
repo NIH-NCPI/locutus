@@ -63,9 +63,11 @@ class UserInput:
         }
         """
         try:
-            mapped_pair=generate_paired_string(code, mapped_code)
+            code_index = get_code_index(code)
+            mapped_code_index = get_code_index(mapped_code)
+            document_id = generate_paired_string(code_index, mapped_code_index)
             doc_ref = persistence().collection(resource_type).document(id) \
-                .collection(collection_type).document(mapped_pair)
+                .collection(collection_type).document(document_id)
 
             doc_snapshot = doc_ref.get()
 
@@ -100,7 +102,7 @@ class UserInput:
             }
 
         except Exception as e:
-            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code}: {e}"), 500
+            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {code_index}: {e}"), 500
 
     def create_or_replace_user_input(self, resource_type, collection_type, id, code, mapped_code, type, body):
         """
@@ -109,7 +111,9 @@ class UserInput:
         """
         # Prep the data
         try:
-            mapped_pair=generate_paired_string(code, mapped_code)
+            code_index = get_code_index(code)
+            mapped_code_index = get_code_index(mapped_code)
+            document_id = generate_paired_string(code_index, mapped_code_index)
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
@@ -137,7 +141,7 @@ class UserInput:
         # Prep any existing data
         try:
             doc_ref = persistence().collection(resource_type).document(id) \
-                .collection(collection_type).document(mapped_pair)
+                .collection(collection_type).document(document_id)
 
             # Fetch existing data for the document if it exists
             doc_snapshot = doc_ref.get()
@@ -180,7 +184,7 @@ class UserInput:
 
         except Exception as e:
             return (f"An error occurred while updating firestore {id} \
-                    {resource_type} - {mapped_pair}: {e}"), 500
+                    {resource_type} - {document_id}: {e}"), 500
 
     def update_or_append_input(self, existing_data, user_id, new_record, return_format):
         """

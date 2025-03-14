@@ -94,7 +94,7 @@ class TerminologyMapping(Resource):
             t = Term(**term)
 
             # Raise error if the code is not in the terminology
-            if not t.has_code(code, index=False): 
+            if not t.has_code(code, is_index=False): 
                 raise CodeNotPresent(code, id, code_index)
             
             t.set_mapping(code, codingmapping, editor=editor)

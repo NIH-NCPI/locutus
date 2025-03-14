@@ -272,7 +272,7 @@ class Terminology(Serializable):
                     return True
         return False
 
-    def has_code(self, code, index=False):
+    def has_code(self, code, is_index=False):
         """Check if a code exists in the terminology.
 
         Args: 
@@ -286,7 +286,7 @@ class Terminology(Serializable):
         Output:           
          If the terminology has the code already this will return True
         """
-        if index:
+        if is_index:
             code = get_code_index(code)
         return any(entry.code == code for entry in self.codes)
 
@@ -448,18 +448,17 @@ class Terminology(Serializable):
     def add_provenance(
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
-        code_index = get_code_index(target)
         if target is None:
             target = "self"
             code_index = "self"
+        else:
+            code_index = get_code_index(target)
         if timestamp is None:
             timestamp = datetime.now()
 
         timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
         # cur_prov = None
-        cur_prov = self.get_provenance(code_index)[target]
-        # import pdb
-        # pdb.set_trace()
+        cur_prov = self.get_provenance(code_index).get(target,None)
         if cur_prov is None or type(cur_prov) is list:
             cur_prov = {"target": target, "changes": []}
 

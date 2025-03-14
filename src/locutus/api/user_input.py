@@ -79,7 +79,7 @@ class TerminologyUserInput(Resource, UserInput):
         # Raise error if the code is not in the terminology
         t = Term.get(id)
         try:
-            if not t.has_code(code): 
+            if not t.has_code(code, is_index=False): 
                 raise CodeNotPresent(code, id)
 
             result = UserInput.create_or_replace_user_input(self,
