@@ -272,22 +272,17 @@ class Terminology(Serializable):
                     return True
         return False
 
-    def has_code(self, code, is_index=False):
+    def has_code(self, code):
         """Check if a code exists in the terminology.
 
         Args: 
-          code(str): Code to be checked against the db, could be cleaned for indexing
-            or not. 
-          index(bool)(default:False): Defines wheteher the incoming code should match a db index,
-            or the code(not cleaned for indexing)
-            index=True The code being searched for is a cleaned index. 
-            index=False The code being searched for is not cleaned for indexing.
-        
+          code(str): Code to be checked against a Terminologies codes. 
+          Terminology codes are currently not cleaned for indexing. For 
+          more see get_code_index
+
         Output:           
          If the terminology has the code already this will return True
         """
-        if is_index:
-            code = get_code_index(code)
         return any(entry.code == code for entry in self.codes)
 
     def delete_mappings(self, editor, code=None):

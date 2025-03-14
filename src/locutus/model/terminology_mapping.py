@@ -20,18 +20,20 @@ class MappingRelationshipModel:
             mapping_relationship, additional_enums=[""]
         )
 
+        code_index = get_code_index(code)
+
         try:
             mappingref = (
                 persistence()
                 .collection("Terminology")
                 .document(id)
                 .collection("mappings")
-                .document(code)
+                .document(code_index)
                 .get()
             )
 
             if not mappingref.exists:
-                raise ValueError(f"Mapping '{code}' does not exist in document '{id}'.")
+                raise ValueError(f"Mapping '{code_index}' does not exist in document '{id}'.")
 
             mapping_data = mappingref.to_dict()
             mappings = mapping_data.get("codes", [])
@@ -52,12 +54,14 @@ class MappingRelationshipModel:
             mappingref.reference.update({"codes": mappings})
 
             # Add provenance
-            target = generate_paired_string(code, mapped_code)
+            code_index = get_code_index(code)
+            mapped_code_index = get_code_index(mapped_code)
+            document_id = generate_paired_string(code_index, mapped_code_index)
             term = Terminology(id)
             term.add_provenance(
                 change_type=Terminology.ChangeType.EditMapping,
                 editor=editor,
-                target=target,
+                target=document_id,
                 new_value=mapping_relationship,
             )
 
