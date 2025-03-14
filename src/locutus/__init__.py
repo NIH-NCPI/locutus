@@ -27,8 +27,10 @@ def clean_varname(name):
         .replace('"', "")
     )
 
-# Special character mappings
-sp_char_mappings = {'/': '%2F'}
+# Special character mappings. UTF-8 Hex
+sp_char_mappings = {'/': '0x2F', 
+                    '.': '0x2E' # Note: '..' will become '0x2E0x2E'
+                    }
 
 def get_code_index(code):
     """
@@ -44,8 +46,9 @@ def get_code_index(code):
     Output:
       code_index(str): Ex: `given%2Fcode'
     """
+    code_index = code 
     for key, value in sp_char_mappings.items():
-        code_index = code.replace(key, value)
+        code_index = code_index.replace(key, value)
     return code_index
 
 # Set the logging config
