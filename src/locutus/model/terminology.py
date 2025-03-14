@@ -1,6 +1,6 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT
+from locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT, get_code_index
 from locutus.api import delete_collection
 from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
 from locutus.model.enumerations import *
@@ -272,12 +272,22 @@ class Terminology(Serializable):
                     return True
         return False
 
-    def has_code(self, code):
+    def has_code(self, code, index=False):
         """Check if a code exists in the terminology.
-        
-        If the terminology has the code already this will return True
-        """
 
+        Args: 
+          code(str): Code to be checked against the db, could be cleaned for indexing
+            or not. 
+          index(bool)(default:False): Defines wheteher the incoming code should match a db index,
+            or the code(not cleaned for indexing)
+            index=True The code being searched for is a cleaned index. 
+            index=False The code being searched for is not cleaned for indexing.
+        
+        Output:           
+         If the terminology has the code already this will return True
+        """
+        if index:
+            code = get_code_index(code)
         return any(entry.code == code for entry in self.codes)
 
     def delete_mappings(self, editor, code=None):
@@ -360,12 +370,14 @@ class Terminology(Serializable):
                 codes[code_id] = Terminology.build_code_list(mapping)
 
         else:
+            code_index = get_code_index(code)
+
             mapping = (
                 persistence()
                 .collection(self.resource_type)
                 .document(self.id)
                 .collection("mappings")
-                .document(code)
+                .document(code_index)
                 .get()
                 .to_dict()
             )
@@ -379,6 +391,7 @@ class Terminology(Serializable):
 
     def get_provenance(self, code=None):
         prov = {}
+        code_index = get_code_index(code)
 
         if code is None:
             for prv in (
@@ -412,7 +425,7 @@ class Terminology(Serializable):
                 .collection(self.resource_type)
                 .document(self.id)
                 .collection("provenance")
-                .document(code)
+                .document(code_index)
                 .get()
                 .to_dict()
             )
@@ -427,7 +440,7 @@ class Terminology(Serializable):
                                 PROVENANCE_TIMESTAMP_FORMAT
                             )
             else:
-                prov[code] = []
+                prov[code_index] = []
         # pdb.set_trace()
 
         return prov
@@ -435,14 +448,18 @@ class Terminology(Serializable):
     def add_provenance(
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
+        code_index = get_code_index(target)
         if target is None:
             target = "self"
+            code_index = "self"
         if timestamp is None:
             timestamp = datetime.now()
 
         timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
         # cur_prov = None
-        cur_prov = self.get_provenance(target)[target]
+        cur_prov = self.get_provenance(code_index)[target]
+        # import pdb
+        # pdb.set_trace()
         if cur_prov is None or type(cur_prov) is list:
             cur_prov = {"target": target, "changes": []}
 
@@ -464,11 +481,12 @@ class Terminology(Serializable):
 
         persistence().collection(self.resource_type).document(self.id).collection(
             "provenance"
-        ).document(target).set(cur_prov)
+        ).document(code_index).set(cur_prov)
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
     def set_mapping(self, code, codings, editor):
+        code_index = get_code_index(code)
         doc = {"code": code, "codes": []}
 
         new_mappings = []
@@ -499,8 +517,8 @@ class Terminology(Serializable):
 
         old_mappings = ""
         try:
-            assert code is not None
-            mapping = tmref.document(code).get().to_dict()
+            assert code_index is not None
+            mapping = tmref.document(code_index).get().to_dict()
         except:
             mapping = None
             print(f"weird mapping: {tmref.get()}")
@@ -519,7 +537,7 @@ class Terminology(Serializable):
             editor=editor,
         )
 
-        tmref.document(code).set(doc)
+        tmref.document(code_index).set(doc)
 
     def get_preference(self, code=None):
         pref = {}
@@ -788,8 +806,9 @@ class MappingUserInputModel:
         This function collects and formats the user_input data for a given mapping,
         then creates the user_input object to be included in a CodingMapping.
         """
-
-        document_id = generate_paired_string(code, mapped_code)
+        code_index = get_code_index(code)
+        mapped_code_index = get_code_index(mapped_code)
+        document_id = generate_paired_string(code_index, mapped_code_index)
         doc_ref = (
             persistence()
             .collection("Terminology")

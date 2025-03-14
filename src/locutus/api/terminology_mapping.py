@@ -1,6 +1,6 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
+from locutus import persistence, get_code_index
 from locutus.model.terminology import (
     Terminology as Term,
     Coding,
@@ -76,6 +76,7 @@ class TerminologyMapping(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         body = request.get_json()
+        code_index = get_code_index(code)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -93,9 +94,9 @@ class TerminologyMapping(Resource):
             t = Term(**term)
 
             # Raise error if the code is not in the terminology
-            if not t.has_code(code): 
-                raise CodeNotPresent(code, id)
-
+            if not t.has_code(code, index=False): 
+                raise CodeNotPresent(code, id, code_index)
+            
             t.set_mapping(code, codingmapping, editor=editor)
 
             response = TerminologyMappings.get_mappings(t.id)

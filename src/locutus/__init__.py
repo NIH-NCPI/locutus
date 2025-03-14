@@ -27,6 +27,27 @@ def clean_varname(name):
         .replace('"', "")
     )
 
+# Special character mappings
+sp_char_mappings = {'/': '%2F'}
+
+def get_code_index(code):
+    """
+     Cleans the identifier for db path referencing
+
+    Codes that are within the main request url to locutus might come in with 
+    special characters that cannot be used in a firestore resource path.
+    Ex: `Ontology/Code` 
+
+    Args:
+      code(str): code. Ex: `given/code`
+
+    Output:
+      code_index(str): Ex: `given%2Fcode'
+    """
+    for key, value in sp_char_mappings.items():
+        code_index = code.replace(key, value)
+    return code_index
+
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 

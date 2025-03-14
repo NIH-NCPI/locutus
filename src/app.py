@@ -96,7 +96,7 @@ api.add_resource(Terminologies, "/api/Terminology")
 api.add_resource(Terminology, "/api/Terminology/<string:id>")
 api.add_resource(TerminologyMappings, "/api/Terminology/<string:id>/mapping")
 api.add_resource(
-    TerminologyMapping, "/api/Terminology/<string:id>/mapping/<string:code>"
+    TerminologyMapping, "/api/Terminology/<string:id>/mapping/<path:code>"
 )
 api.add_resource(
     MappingRelationship,
