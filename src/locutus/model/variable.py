@@ -4,7 +4,7 @@ from locutus.model.terminology import Terminology
 from locutus.model.reference import Reference
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term
-from locutus import clean_varname, strip_none
+from locutus import strip_none
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -69,7 +69,7 @@ class Variable:
         self.data_type = None
 
         if self.code == "" and self.name != "":
-            self.code = clean_varname(self.name)
+            self.code = self.name.copy()
 
     class _Schema(Schema):
         @post_load

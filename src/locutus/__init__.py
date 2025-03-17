@@ -13,20 +13,6 @@ def strip_none(value):
     return value
 
 
-def fix_varname(varname):
-    return varname.strip().replace(" ", "_")
-
-
-def clean_varname(name):
-    return (
-        name.lower()
-        .replace(" ", "_")
-        .replace("(", "")
-        .replace(")", "")
-        .replace("'", "")
-        .replace('"', "")
-    )
-
 # Special character mappings. UTF-8 Hex
 sp_char_mappings = {'/': '0x2F', 
                     '.': '0x2E' # Note: '..' will become '0x2E0x2E'
@@ -34,12 +20,14 @@ sp_char_mappings = {'/': '0x2F',
 
 def get_code_index(code):
     """
-     Cleans the identifier for db path referencing
+    Cleans the identifier for db path referencing
 
-    Codes that are within the main request url to locutus might come in with 
-    special characters that cannot be used in a firestore resource path.
-    Ex: `Ontology/Code` 
-
+    Background: Codes from various inputs(request url, body, sideload, ect.)
+    might contain special characters that cannot be used in a firestore resource
+    path. i.e. `Ontology/Code` Use this function to clean them. Note that
+    Codings(i.e. Table Variables) and CodingMappings(i.e. Mapping objects) 
+    should not have transformed codes.
+    
     Args:
       code(str): code. Ex: `given/code`
 

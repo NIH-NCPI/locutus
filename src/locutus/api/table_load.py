@@ -8,8 +8,6 @@ from locutus.model.variable import Variable, InvalidVariableDefinition
 
 import rich
 
-from locutus import clean_varname
-
 import pdb
 
 # Eventually, these should either live in the dataset or in a top level table
@@ -100,7 +98,7 @@ class TableLoader(Resource):
                 code = varData.get("variable_code")
 
                 if code is None:
-                    code = clean_varname(varname)
+                    code = varname.copy()
                 var = {
                     "code": code,
                     "name": varname,

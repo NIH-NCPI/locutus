@@ -1,6 +1,6 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, strip_none, clean_varname
+from locutus import persistence, strip_none
 from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
@@ -67,7 +67,7 @@ class Table(Serializable):
         super().__init__(id=id, collection_type="Table", resource_type="Table")
 
         if strip_none(code) == "":
-            code = clean_varname(name)
+            code = strip_none(name)
 
         self.id = id
         self.name = name
@@ -156,7 +156,7 @@ class Table(Serializable):
                     old_values.append(f"variable: {original_varname}")
                     new_values.append(f"variable: {new_varname}")
                     var.name = new_varname
-                    var.code = clean_varname(var.name)
+                    var.code = new_varname
                     if var.code != original_code:
 
                         # Since we found a matching code, we'll pull the mappings and
