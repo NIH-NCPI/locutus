@@ -141,10 +141,10 @@ api.add_resource(Tables, "/api/Table")
 api.add_resource(Table, "/api/Table/<string:id>")
 
 # PUT, DELETE
-api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<string:code>")
+api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<path:code>")
 
 # GET/DELETE/PUT
-api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")
+api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<path:code>")
 # GET/DELETE
 api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
 api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")

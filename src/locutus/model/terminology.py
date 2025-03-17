@@ -337,12 +337,14 @@ class Terminology(Serializable):
 
             for mapping_doc in mapref.stream():
                 mapping = mapping_doc.to_dict()
+                mapping_code_id = mapping["code"]
+                code_index = get_code_index(mapping_code_id)
                 for coding in mapping["codes"]:
                     if "valid" in coding:
                         coding["valid"] = False
 
                 # Save the updated mapping
-                mapref.document(mapping["code"]).set(mapping)
+                mapref.document(code_index).set(mapping)
 
             self.add_provenance(
                 change_type=Terminology.ChangeType.SoftDeleteAllMappings,
