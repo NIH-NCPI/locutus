@@ -132,7 +132,7 @@ api.add_resource(
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly
 # other stuff in the future. )
-api.add_resource(TerminologyEdit, "/api/Terminology/<string:id>/code/<string:code>")
+api.add_resource(TerminologyEdit, "/api/Terminology/<string:id>/code/<path:code>")
 api.add_resource(
     TableRenameCode,
     "/api/Table/<string:id>/rename",
@@ -157,7 +157,7 @@ api.add_resource(
 # GET/POST/PUT/DELETE Ontology API preferences at Variable level
 api.add_resource(
     TableOntologyAPISearchPreferences,
-    "/api/Table/<string:id>/filter/<string:code>",
+    "/api/Table/<string:id>/filter/<path:code>",
     endpoint="onto_var_preferences",
 )
 
