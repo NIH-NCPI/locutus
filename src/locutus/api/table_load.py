@@ -98,7 +98,7 @@ class TableLoader(Resource):
                 code = varData.get("variable_code")
 
                 if code is None:
-                    code = varname.copy()
+                    code = varData["variable_name"]
                 var = {
                     "code": code,
                     "name": varname,

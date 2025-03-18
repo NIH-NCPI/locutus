@@ -90,7 +90,7 @@ class TableEdit(Resource):
         return table.dump(), 201, default_headers
 
     def delete(self, id, code):
-        """Add a new variable to an existing table"""
+        """Delete a Table Variable"""
 
         table = mTable.get(id)
         body = request.get_json()
