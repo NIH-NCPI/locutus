@@ -69,7 +69,7 @@ class Variable:
         self.data_type = None
 
         if self.code == "" and self.name != "":
-            self.code = self.name.copy()
+            self.code = self.name
 
     class _Schema(Schema):
         @post_load
