@@ -1,6 +1,11 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, strip_none
+from locutus import (
+    persistence,
+    strip_none,
+    FTD_PLACEHOLDERS,
+    normalize_ftd_placeholders,
+)
 from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
@@ -117,7 +122,12 @@ class Table(Serializable):
     def remove_variable(self, varname, editor):
         success = False
         for var in self.variables:
-            if var.name == varname:
+            coding = (
+                normalize_ftd_placeholders(var.name)
+                if var.name in FTD_PLACEHOLDERS
+                else var.name
+            )
+            if coding == varname:
                 # TODO: How to handle deleting enumerated variables tables
                 # For now, I am not willing to handle enumerated variables
                 # differently, since it could result in unwittingly deleting
@@ -220,6 +230,12 @@ class Table(Serializable):
 
     def add_variable(self, variable, editor=None):
         v = variable
+        # Ensure the name is not a ftd_placeholder
+        name = (
+            normalize_ftd_placeholders(v["name"])
+            if v["name"] in FTD_PLACEHOLDERS
+            else v["name"]
+        )
 
         if type(variable) is dict:
             # For now, let's insure that the enumerations terminology is there or
@@ -231,9 +247,9 @@ class Table(Serializable):
                     # Create an empty terminology and create a reference to that
                     # terminology
                     t = Terminology(
-                        name=v["name"],
+                        name=name,
                         description=v.get("description"),
-                        url=f"{self.url}/{v['name']}",
+                        url=f"{self.url}/{name}",
                     )
                     t.save()
 

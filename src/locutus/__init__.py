@@ -13,29 +13,57 @@ def strip_none(value):
     return value
 
 
+FTD_PLACEHOLDERS = {
+    "<FTD-DOT>": ".",
+    "<FTD-DOT-DOT>": ".."
+    }
+
+def normalize_ftd_placeholders(code):
+    """
+    Replaces special FTD placeholders if the entire code matches them.
+    
+    Args:
+        code(str): The input code.
+
+    Returns:
+        str: The normalized code.
+
+    """
+    if code in FTD_PLACEHOLDERS:
+        return FTD_PLACEHOLDERS[code]
+    else:
+        pass # No need to normalize
+    
+
 # Special character mappings. UTF-8 Hex
-sp_char_mappings = {'/': '0x2F', 
-                    '.': '0x2E' # Note: '..' will become '0x2E0x2E'
-                    }
+sp_char_mappings_indexes = {'/': '0x2F'}
 
 def get_code_index(code):
     """
-    Cleans the identifier for db path referencing
+    Cleans the code identifier, for db path referencing
 
-    Background: Codes from various inputs(request url, body, sideload, ect.)
+    Background: Codes from various inputs(request url, sideload, ect.)
     might contain special characters that cannot be used in a firestore resource
     path. i.e. `Ontology/Code` Use this function to clean them. Note that
     Codings(i.e. Table Variables) and CodingMappings(i.e. Mapping objects) 
-    should not have transformed codes.
-    
+    should not have transformed codes, another function exists for those transformations.
+
     Args:
-      code(str): code. Ex: `given/code`
+      code(str): code. 
+      Examples: `given/code`, `..`, or `<FTD-DOT-DOT>
 
     Output:
-      code_index(str): Ex: `given0x2Fcode'
+      code_index(str): 
+      Examples: `given0x2Fcode' or <FTD-DOT-DOT>`
     """
+
+    # Ensure any codes with designated placeholders have them in place at indexing.
+    REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
+    if code in REVERSE_FTD_PLACEHOLDERS:
+        code = REVERSE_FTD_PLACEHOLDERS[code] 
+
     code_index = code 
-    for key, value in sp_char_mappings.items():
+    for key, value in sp_char_mappings_indexes.items():
         code_index = code_index.replace(key, value)
     return code_index
 

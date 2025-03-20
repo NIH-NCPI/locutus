@@ -1,13 +1,17 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT, get_code_index
-from locutus.api import delete_collection
+from locutus import (
+    persistence,
+    PROVENANCE_TIMESTAMP_FORMAT,
+    get_code_index,
+    FTD_PLACEHOLDERS,
+    normalize_ftd_placeholders,
+)
+from locutus.api import delete_collection, generate_paired_string
 from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
 from locutus.model.enumerations import *
-from locutus.model.exceptions import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
-from locutus.api import generate_paired_string
 import time
 
 from locutus.model.user_input import UserInput
@@ -43,6 +47,10 @@ the "codes" array.
 class Coding:
 
     def __init__(self, code, display="", system=None, description=""):
+        code = (
+            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+        )
+
         self.code = code
         self.display = display
         self.system = system
@@ -285,6 +293,11 @@ class Terminology(Serializable):
         Output:           
          If the terminology has the code already this will return True
         """
+        # Ensure codes are not placeholders at this point.
+        code = (
+            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+        )
+
         return any(entry.code == code for entry in self.codes)
 
     def delete_mappings(self, editor, code=None):
@@ -298,7 +311,13 @@ class Terminology(Serializable):
 
         """
         if code is not None:
+            # Ensure codes are not placeholders at this point.
+            code = (
+                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+            )
+
             code_index = get_code_index(code)
+
             tmref = (
                 persistence()
                 .collection("Terminology")
@@ -311,8 +330,8 @@ class Terminology(Serializable):
             time_of_delete = 0
             if mapping is not None:
                 # Iterate over the codes in the mapping and toggle 'valid' to False
-                for coding in mapping["codes"]:
-                    coding["valid"] = False
+                for codingmapping in mapping["codes"]:
+                    codingmapping["valid"] = False
 
                 # Save the updated mapping with the 'valid' field set to False
                 tmref.set(mapping)
@@ -325,7 +344,7 @@ class Terminology(Serializable):
                 )
             else:
                 print(
-                    f"Soft deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings."
+                    f"Soft deleting mappings for code: {code}, doc_id:{code_index}, Terminology: {self.name} but there were no mappings."
                 )
         else:
             mapref = (
@@ -339,6 +358,7 @@ class Terminology(Serializable):
                 mapping = mapping_doc.to_dict()
                 mapping_code_id = mapping["code"]
                 code_index = get_code_index(mapping_code_id)
+
                 for coding in mapping["codes"]:
                     if "valid" in coding:
                         coding["valid"] = False
@@ -451,21 +471,51 @@ class Terminology(Serializable):
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
         if target is None:
-            target = "self"
             code_index = "self"
+            normalized_target = "self"
         else:
-            code_index = get_code_index(target)
+            # Ensure special characters in paired targets are handled properly
+            if "|" in target:
+                left, right = target.split("|", 1)
+                # Normalize each side of a paired target
+                normalized_left = (
+                    normalize_ftd_placeholders(left)
+                    if left in FTD_PLACEHOLDERS
+                    else left
+                )
+                normalized_right = (
+                    normalize_ftd_placeholders(right)
+                    if right in FTD_PLACEHOLDERS
+                    else right
+                )
+                normalized_target = generate_paired_string(
+                    normalized_left, normalized_right
+                )
+                # Ensure indexes are formatted properly
+                index_left = get_code_index(left) if left in FTD_PLACEHOLDERS else left
+
+                index_right = (
+                    get_code_index(right) if left in FTD_PLACEHOLDERS else right
+                )
+
+                index_right = get_code_index(right)
+                code_index = generate_paired_string(index_left, index_right)
+            # Ensure special characters in single code targets are handled properly
+            else:
+                normalized_target = normalize_ftd_placeholders(target)
+                code_index = get_code_index(target)
+
         if timestamp is None:
             timestamp = datetime.now()
 
         timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
         # cur_prov = None
-        cur_prov = self.get_provenance(code_index).get(target,None)
+        cur_prov = self.get_provenance(code_index).get(normalized_target, None)
         if cur_prov is None or type(cur_prov) is list:
-            cur_prov = {"target": target, "changes": []}
+            cur_prov = {"target": normalized_target, "changes": []}
 
         baseprov = {
-            "target": target,
+            "target": normalized_target,
             "timestamp": timestamp,
             "action": change_type,
             "editor": editor,
@@ -488,6 +538,10 @@ class Terminology(Serializable):
 
     def set_mapping(self, code, codings, editor):
         code_index = get_code_index(code)
+
+        # Ensure code is not a placeholder at this point.
+        code = normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+
         doc = {"code": code, "codes": []}
 
         new_mappings = []
@@ -814,6 +868,15 @@ class MappingUserInputModel:
         """
         code_index = get_code_index(code)
         mapped_code_index = get_code_index(mapped_code)
+
+        # Ensure codes/mappings are not placeholders at this point
+        code = (
+            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+        )
+        mapped_code = (
+            normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
+        )
+
         document_id = generate_paired_string(code_index, mapped_code_index)
         doc_ref = (
             persistence()

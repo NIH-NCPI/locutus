@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
+from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from locutus.model.terminology import Terminology, Coding
 from locutus.model.enumerations import FTDConceptMapTerminology
@@ -40,6 +40,15 @@ class MappingRelationshipModel:
 
             # Find the entry for the mapped_code and update the mapping relationship
             updated = False
+
+            # Ensure codes/mappings are not placeholders at this point.
+            code = (
+                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+            )
+            mapped_code = (
+                normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
+            )
+
             for entry in mappings:
                 if entry.get("code") == mapped_code:
                     entry["mapping_relationship"] = mapping_relationship
@@ -54,14 +63,12 @@ class MappingRelationshipModel:
             mappingref.reference.update({"codes": mappings})
 
             # Add provenance
-            code_index = get_code_index(code)
-            mapped_code_index = get_code_index(mapped_code)
-            document_id = generate_paired_string(code_index, mapped_code_index)
+            target = generate_paired_string(code, mapped_code)
             term = Terminology(id)
             term.add_provenance(
                 change_type=Terminology.ChangeType.EditMapping,
                 editor=editor,
-                target=document_id,
+                target=target,
                 new_value=mapping_relationship,
             )
 

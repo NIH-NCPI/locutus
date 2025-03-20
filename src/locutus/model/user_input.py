@@ -8,7 +8,7 @@ Current Use:
 
 """
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
+from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.api import generate_paired_string, get_editor
 from sessions import SessionManager
 from locutus.model.exceptions import *
@@ -70,6 +70,14 @@ class UserInput:
                 .collection(collection_type).document(document_id)
 
             doc_snapshot = doc_ref.get()
+
+            # Ensure codes/mappings are not placeholders at this point.
+            code = (
+                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+            )
+            mapped_code = (
+                normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
+            )
 
             if doc_snapshot.exists:
                 existing_data = doc_snapshot.to_dict()
@@ -146,6 +154,14 @@ class UserInput:
             # Fetch existing data for the document if it exists
             doc_snapshot = doc_ref.get()
             existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
+
+            # Ensure codes/mappings are not placeholders at this point.
+            code = (
+                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+            )
+            mapped_code = (
+                normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
+            )
 
             # Required for indexing
             existing_data['code'] = code
