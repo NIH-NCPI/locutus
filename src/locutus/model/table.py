@@ -123,9 +123,9 @@ class Table(Serializable):
     def remove_variable(self, varname, editor):
         success = False
         varname = (
-            normalize_ftd_placeholders(var.name)
-            if var.name in FTD_PLACEHOLDERS
-            else var.name
+            normalize_ftd_placeholders(varname)
+            if varname in FTD_PLACEHOLDERS
+            else varname
         )
 
         for var in self.variables:
