@@ -103,7 +103,7 @@ class TerminologyMapping(Resource):
 
             # Raise error if the code is not in the terminology
             if not t.has_code(code): 
-                raise CodeNotPresent(code, id, code_index)
+                raise CodeNotPresent(code, id)
             
             t.set_mapping(code, codingmapping, editor=editor)
 

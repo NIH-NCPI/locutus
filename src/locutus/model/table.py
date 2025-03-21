@@ -5,6 +5,7 @@ from locutus import (
     strip_none,
     FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,
+    get_code_index
 )
 from flask import request
 
@@ -211,10 +212,15 @@ class Table(Serializable):
                             .document(terminology.id)
                             .collection("provenance")
                         )
-                        prov = term_doc.document(original_code).get().to_dict()
+                        
+                        # Ensure the name is not a ftd_placeholder
+                        original_code_index = get_code_index(original_code)
+                        new_code_index = get_code_index(var.code)
+                        
+                        prov = term_doc.document(original_code_index).get().to_dict()
                         prov["target"] = var.code
-                        term_doc.document(var.code).set(prov)
-                        term_doc.document(original_code).delete()
+                        term_doc.document(new_code_index).set(prov)
+                        term_doc.document(original_code_index).delete()
                 return True
         return False
 
