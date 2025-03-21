@@ -129,7 +129,7 @@ class Table(Serializable):
         )
 
         for var in self.variables:
-            if var == varname:
+            if var.name == varname:
                 # TODO: How to handle deleting enumerated variables tables
                 # For now, I am not willing to handle enumerated variables
                 # differently, since it could result in unwittingly deleting
