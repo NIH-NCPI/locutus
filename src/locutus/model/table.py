@@ -122,13 +122,14 @@ class Table(Serializable):
 
     def remove_variable(self, varname, editor):
         success = False
+        varname = (
+            normalize_ftd_placeholders(var.name)
+            if var.name in FTD_PLACEHOLDERS
+            else var.name
+        )
+
         for var in self.variables:
-            coding = (
-                normalize_ftd_placeholders(var.name)
-                if var.name in FTD_PLACEHOLDERS
-                else var.name
-            )
-            if coding == varname:
+            if var == varname:
                 # TODO: How to handle deleting enumerated variables tables
                 # For now, I am not willing to handle enumerated variables
                 # differently, since it could result in unwittingly deleting
