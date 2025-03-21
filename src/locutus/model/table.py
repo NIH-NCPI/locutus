@@ -242,8 +242,9 @@ class Table(Serializable):
 
     def add_variable(self, variable, editor=None):
         v = variable
-        # Ensure the name is not a ftd_placeholder
-        name = (
+
+        # Ensure the name is not a ftd_placeholder        
+        v["name"] = (
             normalize_ftd_placeholders(v["name"])
             if v["name"] in FTD_PLACEHOLDERS
             else v["name"]
@@ -259,9 +260,9 @@ class Table(Serializable):
                     # Create an empty terminology and create a reference to that
                     # terminology
                     t = Terminology(
-                        name=name,
+                        name=v.name,
                         description=v.get("description"),
-                        url=f"{self.url}/{name}",
+                        url=f"{self.url}/{v.name}",
                     )
                     t.save()
 

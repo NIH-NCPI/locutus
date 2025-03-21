@@ -60,6 +60,7 @@ from locutus.api.user_prefs import UserPrefOntoFilters
 
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
 CORS(app)
 api = Api(app)
 
