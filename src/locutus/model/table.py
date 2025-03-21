@@ -147,6 +147,13 @@ class Table(Serializable):
 
     def rename_var(self, original_varname, new_varname, new_description, editor):
         status = 200
+        # Ensure codes are not placeholders at this point.
+        original_varname = (
+            normalize_ftd_placeholders(original_varname) if original_varname in FTD_PLACEHOLDERS else original_varname
+        )
+        new_varname = (
+            normalize_ftd_placeholders(new_varname) if new_varname in FTD_PLACEHOLDERS else new_varname
+        )
 
         print(
             f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
@@ -213,7 +220,6 @@ class Table(Serializable):
                             .collection("provenance")
                         )
                         
-                        # Ensure the name is not a ftd_placeholder
                         original_code_index = get_code_index(original_code)
                         new_code_index = get_code_index(var.code)
                         
