@@ -42,12 +42,8 @@ class MappingRelationshipModel:
             updated = False
 
             # Ensure codes/mappings are not placeholders at this point.
-            code = (
-                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-            )
-            mapped_code = (
-                normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
-            )
+            code = normalize_ftd_placeholders(code)
+            mapped_code = normalize_ftd_placeholders(mapped_code)
 
             for entry in mappings:
                 if entry.get("code") == mapped_code:

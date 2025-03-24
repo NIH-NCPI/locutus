@@ -47,9 +47,7 @@ the "codes" array.
 class Coding:
 
     def __init__(self, code, display="", system=None, description=""):
-        code = (
-            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-        )
+        code = normalize_ftd_placeholders(code)
 
         self.code = code
         self.display = display
@@ -170,9 +168,8 @@ class Terminology(Serializable):
     def add_code(self, code, display, description=None, editor=None):
         for cc in self.codes:
             # Ensure codes are not placeholders at this point.
-            cc = (
-                normalize_ftd_placeholders(cc) if cc in FTD_PLACEHOLDERS else cc
-            )
+            cc = normalize_ftd_placeholders(cc)
+
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
         new_coding = Coding(
@@ -200,9 +197,8 @@ class Terminology(Serializable):
     def remove_code(self, code, editor):
         code_found = False
         # Ensure codes are not placeholders at this point.
-        code = (
-            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-        )
+        code = normalize_ftd_placeholders(code)
+            
         for cc in self.codes:
             if cc.code == code:
                 self.codes.remove(cc)
@@ -302,9 +298,7 @@ class Terminology(Serializable):
          If the terminology has the code already this will return True
         """
         # Ensure codes are not placeholders at this point.
-        code = (
-            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-        )
+        code = normalize_ftd_placeholders(code)
 
         return any(entry.code == code for entry in self.codes)
 
@@ -320,9 +314,7 @@ class Terminology(Serializable):
         """
         if code is not None:
             # Ensure codes are not placeholders at this point.
-            code = (
-                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-            )
+            code = normalize_ftd_placeholders(code)
 
             code_index = get_code_index(code)
 
@@ -486,25 +478,16 @@ class Terminology(Serializable):
             if "|" in target:
                 left, right = target.split("|", 1)
                 # Normalize each side of a paired target
-                normalized_left = (
-                    normalize_ftd_placeholders(left)
-                    if left in FTD_PLACEHOLDERS
-                    else left
-                )
-                normalized_right = (
-                    normalize_ftd_placeholders(right)
-                    if right in FTD_PLACEHOLDERS
-                    else right
-                )
+                normalized_left = normalize_ftd_placeholders(left)
+                normalized_right = normalize_ftd_placeholders(right)
+
                 normalized_target = generate_paired_string(
                     normalized_left, normalized_right
                 )
                 # Ensure indexes are formatted properly
-                index_left = get_code_index(left) if left in FTD_PLACEHOLDERS else left
+                index_left = get_code_index(left)
 
-                index_right = (
-                    get_code_index(right) if left in FTD_PLACEHOLDERS else right
-                )
+                index_right = get_code_index(right)
 
                 index_right = get_code_index(right)
                 code_index = generate_paired_string(index_left, index_right)
@@ -548,7 +531,7 @@ class Terminology(Serializable):
         code_index = get_code_index(code)
 
         # Ensure code is not a placeholder at this point.
-        code = normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
+        code = normalize_ftd_placeholders(code)
 
         doc = {"code": code, "codes": []}
 
@@ -878,12 +861,9 @@ class MappingUserInputModel:
         mapped_code_index = get_code_index(mapped_code)
 
         # Ensure codes/mappings are not placeholders at this point
-        code = (
-            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-        )
-        mapped_code = (
-            normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
-        )
+        code = normalize_ftd_placeholders(code)
+
+        mapped_code = normalize_ftd_placeholders(mapped_code)
 
         document_id = generate_paired_string(code_index, mapped_code_index)
         doc_ref = (

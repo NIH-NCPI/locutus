@@ -32,7 +32,7 @@ def normalize_ftd_placeholders(code):
     if code in FTD_PLACEHOLDERS:
         return FTD_PLACEHOLDERS[code]
     else:
-        pass # No need to normalize
+        return code
     
 
 # Special character mappings. UTF-8 Hex

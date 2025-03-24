@@ -122,11 +122,7 @@ class Table(Serializable):
 
     def remove_variable(self, varname, editor):
         success = False
-        varname = (
-            normalize_ftd_placeholders(varname)
-            if varname in FTD_PLACEHOLDERS
-            else varname
-        )
+        varname = normalize_ftd_placeholders(varname)
 
         for var in self.variables:
             if var.name == varname:
@@ -149,12 +145,9 @@ class Table(Serializable):
     def rename_var(self, original_varname, new_varname, new_description, editor):
         status = 200
         # Ensure codes are not placeholders at this point.
-        original_varname = (
-            normalize_ftd_placeholders(original_varname) if original_varname in FTD_PLACEHOLDERS else original_varname
-        )
-        new_varname = (
-            normalize_ftd_placeholders(new_varname) if new_varname in FTD_PLACEHOLDERS else new_varname
-        )
+        original_varname = normalize_ftd_placeholders(original_varname)
+
+        new_varname = normalize_ftd_placeholders(new_varname)
 
         print(
             f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
@@ -245,11 +238,7 @@ class Table(Serializable):
         v = variable
 
         # Ensure the name is not a ftd_placeholder        
-        v["name"] = (
-            normalize_ftd_placeholders(v["name"])
-            if v["name"] in FTD_PLACEHOLDERS
-            else v["name"]
-        )
+        v["name"] = normalize_ftd_placeholders(v["name"])
 
         if type(variable) is dict:
             # For now, let's insure that the enumerations terminology is there or

@@ -25,10 +25,10 @@ class TerminologyMapping(Resource):
 
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
+
         # Ensure codes are not placeholders at this point.
-        code = (
-            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-        )
+        code = normalize_ftd_placeholders(code)
+
         try:
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
@@ -81,10 +81,8 @@ class TerminologyMapping(Resource):
         body = request.get_json()
 
         # Ensure codes are not placeholders at this point.
-        code = (
-            normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-        )
-        code_index = get_code_index(code)
+        code = normalize_ftd_placeholders(code)
+        
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:

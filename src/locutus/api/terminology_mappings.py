@@ -42,9 +42,7 @@ class TerminologyMappings(Resource):
                 for code in mappings:
                     
                     # Ensure codes are not placeholders at this point.
-                    code = (
-                        normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-                    )
+                    code = normalize_ftd_placeholders(code)
 
                     mapping = {"code": code, "mappings": []}
                     for codingmapping in mappings.get(code, []):

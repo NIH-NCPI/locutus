@@ -72,12 +72,8 @@ class UserInput:
             doc_snapshot = doc_ref.get()
 
             # Ensure codes/mappings are not placeholders at this point.
-            code = (
-                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-            )
-            mapped_code = (
-                normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
-            )
+            code = normalize_ftd_placeholders(code)
+            mapped_code = normalize_ftd_placeholders(mapped_code)
 
             if doc_snapshot.exists:
                 existing_data = doc_snapshot.to_dict()
@@ -156,12 +152,8 @@ class UserInput:
             existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
 
             # Ensure codes/mappings are not placeholders at this point.
-            code = (
-                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-            )
-            mapped_code = (
-                normalize_ftd_placeholders(mapped_code) if mapped_code in FTD_PLACEHOLDERS else mapped_code
-            )
+            code = normalize_ftd_placeholders(code)
+            mapped_code = normalize_ftd_placeholders(mapped_code)
 
             # Required for indexing
             existing_data['code'] = code

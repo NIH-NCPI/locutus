@@ -96,9 +96,7 @@ class TableMapping(Resource):
             term = table.terminology.dereference()
 
             # Ensure codes are not placeholders at this point.
-            code = (
-                normalize_ftd_placeholders(code) if code in FTD_PLACEHOLDERS else code
-            )
+            code = normalize_ftd_placeholders(code)
 
             mappings = term.mappings(code)
             response = {"code": code, "mappings": []}
