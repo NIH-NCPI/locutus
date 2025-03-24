@@ -5,8 +5,8 @@ from locutus.model.terminology import Terminology, Coding
 from locutus.model.enumerations import FTDConceptMapTerminology
 from locutus.model.exceptions import *
 from locutus.api.terminology_mapping import TerminologyMappings
-from locutus.api import generate_paired_string
-from locutus.sessions import SessionManager
+from locutus.api import generate_mapping_index
+from sessions import SessionManager
 
 class MappingRelationshipModel:
     @classmethod
@@ -52,13 +52,13 @@ class MappingRelationshipModel:
             mappingref.reference.update({"codes": mappings})
 
             # Add provenance
-            target = generate_paired_string(code, mapped_code)
+            target = generate_mapping_index(code, mapped_code)
             term = Terminology(id)
             term.add_provenance(
                 change_type=Terminology.ChangeType.EditMapping,
                 editor=editor,
                 target=target,
-                new_value=mapping_relationship,
+                new_value=mapping_relationship
             )
 
         except Exception as e:

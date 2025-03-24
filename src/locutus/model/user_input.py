@@ -8,9 +8,9 @@ Current Use:
 
 """
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
-from locutus.api import generate_paired_string, get_editor
-from locutus.sessions import SessionManager
+from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
+from locutus.api import generate_mapping_index, get_editor
+from sessions import SessionManager
 from locutus.model.exceptions import *
 
 USER_INPUT_CHAR_LIMIT = 1000
@@ -63,7 +63,7 @@ class UserInput:
         }
         """
         try:
-            mapped_pair=generate_paired_string(code, mapped_code)
+            document_id = generate_mapping_index(code, mapped_code)
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(mapped_pair)
 
@@ -109,7 +109,7 @@ class UserInput:
         """
         # Prep the data
         try:
-            mapped_pair=generate_paired_string(code, mapped_code)
+            document_id = generate_mapping_index(code, mapped_code)
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)

@@ -1,7 +1,13 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, PROVENANCE_TIMESTAMP_FORMAT
-from locutus.api import delete_collection
+from locutus import (
+    persistence,
+    PROVENANCE_TIMESTAMP_FORMAT,
+    get_code_index,
+    FTD_PLACEHOLDERS,
+    normalize_ftd_placeholders,
+)
+from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
 from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
 from locutus.model.enumerations import *
 from locutus.model.exceptions import *
@@ -435,7 +441,26 @@ class Terminology(Serializable):
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
         if target is None:
-            target = "self"
+            code_index = "self"
+            normalized_target = "self"
+        else:
+            if target.count("|") > 1:
+                print(f"Warning: Invalid target format '{target}'. Skipping provenance addition.")
+                return
+
+            if "|" in target:
+                left, right = target.split("|", 1)
+                # Normalize each side of a paired target for the provenance target/display
+                normalized_left = normalize_ftd_placeholders(left)
+                normalized_right = normalize_ftd_placeholders(right)
+                normalized_target = generate_paired_string(normalized_left, normalized_right)
+
+                code_index = target # mapping pairs are already formatted as indexes
+            # Ensure special characters in single code targets are handled properly
+            else:
+                normalized_target = normalize_ftd_placeholders(target)
+                code_index = get_code_index(target)
+
         if timestamp is None:
             timestamp = datetime.now()
 
@@ -788,7 +813,7 @@ class MappingUserInputModel:
         then creates the user_input object to be included in a CodingMapping.
         """
 
-        document_id = generate_paired_string(code, mapped_code)
+        document_id = generate_mapping_index(code, mapped_code)
         doc_ref = (
             persistence()
             .collection("Terminology")
