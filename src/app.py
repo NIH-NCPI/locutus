@@ -3,7 +3,6 @@ from flask import Flask, request, render_template, url_for
 from flask_cors import CORS, cross_origin
 from flask_restful import Resource, Api
 
-import pdb
 
 # from locutus import init_base_storage
 
@@ -205,7 +204,6 @@ api.add_resource(
 @app.errorhandler(404)
 @cross_origin(allow_headers=["Content-Type"])
 def not_found(e):
-    # pdb.set_trace()
     return (
         render_template(
             "error_404.html",

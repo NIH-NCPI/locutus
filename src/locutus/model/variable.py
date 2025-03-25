@@ -32,8 +32,6 @@ from datetime import datetime
 from marshmallow.exceptions import ValidationError
 from copy import deepcopy
 
-import pdb
-
 
 class InvalidVariableDefinition(Exception):
     def __init__(self, varname, var_data):
@@ -82,7 +80,6 @@ class Variable:
         return fields.Str
 
     def dump(self):
-        # pdb.set_trace()
         return self.__class__._get_schema().dump(self)
 
     def __init_subclass__(cls, **kwargs):
@@ -105,7 +102,6 @@ class Variable:
 
     @classmethod
     def _get_schema(cls):
-        # pdb.set_trace()
         if cls._schema is None:
             cls._schema = cls._Schema()
             cls._schema._parent = cls

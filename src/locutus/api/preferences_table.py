@@ -5,7 +5,6 @@ from locutus.model.table import Table as mTable
 from locutus.api import default_headers, get_editor, delete_collection
 from locutus.model.exceptions import *
 
-import pdb
 
 class TableOntologyAPISearchPreferences(Resource):
     def get(self, id, code=None):
@@ -15,9 +14,9 @@ class TableOntologyAPISearchPreferences(Resource):
             pref = t.get_preference(code=code)
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
-        
+
         return pref, 200, default_headers
-        
+
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Table or code."""
         body = request.get_json()
@@ -58,10 +57,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
         message = t.remove_pref(code=code)
 
-        response = {
-            "message": message,
-            "table": {"Reference": f"Table/{t.id}"}
-        }
+        response = {"message": message, "table": {"Reference": f"Table/{t.id}"}}
 
         return (response, 200, default_headers)
 
@@ -84,7 +80,7 @@ class TablePreferredTerminology(Resource):
                     "reference": "Terminology/tm--example2"
                 }
             ]
-        } 
+        }
         """
         t = mTable.get(id)
 
@@ -99,7 +95,7 @@ class TablePreferredTerminology(Resource):
 
         Args:
             id (str): The ID of the Term to which the preferred terminology will be added.
-        
+
         Example Request Body:
         {
             "editor": "me",
@@ -142,10 +138,7 @@ class TablePreferredTerminology(Resource):
             )
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        response = {
-            "id": t.id,
-            "references": preferred_terminologies
-        }
+        response = {"id": t.id, "references": preferred_terminologies}
         return (response, 200, default_headers)
 
     def delete(self, id):
@@ -154,6 +147,7 @@ class TablePreferredTerminology(Resource):
         t.remove_preferred_terminology()
 
         response = {
-            "message": f"The preferred_terminology collection was deleted for: {id}."}
+            "message": f"The preferred_terminology collection was deleted for: {id}."
+        }
 
         return response, 200, default_headers

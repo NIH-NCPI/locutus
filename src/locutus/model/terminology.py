@@ -17,8 +17,6 @@ import time
 from locutus.model.user_input import UserInput
 from sessions import SessionManager
 
-import pdb
-
 
 """
 A terminology exists on its own within the project but can be referenced by 
@@ -64,7 +62,6 @@ class Coding:
 
         @post_load
         def build_code(self, data, **kwargs):
-            # pdb.set_trace()
             return Coding(**data)
 
     def to_dict(self):
@@ -123,8 +120,6 @@ class Terminology(Serializable):
         self.description = description
         self.url = url
         self.codes = []
-
-        # pdb.set_trace()
 
         # This probably doesn't make sense, stashing the system in at this
         # point, but we'll trust knuth for the time being and fix it when it is
@@ -193,12 +188,11 @@ class Terminology(Serializable):
                 target=code,
             )
 
-
     def remove_code(self, code, editor):
         code_found = False
         # Ensure codes are not placeholders at this point.
         code = normalize_ftd_placeholders(code)
-            
+
         for cc in self.codes:
             if cc.code == code:
                 self.codes.remove(cc)
@@ -463,7 +457,6 @@ class Terminology(Serializable):
                 code_index = get_code_index(code)
 
                 prov[code_index] = []
-        # pdb.set_trace()
 
         return prov
 
@@ -517,9 +510,6 @@ class Terminology(Serializable):
             cur_prov["changes"].append(prov)
         except:
             print(f"Current Provenance isn't what we expected: {cur_prov}")
-            # pdb.set_trace()
-
-        # pdb.set_trace()
 
         persistence().collection(self.resource_type).document(self.id).collection(
             "provenance"
@@ -568,7 +558,6 @@ class Terminology(Serializable):
         except:
             mapping = None
             print(f"weird mapping: {tmref.get()}")
-            pdb.set_trace()
         change_type = Terminology.ChangeType.AddMapping
         if mapping is not None:
             # This is not super helpful, but at least we get some detail about which mappings were removed

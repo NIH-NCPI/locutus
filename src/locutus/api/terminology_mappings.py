@@ -6,7 +6,6 @@ from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 from sessions import SessionManager
-import pdb
 
 
 class TerminologyMappings(Resource):
@@ -40,7 +39,7 @@ class TerminologyMappings(Resource):
                 mappings = t.mappings()
 
                 for code in mappings:
-                    
+
                     # Ensure codes are not placeholders at this point.
                     code = normalize_ftd_placeholders(code)
 

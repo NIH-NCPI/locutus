@@ -17,7 +17,6 @@ from locutus.model.exceptions import *
 from locutus.api import default_headers
 
 
-import pdb
 import rich
 
 import sys
@@ -93,10 +92,8 @@ class Table(Serializable):
         # This represents the "shadow" terminology that reflects the variable
         # names and descriptions associated with a given table.
         if terminology:
-            # pdb.set_trace()
             self.terminology = Reference(reference=terminology["reference"])
         else:
-            # pdb.set_trace()
             terminology = {
                 "name": name,
                 "url": f"{url}/{name}",
@@ -132,7 +129,6 @@ class Table(Serializable):
                 # something that is intended to remain. That is something
                 # real to address, though.
                 print(f"Removing variable '{varname}' from {self.name}.")
-                # pdb.set_trace()
                 self.variables.remove(var)
                 self.terminology.dereference().remove_code(code=var.code, editor=editor)
                 success = True
@@ -213,10 +209,8 @@ class Table(Serializable):
                             .document(terminology.id)
                             .collection("provenance")
                         )
-                        
                         original_code_index = get_code_index(original_code)
                         new_code_index = get_code_index(var.code)
-                        
                         prov = term_doc.document(original_code_index).get().to_dict()
                         prov["target"] = var.code
                         term_doc.document(new_code_index).set(prov)
@@ -228,7 +222,6 @@ class Table(Serializable):
         """If aa variable with the same name exists, replace it. Else append"""
 
         for idx, var in enumerate(self.variables):
-            # pdb.set_trace()
             if variable.name == var.name:
                 self.variables[idx] = variable
                 return True
@@ -237,7 +230,7 @@ class Table(Serializable):
     def add_variable(self, variable, editor=None):
         v = variable
 
-        # Ensure the name is not a ftd_placeholder        
+        # Ensure the name is not a ftd_placeholder
         v["name"] = normalize_ftd_placeholders(v["name"])
 
         if type(variable) is dict:
@@ -259,7 +252,6 @@ class Table(Serializable):
                     reference = f"Terminology/{t.id}"
                     v["enumerations"] = {"reference": reference}
 
-            # pdb.set_trace()
             v = Variable.deserialize(variable)
             self._insert_variable(v)
         else:
@@ -307,7 +299,6 @@ class Table(Serializable):
     def as_harmony(self):
         # Iterate over each table
         harmony_mappings = []
-        # pdb.set_trace()
         if self.terminology is not None:
             shadow = self.terminology.dereference()
             table_mappings = shadow.mappings()
@@ -462,6 +453,5 @@ class Table(Serializable):
     def dump(self):
         content = self.__class__._get_schema().dump(self)
         content["variables"] = [v.dump() for v in self.variables]
-        # pdb.set_trace()
 
         return content

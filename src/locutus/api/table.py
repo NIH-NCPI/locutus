@@ -8,8 +8,6 @@ from locutus.api.datadictionary import DataDictionaries
 from locutus.model.exceptions import *
 from copy import deepcopy
 
-import pdb
-
 
 class TableRenameCode(Resource):
     def patch(self, id):
@@ -139,8 +137,8 @@ class Tables(Resource):
 
 
 class Table(Resource):
+
     def get(self, id):
-        # pdb.set_trace()
         return mTable.get(id, return_instance=False)
 
     def put(self, id):
@@ -203,4 +201,3 @@ class HarmonyCSV(Resource):
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
         return harmony, 200, default_headers
-
