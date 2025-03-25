@@ -18,6 +18,8 @@ FTD_PLACEHOLDERS = {
     "<FTD-DOT-DOT>": ".."
     }
 
+REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
+
 def normalize_ftd_placeholders(code):
     """
     Replaces special FTD placeholders if the entire code matches them.
@@ -58,7 +60,6 @@ def get_code_index(code):
     """
 
     # Ensure any codes with designated placeholders have them in place at indexing.
-    REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
     if code in REVERSE_FTD_PLACEHOLDERS:
         code = REVERSE_FTD_PLACEHOLDERS[code] 
 

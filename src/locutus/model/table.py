@@ -250,9 +250,9 @@ class Table(Serializable):
                     # Create an empty terminology and create a reference to that
                     # terminology
                     t = Terminology(
-                        name=v.name,
+                        name=v["name"],
                         description=v.get("description"),
-                        url=f"{self.url}/{v.name}",
+                        url=f"{self.url}/{v['name']}",
                     )
                     t.save()
 
