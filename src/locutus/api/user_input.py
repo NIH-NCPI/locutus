@@ -5,7 +5,6 @@ from locutus.model.exceptions import *
 from locutus.api import default_headers
 from sessions import SessionManager
 from locutus.model.user_input import UserInput
-import pdb
 
 class TerminologyUserInput(Resource, UserInput):
     """
@@ -100,4 +99,3 @@ class TerminologyUserInput(Resource, UserInput):
                                         id, code, mapped_code, type)
 
         return (response, 200, default_headers)
-        

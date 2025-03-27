@@ -1,6 +1,12 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, strip_none, clean_varname
+from locutus import (
+    persistence,
+    strip_none,
+    FTD_PLACEHOLDERS,
+    normalize_ftd_placeholders,
+    get_code_index
+)
 from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
@@ -11,7 +17,6 @@ from locutus.model.exceptions import *
 from locutus.api import default_headers
 
 
-import pdb
 import rich
 
 import sys
@@ -67,7 +72,7 @@ class Table(Serializable):
         super().__init__(id=id, collection_type="Table", resource_type="Table")
 
         if strip_none(code) == "":
-            code = clean_varname(name)
+            code = strip_none(name)
 
         self.id = id
         self.name = name
@@ -87,10 +92,8 @@ class Table(Serializable):
         # This represents the "shadow" terminology that reflects the variable
         # names and descriptions associated with a given table.
         if terminology:
-            # pdb.set_trace()
             self.terminology = Reference(reference=terminology["reference"])
         else:
-            # pdb.set_trace()
             terminology = {
                 "name": name,
                 "url": f"{url}/{name}",
@@ -116,6 +119,8 @@ class Table(Serializable):
 
     def remove_variable(self, varname, editor):
         success = False
+        varname = normalize_ftd_placeholders(varname)
+
         for var in self.variables:
             if var.name == varname:
                 # TODO: How to handle deleting enumerated variables tables
@@ -124,7 +129,6 @@ class Table(Serializable):
                 # something that is intended to remain. That is something
                 # real to address, though.
                 print(f"Removing variable '{varname}' from {self.name}.")
-                # pdb.set_trace()
                 self.variables.remove(var)
                 self.terminology.dereference().remove_code(code=var.code, editor=editor)
                 success = True
@@ -136,6 +140,10 @@ class Table(Serializable):
 
     def rename_var(self, original_varname, new_varname, new_description, editor):
         status = 200
+        # Ensure codes are not placeholders at this point.
+        original_varname = normalize_ftd_placeholders(original_varname)
+
+        new_varname = normalize_ftd_placeholders(new_varname)
 
         print(
             f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
@@ -156,7 +164,7 @@ class Table(Serializable):
                     old_values.append(f"variable: {original_varname}")
                     new_values.append(f"variable: {new_varname}")
                     var.name = new_varname
-                    var.code = clean_varname(var.name)
+                    var.code = new_varname
                     if var.code != original_code:
 
                         # Since we found a matching code, we'll pull the mappings and
@@ -201,10 +209,12 @@ class Table(Serializable):
                             .document(terminology.id)
                             .collection("provenance")
                         )
-                        prov = term_doc.document(original_code).get().to_dict()
+                        original_code_index = get_code_index(original_code)
+                        new_code_index = get_code_index(var.code)
+                        prov = term_doc.document(original_code_index).get().to_dict()
                         prov["target"] = var.code
-                        term_doc.document(var.code).set(prov)
-                        term_doc.document(original_code).delete()
+                        term_doc.document(new_code_index).set(prov)
+                        term_doc.document(original_code_index).delete()
                 return True
         return False
 
@@ -212,7 +222,6 @@ class Table(Serializable):
         """If aa variable with the same name exists, replace it. Else append"""
 
         for idx, var in enumerate(self.variables):
-            # pdb.set_trace()
             if variable.name == var.name:
                 self.variables[idx] = variable
                 return True
@@ -220,6 +229,9 @@ class Table(Serializable):
 
     def add_variable(self, variable, editor=None):
         v = variable
+
+        # Ensure the name is not a ftd_placeholder
+        v["name"] = normalize_ftd_placeholders(v["name"])
 
         if type(variable) is dict:
             # For now, let's insure that the enumerations terminology is there or
@@ -240,7 +252,6 @@ class Table(Serializable):
                     reference = f"Terminology/{t.id}"
                     v["enumerations"] = {"reference": reference}
 
-            # pdb.set_trace()
             v = Variable.deserialize(variable)
             self._insert_variable(v)
         else:
@@ -261,6 +272,7 @@ class Table(Serializable):
             "table_name": self.name,
             "parent_varname": "",  # I'm not sure if we can get this ATM
             "local code system": local_coding.system,
+            "mapping relationship": mapped_coding.mapping_relationship,
             "code": mapped_coding.code,
             "display": mapped_coding.display,
             "code system": mapped_coding.system,
@@ -287,7 +299,6 @@ class Table(Serializable):
     def as_harmony(self):
         # Iterate over each table
         harmony_mappings = []
-        # pdb.set_trace()
         if self.terminology is not None:
             shadow = self.terminology.dereference()
             table_mappings = shadow.mappings()
@@ -442,6 +453,5 @@ class Table(Serializable):
     def dump(self):
         content = self.__class__._get_schema().dump(self)
         content["variables"] = [v.dump() for v in self.variables]
-        # pdb.set_trace()
 
         return content

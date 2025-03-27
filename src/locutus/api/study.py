@@ -57,7 +57,6 @@ class Studies(Resource):
 
 class Study(Resource):
     def get(self, id):
-        # pdb.set_trace()
         t = persistence().collection("Study").document(id).get()
         return t.to_dict(), 200, default_headers
 

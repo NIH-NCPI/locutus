@@ -5,7 +5,6 @@ from locutus.model.table import Table
 from locutus.model.exceptions import *
 from locutus.api import default_headers, delete_collection, get_editor
 
-import pdb
 
 class OntologyAPISearchPreferences(Resource):
     def get(self, id=None, code=None):
@@ -19,12 +18,12 @@ class OntologyAPISearchPreferences(Resource):
 
         # get the prefs from the table if none exist for the terminology
         if table_id and not any(pref.values()):
-            tb=Table.get(table_id)
+            tb = Table.get(table_id)
             try:
                 pref = tb.get_preference(code=code)
             except KeyError as e:
                 return {"message_to_user": str(e)}, 400, default_headers
-            
+
         return (pref, 200, default_headers)
 
     def post(self, id, code=None):
@@ -75,10 +74,11 @@ class OntologyAPISearchPreferences(Resource):
 
         response = {
             "message": message,
-            "terminology": {"Reference": f"Terminology/{t.id}"}
+            "terminology": {"Reference": f"Terminology/{t.id}"},
         }
 
         return (response, 200, default_headers)
+
 
 class PreferredTerminology(Resource):
     def get(self, id=None):
@@ -98,7 +98,7 @@ class PreferredTerminology(Resource):
                     "reference": "Terminology/tm--example2"
                 }
             ]
-        } 
+        }
         """
         # Optional parameter
         table_id = request.args.get("table_id", default=None)
@@ -109,7 +109,7 @@ class PreferredTerminology(Resource):
 
         # get the prefs from the table if none exist for the terminology
         if table_id and not any(pref.values()):
-            tb=Table.get(table_id)
+            tb = Table.get(table_id)
             try:
                 pref = tb.get_preferred_terminology()
             except KeyError as e:
@@ -124,7 +124,7 @@ class PreferredTerminology(Resource):
 
         Args:
             id (str): The ID of the Term to which the preferred terminology will be added.
-        
+
         Example Request Body:
         {
             "editor": "me",
@@ -167,13 +167,10 @@ class PreferredTerminology(Resource):
             )
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        response = {
-            "id": t.id,
-            "references": preferred_terminologies
-        }
+        response = {"id": t.id, "references": preferred_terminologies}
         return (response, 200, default_headers)
 
-    def delete(self, id):    
+    def delete(self, id):
         """Remove a `terminology_preference` from a specific Terminology."""
 
         t = Term.get(id)
@@ -181,6 +178,7 @@ class PreferredTerminology(Resource):
         t.remove_preferred_terminology()
 
         response = {
-            "message": f"The preferred_terminology collection was deleted for terminology {id}."}
+            "message": f"The preferred_terminology collection was deleted for terminology {id}."
+        }
 
         return response, 200, default_headers

@@ -13,9 +13,6 @@ import json
 
 from os import getenv, environ
 
-import pdb
-
-
 class StorageBase:
     def __init__(self, project_id):
         self.project_id = project_id
@@ -68,9 +65,7 @@ class JStoreCollection:
     def document(self, docid, data=None):
         # Allow an alias be used in place of the ID if the ID isn't already
         # present in the data
-        # pdb.set_trace()
         id = docid
-        # pdb.set_trace()
         if docid not in self.data and docid in self.aliases:
             id = self.aliases[docid]
 
@@ -96,7 +91,6 @@ class JStore(StorageBase):
 
     def __init__(self, project_id):
         super().__init__(project_id)
-        # pdb.set_trace()
         self._collections = {}
 
         self.filename = JStore.file_path / f"{self.project_id}.json"
@@ -113,14 +107,12 @@ class JStore(StorageBase):
     def load(self):
         with self.filename.open("rt") as f:
             data = json.load(f)
-            # pdb.set_trace()
             collections = data.get("collections")
             aliases = data.get("aliases")
 
             if aliases is None:
                 aliases = {}
 
-            # pdb.set_trace()
             if type(collections) is dict:
                 for collection in collections:
                     self._collections[collection] = JStoreCollection(

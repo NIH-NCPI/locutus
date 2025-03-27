@@ -1,12 +1,11 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
+from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.model.terminology import Terminology as Term, MappingUserInputModel
 from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 from sessions import SessionManager
-import pdb
 
 
 class TerminologyMappings(Resource):
@@ -40,6 +39,10 @@ class TerminologyMappings(Resource):
                 mappings = t.mappings()
 
                 for code in mappings:
+
+                    # Ensure codes are not placeholders at this point.
+                    code = normalize_ftd_placeholders(code)
+
                     mapping = {"code": code, "mappings": []}
                     for codingmapping in mappings.get(code, []):
                         if user_input_param:

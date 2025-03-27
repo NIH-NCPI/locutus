@@ -1,6 +1,11 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
+from locutus import (
+    persistence,
+    get_code_index,
+    FTD_PLACEHOLDERS,
+    normalize_ftd_placeholders,
+)
 from locutus.model.terminology import (
     Terminology as Term,
     Coding,
@@ -13,7 +18,6 @@ from locutus.model.exceptions import *
 from sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
-import pdb
 
 
 class TerminologyMapping(Resource):
@@ -25,6 +29,9 @@ class TerminologyMapping(Resource):
 
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
+
+        # Ensure codes are not placeholders at this point.
+        code = normalize_ftd_placeholders(code)
 
         try:
             editor = get_editor(body=None, editor=editor_param)
@@ -76,6 +83,10 @@ class TerminologyMapping(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
         body = request.get_json()
+
+        # Ensure codes are not placeholders at this point.
+        code = normalize_ftd_placeholders(code)
+
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -93,7 +104,7 @@ class TerminologyMapping(Resource):
             t = Term(**term)
 
             # Raise error if the code is not in the terminology
-            if not t.has_code(code): 
+            if not t.has_code(code):
                 raise CodeNotPresent(code, id)
 
             t.set_mapping(code, codingmapping, editor=editor)
@@ -103,6 +114,7 @@ class TerminologyMapping(Resource):
             return e.to_dict(), e.status_code, default_headers
 
         return (response, 201, default_headers)
+
 
 class MappingRelationship(Resource):
 
@@ -123,9 +135,9 @@ class MappingRelationship(Resource):
 
             # Raise error if the code is not in the terminology
             t = Term.get(id)
-            if not t.has_code(code): 
+            if not t.has_code(code):
                 raise CodeNotPresent(code, id)
-            
+
             response = MappingRelationshipModel.add_mapping_relationship(
                 editor, id, code, mapped_code, mapping_relationship
             )
