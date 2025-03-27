@@ -13,13 +13,10 @@ from locutus.model.exceptions import *
 from locutus.model.lookups import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
-from locutus.api import generate_paired_string
 import time
 
 from locutus.model.user_input import UserInput
 from locutus.sessions import SessionManager
-
-import pdb
 
 
 """
@@ -191,7 +188,6 @@ class Terminology(Serializable):
                 editor=editor,
                 target=code,
             )
-
 
     def remove_code(self, code, editor):
         code_found = False
