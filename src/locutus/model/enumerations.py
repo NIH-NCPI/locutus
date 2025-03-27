@@ -1,7 +1,6 @@
 from locutus import persistence
 from locutus.model.validation import validate_enums
 from locutus import logger
-import pdb
 
 
 class ResourceSingletonBase:
@@ -103,16 +102,16 @@ class OntologyAPICollection(ResourceSingletonBase):
 
         logger.info(f"ontology data {ontology_data}")
         return ontology_data
-    
+
     def get_ontology_keys(self):
         """ """
         cached_data = self.get_cached_resource()
 
         for ontology_object in cached_data:
             ontologies = ontology_object.get("ontologies", {})
-            
+
             ontology_keys = ontologies.keys()
-            
+
             ontology_keys_list = list(ontology_keys)
 
             return ontology_keys_list

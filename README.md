@@ -598,7 +598,7 @@ The response below would be the result of specifying 'T21' as the `code` in the 
 
 Optionally, the endpoint can be implemented to fallback to the `Table`s preferrences if the `table_id` is provided.<br> The endpoint will 'fallback' only if there are no preferences for the `Terminology`.
 
-Example endpoint: https://[APPURL]/api/Terminology/[id]/filter[code]?table_id=[table_id]
+Example endpoint: https://[APPURL]/api/Terminology/[id]/filter/[code]?table_id=[table_id]
 
 ```json
 {

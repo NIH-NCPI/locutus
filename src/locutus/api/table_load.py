@@ -8,9 +8,6 @@ from locutus.model.variable import Variable, InvalidVariableDefinition
 
 import rich
 
-from locutus import clean_varname
-
-import pdb
 
 # Eventually, these should either live in the dataset or in a top level table
 # so that the user can edit them. But, for now, we'll just maintain a static
@@ -41,8 +38,6 @@ def get_data_type(data_type):
 class TableLoader(Resource):
     def post(self):
         tblData = request.get_json()
-
-        # pdb.set_trace()
 
         tbl = {
             "name": tblData["name"],
@@ -97,10 +92,8 @@ class TableLoader(Resource):
                     )
 
                 varname = varData["variable_name"]
-                code = varData.get("variable_code")
+                code = varData.get("variable_code", varData["variable_name"])
 
-                if code is None:
-                    code = clean_varname(varname)
                 var = {
                     "code": code,
                     "name": varname,
@@ -173,7 +166,6 @@ class TableLoader2(Resource):
     def put(self, id):
         tblData = request.get_json()
 
-        # pdb.set_trace()
         tbl = mTable.get(id)
         editor = get_editor(body=tblData, editor=None)
 
