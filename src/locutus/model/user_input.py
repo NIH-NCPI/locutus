@@ -104,7 +104,7 @@ class UserInput:
             }
 
         except Exception as e:
-            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {code_index}: {e}"), 500
+            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {document_id}: {e}"), 500
 
     def create_or_replace_user_input(self, resource_type, collection_type, id, code, mapped_code, type, body):
         """
