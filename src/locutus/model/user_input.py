@@ -10,7 +10,7 @@ Current Use:
 from marshmallow import Schema, fields, post_load
 from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.api import generate_mapping_index, get_editor
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 from locutus.model.exceptions import *
 
 USER_INPUT_CHAR_LIMIT = 1000

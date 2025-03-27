@@ -1,4 +1,4 @@
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 from locutus import get_code_index
 
 default_headers = [

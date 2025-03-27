@@ -6,7 +6,7 @@ from locutus.model.enumerations import FTDConceptMapTerminology
 from locutus.model.exceptions import *
 from locutus.api.terminology_mapping import TerminologyMappings
 from locutus.api import generate_mapping_index
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 
 class MappingRelationshipModel:
     @classmethod
