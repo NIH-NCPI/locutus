@@ -66,8 +66,13 @@ class UserInput:
             document_id = generate_mapping_index(code, mapped_code)
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(document_id)
+                .collection(collection_type).document(document_id)
 
             doc_snapshot = doc_ref.get()
+
+            # Ensure codes/mappings are not placeholders at this point.
+            code = normalize_ftd_placeholders(code)
+            mapped_code = normalize_ftd_placeholders(mapped_code)
 
             # Ensure codes/mappings are not placeholders at this point.
             code = normalize_ftd_placeholders(code)
@@ -142,10 +147,15 @@ class UserInput:
         try:
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(document_id)
+                .collection(collection_type).document(document_id)
 
             # Fetch existing data for the document if it exists
             doc_snapshot = doc_ref.get()
             existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
+
+            # Ensure codes/mappings are not placeholders at this point.
+            code = normalize_ftd_placeholders(code)
+            mapped_code = normalize_ftd_placeholders(mapped_code)
 
             # Ensure codes/mappings are not placeholders at this point.
             code = normalize_ftd_placeholders(code)
@@ -188,6 +198,7 @@ class UserInput:
 
         except Exception as e:
             return (f"An error occurred while updating firestore {id} \
+                    {resource_type} - {document_id}: {e}"), 500
                     {resource_type} - {document_id}: {e}"), 500
 
     def update_or_append_input(self, existing_data, user_id, new_record, return_format):
