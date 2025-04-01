@@ -166,7 +166,7 @@ api.add_resource(
     TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
 )
 api.add_resource(
-    TableUserInput, "/api/Table/<string:id>/user_input/<string:code>/mapping/<string:mapped_code>/<string:type>"
+    TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<string:mapped_code>/<string:type>"
 )
 
 # POST

@@ -7,7 +7,7 @@ from locutus import (
     FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,
 )
-from locutus.api import delete_collection, generate_paired_string
+from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
 from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
 from locutus.model.enumerations import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
@@ -15,6 +15,9 @@ from datetime import datetime
 import time
 
 from locutus.model.user_input import UserInput
+from locutus.sessions import SessionManager
+
+import pdb
 
 
 """
@@ -44,6 +47,8 @@ the "codes" array.
 class Coding:
 
     def __init__(self, code, display="", system=None, description=""):
+        code = normalize_ftd_placeholders(code)
+
         code = normalize_ftd_placeholders(code)
 
         self.code = code
@@ -164,6 +169,9 @@ class Terminology(Serializable):
             # Ensure codes are not placeholders at this point.
             cc = normalize_ftd_placeholders(cc)
 
+            # Ensure codes are not placeholders at this point.
+            cc = normalize_ftd_placeholders(cc)
+
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
         new_coding = Coding(
@@ -189,6 +197,9 @@ class Terminology(Serializable):
 
     def remove_code(self, code, editor):
         code_found = False
+        # Ensure codes are not placeholders at this point.
+        code = normalize_ftd_placeholders(code)
+
         # Ensure codes are not placeholders at this point.
         code = normalize_ftd_placeholders(code)
 
@@ -273,7 +284,12 @@ class Terminology(Serializable):
                         ori_code_index = get_code_index(original_code)
                         new_code_index = get_code_index(new_code)
                         prov = term_doc.document(ori_code_index).get().to_dict()
+                        ori_code_index = get_code_index(original_code)
+                        new_code_index = get_code_index(new_code)
+                        prov = term_doc.document(ori_code_index).get().to_dict()
                         prov["target"] = new_code
+                        term_doc.document(new_code_index).set(prov)
+                        term_doc.document(ori_code_index).delete()
                         term_doc.document(new_code_index).set(prov)
                         term_doc.document(ori_code_index).delete()
                     return True
@@ -289,7 +305,17 @@ class Terminology(Serializable):
 
         Output:           
          If the terminology has the code already this will return True
+
+        Args: 
+          code(str): Code to be checked against a Terminologies codes. 
+          Terminology codes are currently not cleaned for indexing. For 
+          more see get_code_index
+
+        Output:           
+         If the terminology has the code already this will return True
         """
+        # Ensure codes are not placeholders at this point.
+        code = normalize_ftd_placeholders(code)
         # Ensure codes are not placeholders at this point.
         code = normalize_ftd_placeholders(code)
 
@@ -311,11 +337,17 @@ class Terminology(Serializable):
 
             code_index = get_code_index(code)
 
+            # Ensure codes are not placeholders at this point.
+            code = normalize_ftd_placeholders(code)
+
+            code_index = get_code_index(code)
+
             tmref = (
                 persistence()
                 .collection("Terminology")
                 .document(self.id)
                 .collection("mappings")
+                .document(code_index)
                 .document(code_index)
             )
 
@@ -323,6 +355,8 @@ class Terminology(Serializable):
             time_of_delete = 0
             if mapping is not None:
                 # Iterate over the codes in the mapping and toggle 'valid' to False
+                for codingmapping in mapping["codes"]:
+                    codingmapping["valid"] = False
                 for codingmapping in mapping["codes"]:
                     codingmapping["valid"] = False
 
@@ -338,6 +372,7 @@ class Terminology(Serializable):
             else:
                 print(
                     f"Soft deleting mappings for code: {code}, doc_id:{code_index}, Terminology: {self.name} but there were no mappings."
+                    f"Soft deleting mappings for code: {code}, doc_id:{code_index}, Terminology: {self.name} but there were no mappings."
                 )
         else:
             mapref = (
@@ -352,11 +387,15 @@ class Terminology(Serializable):
                 mapping_code_id = mapping["code"]
                 code_index = get_code_index(mapping_code_id)
 
+                mapping_code_id = mapping["code"]
+                code_index = get_code_index(mapping_code_id)
+
                 for coding in mapping["codes"]:
                     if "valid" in coding:
                         coding["valid"] = False
 
                 # Save the updated mapping
+                mapref.document(code_index).set(mapping)
                 mapref.document(code_index).set(mapping)
 
             self.add_provenance(
@@ -385,11 +424,14 @@ class Terminology(Serializable):
         else:
             code_index = get_code_index(code)
 
+            code_index = get_code_index(code)
+
             mapping = (
                 persistence()
                 .collection(self.resource_type)
                 .document(self.id)
                 .collection("mappings")
+                .document(code_index)
                 .document(code_index)
                 .get()
                 .to_dict()
@@ -433,11 +475,13 @@ class Terminology(Serializable):
                 prov[id] = prv
         else:
             code_index = get_code_index(code)
+            code_index = get_code_index(code)
             prv = (
                 persistence()
                 .collection(self.resource_type)
                 .document(self.id)
                 .collection("provenance")
+                .document(code_index)
                 .document(code_index)
                 .get()
                 .to_dict()
@@ -456,6 +500,9 @@ class Terminology(Serializable):
                 code_index = get_code_index(code)
 
                 prov[code_index] = []
+                code_index = get_code_index(code)
+
+                prov[code_index] = []
 
         return prov
 
@@ -466,23 +513,18 @@ class Terminology(Serializable):
             code_index = "self"
             normalized_target = "self"
         else:
-            # Ensure special characters in paired targets are handled properly
+            if target.count("|") > 1:
+                print(f"Warning: Invalid target format '{target}'. Skipping provenance addition.")
+                return
+
             if "|" in target:
                 left, right = target.split("|", 1)
-                # Normalize each side of a paired target
+                # Normalize each side of a paired target for the provenance target/display
                 normalized_left = normalize_ftd_placeholders(left)
                 normalized_right = normalize_ftd_placeholders(right)
+                normalized_target = generate_paired_string(normalized_left, normalized_right)
 
-                normalized_target = generate_paired_string(
-                    normalized_left, normalized_right
-                )
-                # Ensure indexes are formatted properly
-                index_left = get_code_index(left)
-
-                index_right = get_code_index(right)
-
-                index_right = get_code_index(right)
-                code_index = generate_paired_string(index_left, index_right)
+                code_index = target # mapping pairs are already formatted as indexes
             # Ensure special characters in single code targets are handled properly
             else:
                 normalized_target = normalize_ftd_placeholders(target)
@@ -494,10 +536,13 @@ class Terminology(Serializable):
         timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
         # cur_prov = None
         cur_prov = self.get_provenance(code_index).get(normalized_target, None)
+        cur_prov = self.get_provenance(code_index).get(normalized_target, None)
         if cur_prov is None or type(cur_prov) is list:
+            cur_prov = {"target": normalized_target, "changes": []}
             cur_prov = {"target": normalized_target, "changes": []}
 
         baseprov = {
+            "target": normalized_target,
             "target": normalized_target,
             "timestamp": timestamp,
             "action": change_type,
@@ -513,10 +558,16 @@ class Terminology(Serializable):
         persistence().collection(self.resource_type).document(self.id).collection(
             "provenance"
         ).document(code_index).set(cur_prov)
+        ).document(code_index).set(cur_prov)
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
     def set_mapping(self, code, codings, editor):
+        code_index = get_code_index(code)
+
+        # Ensure code is not a placeholder at this point.
+        code = normalize_ftd_placeholders(code)
+
         code_index = get_code_index(code)
 
         # Ensure code is not a placeholder at this point.
@@ -554,6 +605,8 @@ class Terminology(Serializable):
         try:
             assert code_index is not None
             mapping = tmref.document(code_index).get().to_dict()
+            assert code_index is not None
+            mapping = tmref.document(code_index).get().to_dict()
         except:
             mapping = None
             print(f"weird mapping: {tmref.get()}")
@@ -571,6 +624,7 @@ class Terminology(Serializable):
             editor=editor,
         )
 
+        tmref.document(code_index).set(doc)
         tmref.document(code_index).set(doc)
 
     def get_preference(self, code=None):
@@ -598,11 +652,13 @@ class Terminology(Serializable):
             # If a specific code is provided, get the preference
             else:
                 code_index = get_code_index(code)
+                code_index = get_code_index(code)
                 prv = (
                     persistence()
                     .collection(self.resource_type)
                     .document(self.id)
                     .collection('onto_api_preference')
+                    .document(code_index)
                     .document(code_index)
                     .get()
                 )
@@ -632,8 +688,11 @@ class Terminology(Serializable):
 
             code_index = get_code_index(code)
 
+            code_index = get_code_index(code)
+
             # Save the updated preferences back to the Firestore sub-collection
             persistence().collection(self.resource_type).document(self.id) \
+                .collection("onto_api_preference").document(code_index).set(cur_pref)
                 .collection("onto_api_preference").document(code_index).set(cur_pref)
 
         except Exception as e:
@@ -649,6 +708,9 @@ class Terminology(Serializable):
             collection_ref = persistence().collection(self.resource_type) \
                 .document(self.id).collection("onto_api_preference")
 
+            code_index = get_code_index(code)
+
+            doc_ref = collection_ref.document(code_index)
             code_index = get_code_index(code)
 
             doc_ref = collection_ref.document(code_index)
@@ -852,8 +914,15 @@ class MappingUserInputModel:
         code = normalize_ftd_placeholders(code)
 
         mapped_code = normalize_ftd_placeholders(mapped_code)
+        code_index = get_code_index(code)
+        mapped_code_index = get_code_index(mapped_code)
 
-        document_id = generate_paired_string(code_index, mapped_code_index)
+        # Ensure codes/mappings are not placeholders at this point
+        code = normalize_ftd_placeholders(code)
+
+        mapped_code = normalize_ftd_placeholders(mapped_code)
+
+        document_id = generate_mapping_index(code, mapped_code)
         doc_ref = (
             persistence()
             .collection("Terminology")
