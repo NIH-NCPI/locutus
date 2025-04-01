@@ -13,19 +13,60 @@ def strip_none(value):
     return value
 
 
-def fix_varname(varname):
-    return varname.strip().replace(" ", "_")
+FTD_PLACEHOLDERS = {
+    "<FTD-DOT>": ".",
+    "<FTD-DOT-DOT>": ".."
+    }
 
+REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
 
-def clean_varname(name):
-    return (
-        name.lower()
-        .replace(" ", "_")
-        .replace("(", "")
-        .replace(")", "")
-        .replace("'", "")
-        .replace('"', "")
-    )
+def normalize_ftd_placeholders(code):
+    """
+    Replaces special FTD placeholders if the entire code matches them.
+    
+    Args:
+        code(str): The input code.
+
+    Returns:
+        str: The normalized code.
+
+    """
+    if code in FTD_PLACEHOLDERS:
+        return FTD_PLACEHOLDERS[code]
+    else:
+        return code
+    
+
+# Special character mappings. UTF-8 Hex
+sp_char_mappings_indexes = {'/': '0x2F'}
+
+def get_code_index(code):
+    """
+    Cleans the code identifier, for db path referencing
+
+    Background: Codes from various inputs(request url, sideload, ect.)
+    might contain special characters that cannot be used in a firestore resource
+    path. i.e. `Ontology/Code` Use this function to clean them. Note that
+    Codings(i.e. Table Variables) and CodingMappings(i.e. Mapping objects) 
+    should not have transformed codes, another function exists for those transformations.
+
+    Args:
+      code(str): code. 
+      Examples: `given/code`, `..`, or `<FTD-DOT-DOT>
+
+    Output:
+      code_index(str): 
+      Examples: `given0x2Fcode' or <FTD-DOT-DOT>`
+    """
+
+    # Ensure any codes with designated placeholders have them in place at indexing.
+    if code in REVERSE_FTD_PLACEHOLDERS:
+        code = REVERSE_FTD_PLACEHOLDERS[code] 
+
+    code_index = code 
+    for key, value in sp_char_mappings_indexes.items():
+        code_index = code_index.replace(key, value)
+    return code_index
 
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"

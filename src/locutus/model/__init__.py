@@ -1,11 +1,8 @@
-import pdb
-
 # Follow KF with the use of nanoid for ID generation.
 from nanoid import generate
 from copy import deepcopy
 
 from locutus import persistence
-import pdb
 
 """
 The application should set this to the desired 
@@ -121,13 +118,11 @@ class Serializable:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        # pdb.set_trace()
         cls._factory_workers[cls.__name__.lower()] = cls
 
     @classmethod
     def init(cls, resource):
         return cls._get_schema().load(resource)
-        # pdb.set_trace()
 
     @classmethod
     def _get_schema(cls):
