@@ -36,7 +36,7 @@ def normalize_ftd_placeholders(code):
         return FTD_PLACEHOLDERS[code]
     else:
         return code
-    
+
 
 # Special character mappings. UTF-8 Hex
 sp_char_mappings_indexes = {'/': '0x2F'}
@@ -65,8 +65,8 @@ def get_code_index(code):
         code = REVERSE_FTD_PLACEHOLDERS[code] 
 
     code_index = code 
-    for key, value in sp_char_mappings_indexes.items():
-        code_index = code_index.replace(key, value)
+    # for key, value in sp_char_mappings_indexes.items():
+    #     code_index = code_index.replace(key, value)
     return code_index
 
 # Set the logging config
