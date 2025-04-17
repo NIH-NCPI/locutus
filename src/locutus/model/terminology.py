@@ -549,17 +549,17 @@ class Terminology(Serializable):
         )
 
         old_mappings = ""
-        # try:
-        #     assert code_index is not None
-        #     mapping = tmref.document(code_index).get().to_dict()
-        # except:
-        #     mapping = None
-        #     print(f"weird mapping: {tmref.get()}")
+        try:
+            assert code_index is not None
+            mapping = tmref.document(code_index).get().to_dict()
+        except:
+            mapping = None
+            print(f"weird mapping: {tmref.get()}")
         change_type = Terminology.ChangeType.AddMapping
-        # if mapping is not None:
-        #     # This is not super helpful, but at least we get some detail about which mappings were removed
-        #     old_mappings = ",".join([x["code"] for x in mapping["codes"]])
-        #     change_type = Terminology.ChangeType.EditMapping
+        if mapping is not None:
+            # This is not super helpful, but at least we get some detail about which mappings were removed
+            old_mappings = ",".join([x["code"] for x in mapping["codes"]])
+            change_type = Terminology.ChangeType.EditMapping
 
         self.add_provenance(
             change_type=change_type,

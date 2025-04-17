@@ -65,9 +65,8 @@ def get_code_index(code):
         code = REVERSE_FTD_PLACEHOLDERS[code] 
 
     code_index = code 
-    for key, value in sp_char_mappings_indexes.items():
-        # code_index = code_index.replace(key, value)
-        pass
+    # for key, value in sp_char_mappings_indexes.items():
+    #     code_index = code_index.replace(key, value)
     return code_index
 
 # Set the logging config
