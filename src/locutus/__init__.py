@@ -15,7 +15,8 @@ def strip_none(value):
 
 FTD_PLACEHOLDERS = {
     "<FTD-DOT>": ".",
-    "<FTD-DOT-DOT>": ".."
+    "<FTD-DOT-DOT>": "..",
+    "<FTD-HASH>": "#"
     }
 
 REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
