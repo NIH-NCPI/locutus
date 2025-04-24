@@ -167,7 +167,7 @@ class Terminology(Serializable):
     def add_code(self, code, display, description=None, editor=None):
         for cc in self.codes:
             # Ensure codes are not placeholders at this point.
-            cc = normalize_ftd_placeholders(cc)
+            cc.code = normalize_ftd_placeholders(cc.code)
 
             # Ensure codes are not placeholders at this point.
             cc = normalize_ftd_placeholders(cc)
