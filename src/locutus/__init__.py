@@ -12,10 +12,14 @@ def strip_none(value):
         return ""
     return value
 
-
+# Full match strings that are encoded by the frontend
 FTD_PLACEHOLDERS = {
     "<FTD-DOT>": ".",
     "<FTD-DOT-DOT>": "..",
+    }
+
+# Partial match strings that must be encoded by the frontend
+FTD_PLACEHOLDERS_PARTIAL_MATCH = {
     "<FTD-HASH>": "#"
     }
 
@@ -34,8 +38,11 @@ def normalize_ftd_placeholders(code):
     """
     if code in FTD_PLACEHOLDERS:
         return FTD_PLACEHOLDERS[code]
-    else:
-        return code
+
+    for placeholder, char in FTD_PLACEHOLDERS_PARTIAL_MATCH.items():
+        code = code.replace(placeholder, char)
+
+    return code
     
 
 # Special character mappings. UTF-8 Hex
@@ -63,12 +70,13 @@ def get_code_index(code):
     # Ensure any codes with designated placeholders have them in place at indexing.
     if code in REVERSE_FTD_PLACEHOLDERS:
         code = REVERSE_FTD_PLACEHOLDERS[code] 
+    for placeholder, char in FTD_PLACEHOLDERS_PARTIAL_MATCH.items():
+        code = code.replace(char, placeholder)
 
     code_index = code 
     for key, value in sp_char_mappings_indexes.items():
         code_index = code_index.replace(key, value)
     return code_index
-
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
