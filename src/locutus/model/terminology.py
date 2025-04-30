@@ -8,8 +8,8 @@ from locutus import (
     normalize_ftd_placeholders,
 )
 from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
-from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
-from locutus.model.enumerations import *
+from locutus.model.exceptions import *
+from locutus.model.lookups import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
@@ -522,14 +522,27 @@ class Terminology(Serializable):
 
         doc = {"code": code, "codes": []}
 
+        # Cached OntologyAPI Collection for validation
+        onto_seed_data = OntologyAPICollection()
+        onto_systems = onto_seed_data.get_ontology_data("system")
+        valid_systems = onto_systems.values()
+
         new_mappings = []
         for mapping in codings:
             coding_dict = mapping.to_dict()
 
             # Validation of mapping_relationship
-
             ftd_terminology = FTDConceptMapTerminology()  
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
+
+            # Validation of system
+            if coding_dict["system"] not in valid_systems:
+                # Try to map them using a lookup
+                mapped_system = FTDOntologyLookup.get_system_for_curie(coding_dict['system'])
+                if mapped_system in valid_systems:
+                    coding_dict["system"] = mapped_system
+                else:
+                    raise InvalidValueError(value=f"{coding_dict['system']}",valid_values=valid_systems)
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True
