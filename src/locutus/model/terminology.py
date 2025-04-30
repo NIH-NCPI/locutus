@@ -542,7 +542,7 @@ class Terminology(Serializable):
                 if mapped_system in valid_systems:
                     coding_dict["system"] = mapped_system
                 else:
-                    raise InvalidValueError(value=f"{coding_dict['system']}",valid_values=valid_systems)
+                    logger.warning(f"The system is not recognized by the lookup table! SYSTEM:{coding_dict['system']} VALID SYSTEMS:{valid_systems}")
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True
