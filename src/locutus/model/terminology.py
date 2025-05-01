@@ -808,6 +808,7 @@ class CodingMapping(Coding):
         valid=None,
         mapping_relationship=None,
         user_input=None,
+        ftd_code=None
     ):
         super().__init__(code, display, system, description)
         self.valid = valid
