@@ -92,7 +92,7 @@ class TerminologyMapping(Resource):
             if editor is None:
                 raise LackingUserID(editor)
             
-            mappings = body.get("mappings", [])
+            mappings = body["mappings"]
             if not mappings:
                 raise LackingRequiredParameter("Missing required parameter: 'mappings'")
 
