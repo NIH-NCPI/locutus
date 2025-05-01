@@ -40,7 +40,7 @@ class CodeNotPresent(APIError):
         logger.error(message)
         super().__init__(message, status_code=404)
 
-class InvalidEnumValueError(APIError):
+class InvalidValueError(APIError):
     """
     Raised when a value is not in the allowed set of enum values.
     """

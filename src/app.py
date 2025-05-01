@@ -57,11 +57,16 @@ from locutus.api.metadata import Version
 
 from locutus.api.user_prefs import UserPrefOntoFilters
 
+from locutus.model.lookups import FTDOntologyLookup
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
 CORS(app)
 api = Api(app)
+
+# Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
+FTDOntologyLookup.fetch_and_store_csv()
 
 # Sessions
 session_manager = SessionManager(app)

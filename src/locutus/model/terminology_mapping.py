@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, post_load
 from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from locutus.model.terminology import Terminology, Coding
-from locutus.model.enumerations import FTDConceptMapTerminology
+from locutus.model.lookups import FTDConceptMapTerminology
 from locutus.model.exceptions import *
 from locutus.api.terminology_mapping import TerminologyMappings
 from locutus.api import generate_mapping_index
