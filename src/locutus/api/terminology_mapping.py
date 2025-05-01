@@ -93,8 +93,6 @@ class TerminologyMapping(Resource):
                 raise LackingUserID(editor)
             
             mappings = body["mappings"]
-            if not mappings:
-                raise LackingRequiredParameter("Missing required parameter: 'mappings'")
 
             # Ensure each mapping has a 'system' key
             for i, mapping in enumerate(mappings):
