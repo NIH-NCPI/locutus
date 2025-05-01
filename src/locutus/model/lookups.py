@@ -132,6 +132,7 @@ class FTDOntologyLookup:
     _local_csv_path = "locutus/storage/data/references/ftd_ontology_lookup.csv"
     _expiration_days = 90
     stored_ontology_lookup = {}
+    reverse_lookup = {}
 
     @staticmethod
     def is_expired(filepath, expiration_days):
@@ -150,13 +151,23 @@ class FTDOntologyLookup:
         This is called after the CSV is fetched or if it exists locally.
     
         """
-        if cls.stored_ontology_lookup is not None: 
+        if cls.stored_ontology_lookup: 
             return
+
         if os.path.exists(cls._local_csv_path):
             with open(cls._local_csv_path, newline='', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
-                cls._data_in_memory = {row['curie']: row for row in reader}
-            print("The ontology data has been loaded into memory.")
+                for row in reader:
+                    curie = row.get("curie")
+                    system = row.get("system")
+
+                    if curie and system:
+                        cls.stored_ontology_lookup[curie] = system
+                        # Reverse lookup: also allow system-to-curie if needed
+                        if system not in cls.reverse_lookup:
+                            cls.reverse_lookup[system] = curie
+
+            print("Ontology data loaded into memory.")
         else:
             print("No CSV file found, unable to load data into memory.")
 
@@ -185,13 +196,15 @@ class FTDOntologyLookup:
         cls.load_data_to_memory()
 
     @classmethod
-    def get_data(cls, code):
+    def get_system(cls, curie):
         """
-        Get the data from memory by the unique 'code'.
+        Get the system URL given a CURIE (e.g., 'LNC' → 'http://loinc.org').
         """
-        return cls._data_in_memory.get(code, None)
-    
+        return cls.stored_ontology_lookup.get(curie)
+
     @classmethod
-    def get_system_for_curie(cls, invalid_system):
-        row = cls._data_in_memory.get(invalid_system)
-        return row["system"] if row else None
+    def get_curie(cls, system_url):
+        """
+        Get the CURIE given a system URL (e.g., 'http://loinc.org' → 'LNC').
+        """
+        return cls.reverse_lookup.get(system_url)

@@ -6,6 +6,7 @@ from locutus import (
     get_code_index,
     FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,
+    format_ftd_code
 )
 from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
 from locutus.model.exceptions import *
@@ -514,7 +515,7 @@ class Terminology(Serializable):
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
-    def set_mapping(self, code, codings, editor):
+    def set_mapping(self, code, codings, editor, sideload_mapping=False):
         code_index = get_code_index(code)
 
         # Ensure code is not a placeholder at this point.
@@ -535,14 +536,15 @@ class Terminology(Serializable):
             ftd_terminology = FTDConceptMapTerminology()  
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
 
-            # Validation of system
-            if coding_dict["system"] not in valid_systems:
-                # Try to map them using a lookup
-                mapped_system = FTDOntologyLookup.get_system_for_curie(coding_dict['system'])
-                if mapped_system in valid_systems:
-                    coding_dict["system"] = mapped_system
-                else:
-                    logger.warning(f"The system is not recognized by the lookup table! SYSTEM:{coding_dict['system']} VALID SYSTEMS:{valid_systems}")
+            # Validation of system for sideloaded mappings.
+            if sideload_mapping == True:
+                if coding_dict["system"] not in valid_systems:
+                    # Try to map them using a lookup, will default back to the given system.
+                    mapped_system = FTDOntologyLookup.get_system(coding_dict['system']) # coding_dict system is a curie(or similar) at this point
+                    if mapped_system in valid_systems:
+                        coding_dict["system"] = mapped_system
+                    else:
+                        return InvalidValueError(coding_dict['system'], valid_systems)
 
             # Add 'valid' explicitly to the mapping document
             coding_dict['valid'] = True
@@ -811,17 +813,23 @@ class CodingMapping(Coding):
         self.valid = valid
         self.mapping_relationship = mapping_relationship
         self.user_input = user_input
+        self.ftd_code = code # Default to given code, updated if necessary. 
 
     class _Schema(Schema):
         code = fields.Str(
-            required=True, error_messages={"required": "Codings *must* have a code "}
+            required=True, error_messages={"required": "CodingMappings *must* have a code "}
         )
         display = fields.Str()
-        system = fields.URL()
+        system = fields.URL(
+            required=True, error_messages={"required": "CodingMappings *must* have a system "}
+        )
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
         user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
+        ftd_code = fields.Str( 
+            required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
+        )
 
         @post_load
         def build_coding_mapping(self, data, **kwargs):
@@ -836,6 +844,11 @@ class CodingMapping(Coding):
             obj["valid"] = self.valid
         else:
             self.valid = True
+
+        # Formatted version of a code for MD to display.
+        formatted = format_ftd_code(self.ftd_code, FTDOntologyLookup.get_curie(self.system))
+        self.ftd_code = formatted
+        obj["ftd_code"] = self.ftd_code
 
         # Returns the mapping_relationship as "" if the attribute does not exist in database
         if self.mapping_relationship is not None:

@@ -80,6 +80,20 @@ def get_code_index(code):
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
+def format_ftd_code(code, curie):
+    """
+    Ensure the code is in CUR:123456 format using the ontology lookup.
+    If already formatted, return as-is. Otherwise, use the system to find the correct CUR prefix.
+    """
+    if ":" in code:
+        return code
+    if code and curie:
+        return f"{curie}:{code}"
+    else:
+        logger.warning(f"Something went wrong trying to format the ftd_code. {curie}:{code}")
+        return code
+
+
 # Create a logger
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
