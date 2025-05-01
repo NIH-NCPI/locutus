@@ -109,7 +109,6 @@ LABO,http://purl.obolibrary.org/obo/labo.owl
 LEPAO,http://purl.obolibrary.org/obo/lepao.owl
 LIFESTYLEFACTORS,https://raw.githubusercontent.com/EsmaeilNourani/Lifestyle-factors-ontology/main/LSFO/owl/LSFO.owl
 LIPIDMAPS,https://lipidmaps.org/files/?file=sparql_lipids&ext=ttl
-LNC,http://loinc.org
 LNC,https://loinc.org/
 MA,http://purl.obolibrary.org/obo/ma.owl
 MAMO,https://raw.githubusercontent.com/EBISPOT/mamo/main/mamo.rdf
@@ -247,3 +246,7 @@ ZFA,http://purl.obolibrary.org/obo/zfa.owl
 ZFS,http://purl.obolibrary.org/obo/zfs.owl
 ZP,http://purl.obolibrary.org/obo/zp.owl
 SEMAPV,https://raw.githubusercontent.com/mapping-commons/semantic-mapping-vocabulary/main/semapv.owl
+LOINC,https://loinc.org/
+MIM,https://omim.org/
+MESH,https://www.nlm.nih.gov/mesh
+ORPHANET,http://www.orphadata.org/data/ORDO/ordo_orphanet.owl

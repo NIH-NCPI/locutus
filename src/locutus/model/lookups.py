@@ -128,7 +128,7 @@ class FTDOntologyLookup:
     The CSV is fetched every time the app is redeployed and saved to a directory.
     """
 
-    _csv_url = "https://raw.githubusercontent.com/NIH-NCPI/locutus_utilities/bg/fd_2680/data/input/ontology_data/locutus_system_map.csv"
+    _csv_url = "https://raw.githubusercontent.com/NIH-NCPI/locutus_utilities/main/data/input/ontology_data/locutus_system_map.csv"
     _local_csv_path = "locutus/storage/data/references/ftd_ontology_lookup.csv"
     _expiration_days = 90
     stored_ontology_lookup = {}
