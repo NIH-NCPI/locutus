@@ -3,6 +3,7 @@ from locutus.model.validation import validate_enums
 from locutus import logger
 import requests
 from datetime import datetime, timedelta
+from pathlib import Path
 import os
 import csv
 
@@ -130,6 +131,7 @@ class FTDOntologyLookup:
 
     _csv_url = "https://raw.githubusercontent.com/NIH-NCPI/locutus_utilities/main/data/input/ontology_data/locutus_system_map.csv"
     _local_csv_path = "locutus/storage/data/references/ftd_ontology_lookup.csv"
+    abs_path = Path(__file__).parent / "../storage/data/references/ftd_ontology_lookup.csv"
     _expiration_days = 90
     stored_ontology_lookup = {}
     reverse_lookup = {}
@@ -196,15 +198,29 @@ class FTDOntologyLookup:
         cls.load_data_to_memory()
 
     @classmethod
-    def get_system(cls, curie):
+    def get_mapped_system(cls, ori_system):
         """
         Get the system URL given a CURIE (e.g., 'LNC' → 'http://loinc.org').
         """
-        return cls.stored_ontology_lookup.get(curie)
+        ftd_ontology_lookup_path = cls.abs_path
+        with open(ftd_ontology_lookup_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if row.get("curie") == ori_system:
+                    return row.get("system")
+        return ori_system
 
     @classmethod
-    def get_curie(cls, system_url):
+    def get_mapped_curie(cls, system_url):
         """
         Get the CURIE given a system URL (e.g., 'http://loinc.org' → 'LNC').
         """
-        return cls.reverse_lookup.get(system_url)
+        ftd_ontology_lookup_path = cls.abs_path
+        
+        with open(ftd_ontology_lookup_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if row.get("system") == system_url:
+                    return row.get("curie")
+        
+        return system_url
