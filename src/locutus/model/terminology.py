@@ -557,7 +557,6 @@ class Terminology(Serializable):
         persistence().collection(self.resource_type).document(self.id).collection(
             "provenance"
         ).document(code_index).set(cur_prov)
-        ).document(code_index).set(cur_prov)
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
@@ -690,7 +689,6 @@ class Terminology(Serializable):
 
             # Save the updated preferences back to the Firestore sub-collection
             persistence().collection(self.resource_type).document(self.id) \
-                .collection("onto_api_preference").document(code_index).set(cur_pref)
                 .collection("onto_api_preference").document(code_index).set(cur_pref)
 
         except Exception as e:
