@@ -73,10 +73,6 @@ class UserInput:
             code = normalize_ftd_placeholders(code)
             mapped_code = normalize_ftd_placeholders(mapped_code)
 
-            # Ensure codes/mappings are not placeholders at this point.
-            code = normalize_ftd_placeholders(code)
-            mapped_code = normalize_ftd_placeholders(mapped_code)
-
             if doc_snapshot.exists:
                 existing_data = doc_snapshot.to_dict()
             else:
@@ -150,10 +146,6 @@ class UserInput:
             # Fetch existing data for the document if it exists
             doc_snapshot = doc_ref.get()
             existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
-
-            # Ensure codes/mappings are not placeholders at this point.
-            code = normalize_ftd_placeholders(code)
-            mapped_code = normalize_ftd_placeholders(mapped_code)
 
             # Ensure codes/mappings are not placeholders at this point.
             code = normalize_ftd_placeholders(code)

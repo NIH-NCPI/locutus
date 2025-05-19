@@ -9,6 +9,7 @@ from locutus.sessions import SessionManager
 import pdb
 
 
+
 class TerminologyMappings(Resource):
     @classmethod
     def get_mappings(cls, id):

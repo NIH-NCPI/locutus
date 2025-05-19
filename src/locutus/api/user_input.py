@@ -200,4 +200,4 @@ class TableUserInput(Resource, UserInput):
                                         term.id, code, mapped_code, type)
 
         return (response, 200, default_headers)
-        
+

@@ -21,6 +21,7 @@ FTD_PLACEHOLDERS = {
 # Partial match strings that must be encoded by the frontend
 FTD_PLACEHOLDERS_PARTIAL_MATCH = {
     "<FTD-HASH>": "#"
+
     }
 
 REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
@@ -43,6 +44,7 @@ def normalize_ftd_placeholders(code):
         code = code.replace(placeholder, char)
 
     return code
+
     
 
 # Special character mappings. UTF-8 Hex
@@ -77,6 +79,7 @@ def get_code_index(code):
     for key, value in sp_char_mappings_indexes.items():
         code_index = code_index.replace(key, value)
     return code_index
+
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 

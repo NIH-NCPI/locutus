@@ -1,6 +1,8 @@
 from locutus import persistence
 from locutus.model.validation import validate_enums
 
+from locutus import logger
+
 
 class TerminologySingletonBase:
     """
@@ -57,3 +59,55 @@ class FTDConceptMapTerminology(TerminologySingletonBase):
             entry["code"] for entry in terminology_data["codes"] if "code" in entry
         ]
         validate_enums(codes, terminology_codes, additional_enums=additional_enums)
+
+
+class OntologyAPICollection(ResourceSingletonBase):
+    """
+    Manages the OntologyAPI collection as a singleton.
+
+    This class handles the entire "OntologyAPI" collection, providing methods to
+    access and filter its cached data for various operations.
+    """
+
+    resource_name = "OntologyAPI"
+
+    def __new__(cls):
+        """
+        Creates or retrieves the singleton instance for the OntologyAPI collection.
+        """
+        return super(OntologyAPICollection, cls).__new__(
+            cls, cls.resource_name, is_collection=True
+        )
+
+    def get_ontology_data(self, field):
+        """Retrieve specific field data for each ontology object.
+        cached data format [ontologies:{ado:{ado ontology data}}]
+        """
+
+        cached_data = self.get_cached_resource()
+        ontology_data = {}
+
+        for ontology_object in cached_data:
+            ontologies = ontology_object.get("ontologies", {})
+
+            for ontology_code, ontology_details in ontologies.items():
+
+                # Check if the requested field exists in the details
+                if field in ontology_details:
+                    ontology_data[ontology_code.upper()] = ontology_details[field]
+
+        logger.info(f"ontology data {ontology_data}")
+        return ontology_data
+
+    def get_ontology_keys(self):
+        """ """
+        cached_data = self.get_cached_resource()
+
+        for ontology_object in cached_data:
+            ontologies = ontology_object.get("ontologies", {})
+
+            ontology_keys = ontologies.keys()
+
+            ontology_keys_list = list(ontology_keys)
+
+            return ontology_keys_list
