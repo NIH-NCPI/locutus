@@ -49,19 +49,24 @@ from locutus.api.datadictionary import (
 from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
 from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
 
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 
-from locutus.api.user_input import TerminologyUserInput
+from locutus.api.user_input import TerminologyUserInput, TableUserInput
 
 from locutus.api.metadata import Version
 
 from locutus.api.user_prefs import UserPrefOntoFilters
+
+from locutus.model.lookups import FTDOntologyLookup
 
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
 CORS(app)
 api = Api(app)
+
+# Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
+FTDOntologyLookup.fetch_and_store_csv()
 
 # Sessions
 session_manager = SessionManager(app)
@@ -102,6 +107,7 @@ api.add_resource(
     MappingRelationship,
     "/api/Terminology/<string:id>/mapping_relationship/<path:code>/mapping/<path:mapped_code>",
 )
+
 api.add_resource(
     TerminologyRenameCode,
     "/api/Terminology/<string:id>/rename",
@@ -164,6 +170,9 @@ api.add_resource(
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Table (shadow Terminology)
 api.add_resource(
     TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
+)
+api.add_resource(
+    TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:type>"
 )
 
 # POST

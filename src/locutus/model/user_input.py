@@ -9,8 +9,8 @@ Current Use:
 """
 from marshmallow import Schema, fields, post_load
 from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
-from locutus.api import generate_paired_string, get_editor
-from sessions import SessionManager
+from locutus.api import generate_mapping_index, get_editor
+from locutus.sessions import SessionManager
 from locutus.model.exceptions import *
 
 USER_INPUT_CHAR_LIMIT = 1000
@@ -63,9 +63,7 @@ class UserInput:
         }
         """
         try:
-            code_index = get_code_index(code)
-            mapped_code_index = get_code_index(mapped_code)
-            document_id = generate_paired_string(code_index, mapped_code_index)
+            document_id = generate_mapping_index(code, mapped_code)
             doc_ref = persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(document_id)
 
@@ -106,7 +104,7 @@ class UserInput:
             }
 
         except Exception as e:
-            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {code_index}: {e}"), 500
+            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {document_id}: {e}"), 500
 
     def create_or_replace_user_input(self, resource_type, collection_type, id, code, mapped_code, type, body):
         """
@@ -115,9 +113,7 @@ class UserInput:
         """
         # Prep the data
         try:
-            code_index = get_code_index(code)
-            mapped_code_index = get_code_index(mapped_code)
-            document_id = generate_paired_string(code_index, mapped_code_index)
+            document_id = generate_mapping_index(code, mapped_code)
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)

@@ -6,16 +6,19 @@ from locutus import (
     get_code_index,
     FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,
+    format_ftd_code
 )
-from locutus.api import delete_collection, generate_paired_string
-from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
-from locutus.model.enumerations import *
+from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
+from locutus.model.exceptions import *
+from locutus.model.lookups import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
 
 from locutus.model.user_input import UserInput
-from sessions import SessionManager
+from locutus.sessions import SessionManager
+
+import pdb
 
 
 """
@@ -163,7 +166,7 @@ class Terminology(Serializable):
     def add_code(self, code, display, description=None, editor=None):
         for cc in self.codes:
             # Ensure codes are not placeholders at this point.
-            cc = normalize_ftd_placeholders(cc)
+            cc.code = normalize_ftd_placeholders(cc.code)
 
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
@@ -467,23 +470,18 @@ class Terminology(Serializable):
             code_index = "self"
             normalized_target = "self"
         else:
-            # Ensure special characters in paired targets are handled properly
+            if target.count("|") > 1:
+                print(f"Warning: Invalid target format '{target}'. Skipping provenance addition.")
+                return
+
             if "|" in target:
                 left, right = target.split("|", 1)
-                # Normalize each side of a paired target
+                # Normalize each side of a paired target for the provenance target/display
                 normalized_left = normalize_ftd_placeholders(left)
                 normalized_right = normalize_ftd_placeholders(right)
+                normalized_target = generate_paired_string(normalized_left, normalized_right)
 
-                normalized_target = generate_paired_string(
-                    normalized_left, normalized_right
-                )
-                # Ensure indexes are formatted properly
-                index_left = get_code_index(left)
-
-                index_right = get_code_index(right)
-
-                index_right = get_code_index(right)
-                code_index = generate_paired_string(index_left, index_right)
+                code_index = target # mapping pairs are already formatted as indexes
             # Ensure special characters in single code targets are handled properly
             else:
                 normalized_target = normalize_ftd_placeholders(target)
@@ -530,7 +528,6 @@ class Terminology(Serializable):
             coding_dict = mapping.to_dict()
 
             # Validation of mapping_relationship
-
             ftd_terminology = FTDConceptMapTerminology()  
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
 
@@ -796,22 +793,29 @@ class CodingMapping(Coding):
         valid=None,
         mapping_relationship=None,
         user_input=None,
+        ftd_code=None
     ):
         super().__init__(code, display, system, description)
         self.valid = valid
         self.mapping_relationship = mapping_relationship
         self.user_input = user_input
+        self.ftd_code = code # Default to given code, updated if necessary. 
 
     class _Schema(Schema):
         code = fields.Str(
-            required=True, error_messages={"required": "Codings *must* have a code "}
+            required=True, error_messages={"required": "CodingMappings *must* have a code "}
         )
         display = fields.Str()
-        system = fields.URL()
+        system = fields.URL(
+            required=True, error_messages={"required": "CodingMappings *must* have a system "}
+        )
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
         user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
+        ftd_code = fields.Str( 
+            required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
+        )
 
         @post_load
         def build_coding_mapping(self, data, **kwargs):
@@ -826,6 +830,11 @@ class CodingMapping(Coding):
             obj["valid"] = self.valid
         else:
             self.valid = True
+
+        # Formatted version of a code for MD to display.
+        formatted = format_ftd_code(self.ftd_code, FTDOntologyLookup.get_mapped_curie(self.system))
+        self.ftd_code = formatted
+        obj["ftd_code"] = self.ftd_code
 
         # Returns the mapping_relationship as "" if the attribute does not exist in database
         if self.mapping_relationship is not None:
@@ -854,7 +863,7 @@ class MappingUserInputModel:
 
         mapped_code = normalize_ftd_placeholders(mapped_code)
 
-        document_id = generate_paired_string(code_index, mapped_code_index)
+        document_id = generate_mapping_index(code, mapped_code)
         doc_ref = (
             persistence()
             .collection("Terminology")

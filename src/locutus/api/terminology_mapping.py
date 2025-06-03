@@ -15,7 +15,7 @@ from locutus.model.terminology import (
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.model.terminology_mapping import MappingRelationshipModel
 from locutus.model.exceptions import *
-from sessions import SessionManager
+from locutus.sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
 
@@ -91,8 +91,14 @@ class TerminologyMapping(Resource):
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
-
+            
             mappings = body["mappings"]
+
+            # Ensure each mapping has a 'system' key
+            for i, mapping in enumerate(mappings):
+                if "system" not in mapping or mapping["system"] is None:
+                    raise LackingRequiredParameter(f"Missing required parameter 'system' in mapping at index {i}")
+
             codingmapping = [CodingMapping(**x) for x in mappings]
 
             tref = persistence().collection("Terminology").document(id)

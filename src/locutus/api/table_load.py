@@ -110,7 +110,14 @@ class TableLoader(Resource):
 
                 url = tbl.url
 
-                if "enumerations" in varData and varData["enumerations"].strip() != "":
+                # These enums are not valid and cause non-enumerations to become enumerations
+                illegal_enums = ["NA", ""]
+
+                # Note: strip() may fail with various forms of NULL, None, etc
+                if (
+                    "enumerations" in varData
+                    and varData["enumerations"].strip() not in illegal_enums
+                ):
                     var["data_type"] = "ENUMERATION"
                     terminology = {
                         "name": varname,

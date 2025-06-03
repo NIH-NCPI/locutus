@@ -12,10 +12,16 @@ def strip_none(value):
         return ""
     return value
 
-
+# Full match strings that are encoded by the frontend
 FTD_PLACEHOLDERS = {
     "<FTD-DOT>": ".",
-    "<FTD-DOT-DOT>": ".."
+    "<FTD-DOT-DOT>": "..",
+    }
+
+# Partial match strings that must be encoded by the frontend
+FTD_PLACEHOLDERS_PARTIAL_MATCH = {
+    "<FTD-HASH>": "#"
+
     }
 
 REVERSE_FTD_PLACEHOLDERS = {v: k for k, v in FTD_PLACEHOLDERS.items()}
@@ -33,8 +39,12 @@ def normalize_ftd_placeholders(code):
     """
     if code in FTD_PLACEHOLDERS:
         return FTD_PLACEHOLDERS[code]
-    else:
-        return code
+
+    for placeholder, char in FTD_PLACEHOLDERS_PARTIAL_MATCH.items():
+        code = code.replace(placeholder, char)
+
+    return code
+
     
 
 # Special character mappings. UTF-8 Hex
@@ -62,6 +72,8 @@ def get_code_index(code):
     # Ensure any codes with designated placeholders have them in place at indexing.
     if code in REVERSE_FTD_PLACEHOLDERS:
         code = REVERSE_FTD_PLACEHOLDERS[code] 
+    for placeholder, char in FTD_PLACEHOLDERS_PARTIAL_MATCH.items():
+        code = code.replace(char, placeholder)
 
     code_index = code 
     for key, value in sp_char_mappings_indexes.items():
@@ -70,6 +82,20 @@ def get_code_index(code):
 
 # Set the logging config
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+
+def format_ftd_code(code, curie):
+    """
+    Ensure the code is in CUR:123456 format using the ontology lookup.
+    If already formatted, return as-is. Otherwise, use the system to find the correct CUR prefix.
+    """
+    if ":" in code:
+        return code
+    if code and curie:
+        return f"{curie}:{code}"
+    else:
+        logger.warning(f"Something went wrong trying to format the ftd_code. {curie}:{code}")
+        return code
+
 
 # Create a logger
 logger = logging.getLogger()

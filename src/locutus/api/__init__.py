@@ -1,4 +1,5 @@
-from sessions import SessionManager
+from locutus.sessions import SessionManager
+from locutus import get_code_index
 
 default_headers = [
     ("Content-Type", "application/fhir+json"),
@@ -31,7 +32,22 @@ def get_editor(body, editor):
 
 
 def generate_paired_string(thing_one, thing_two):
-    ''' Returns the parameters as a string separated by a pipe.
+    ''' 
+    Returns the parameters as a string separated by a pipe.
     Use case: Identifying a mapping. code|mapping
     '''
     return f'{thing_one}|{thing_two}'
+
+
+def generate_mapping_index(thing_one, thing_two):
+    ''' 
+    Returns the parameters as a string separated by a pipe.
+
+    Ensures the mapping's identifier/index is formatted properly for db indexing
+
+    Use case: Identifying a mapping. code|mapping
+    '''
+    index_left = get_code_index(thing_one)
+    index_right = get_code_index(thing_two)
+
+    return generate_paired_string(index_left,index_right)
