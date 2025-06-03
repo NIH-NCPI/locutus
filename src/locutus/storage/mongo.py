@@ -57,10 +57,8 @@ class CollectionReference:
         return DocumentReference(self._collection, doc_id)
     
     def add_aliases(self, keys, doc_id):
-        # Workaround for Firestore MongoDB-compat: no $addToSet support
         doc = self._collection.find_one({"_id": doc_id})
         aliases = doc.get("aliases", []) if doc else []
-        # Add new keys, ensuring uniqueness
         updated_aliases = list(set(aliases) | set(keys))
         self._collection.update_one(
             {"_id": doc_id},
@@ -74,7 +72,6 @@ class FirestoreCompatibleClient:
     def __init__(self):
         # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
         mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-        # Parse DB name from URI path
         parsed = urlparse(mongo_uri)
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
         logger.info(f"Connecting to Mongo URI: {mongo_uri}")
