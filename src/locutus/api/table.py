@@ -141,7 +141,10 @@ class Tables(Resource):
 class Table(Resource):
     def get(self, id):
         # pdb.set_trace()
-        return mTable.get(id, return_instance=False)
+        table = mTable.get(id)
+        if table is None:
+            return None, 404, default_headers
+        return table.dump(), 200, default_headers
 
     def put(self, id):
         tbl = request.get_json()

@@ -8,7 +8,7 @@ from locutus.api import default_headers
 class Studies(Resource):
     def get(self):
         return (
-            [x for x in persistence().collection("Study").stream()],
+            [x.to_dict() for x in persistence().collection("Study").stream()],
             200,
             default_headers,
         )
@@ -39,10 +39,10 @@ class Studies(Resource):
     def delete_dd_references(self, id):
         affected_ids = 0
         for resource in persistence().collection("Study").stream():
-            # PyMongo already returns dicts, no need for .to_dict()
-            if "resource_type" in resource:
-                del resource["resource_type"]
-            obj = mStudyTerm(**resource)
+            resource_dict = resource.to_dict()
+            if "resource_type" in resource_dict:
+                del resource_dict["resource_type"]
+            obj = mStudyTerm(**resource_dict)
 
             matched_references = obj.remove_dd(id)
 
@@ -58,7 +58,9 @@ class Study(Resource):
     def get(self, id):
         # pdb.set_trace()
         t = persistence().collection("Study").document(id).get()
-        return t.data(), 200, default_headers
+        if not t.exists:
+            return {"error": "Study not found"}, 404, default_headers
+        return t.to_dict(), 200, default_headers
 
     def put(self, id):
         sty = request.get_json()
@@ -74,7 +76,7 @@ class Study(Resource):
 
     def delete(self, id):
         dref = persistence().collection("Study").document(id)
-        t = dref.get().data()
+        t = dref.get().to_dict()
         time_of_delete = dref.delete()
         # if t is not None:
         #    persistence().save()

@@ -8,6 +8,7 @@ from locutus.model.exceptions import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 from locutus.api import generate_paired_string
+from nanoid import generate
 import time
 
 from locutus.model.user_input import UserInput
@@ -74,6 +75,7 @@ class Coding:
 
 class Terminology(Serializable):
     _id_prefix = "tm"
+    resource_type = "Terminology"
 
     class ChangeType(StrEnum):
         Create = "Create Terminology"
@@ -290,23 +292,19 @@ class Terminology(Serializable):
 
         """
         if code is not None:
-            tmref = (
-                persistence()
-                .collection("Terminology")
-                .document(self.id)
-                .collection("mappings")
-                .document(code)
-            )
+            # MongoDB: Find specific mapping document
+            mapping = persistence().collection("mappings").find_one({
+                "target": self.id,
+                "code": code
+            })
 
-            mapping = tmref.get().to_dict()
-            time_of_delete = 0
             if mapping is not None:
                 # Iterate over the codes in the mapping and toggle 'valid' to False
                 for coding in mapping["codes"]:
                     coding["valid"] = False
 
                 # Save the updated mapping with the 'valid' field set to False
-                tmref.set(mapping)
+                persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).set(mapping)
 
                 self.add_provenance(
                     change_type=Terminology.ChangeType.SoftDeleteMapping,
@@ -319,21 +317,14 @@ class Terminology(Serializable):
                     f"Soft deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings."
                 )
         else:
-            mapref = (
-                persistence()
-                .collection("Terminology")
-                .document(self.id)
-                .collection("mappings")
-            )
-
-            for mapping_doc in mapref.stream():
-                mapping = mapping_doc.to_dict()
+            # MongoDB: Find all mappings for this terminology
+            for mapping in persistence().collection("mappings").find({"target": self.id}):
                 for coding in mapping["codes"]:
                     if "valid" in coding:
                         coding["valid"] = False
 
                 # Save the updated mapping
-                mapref.document(mapping["code"]).set(mapping)
+                persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).set(mapping)
 
             self.add_provenance(
                 change_type=Terminology.ChangeType.SoftDeleteAllMappings,
@@ -346,28 +337,14 @@ class Terminology(Serializable):
     def mappings(self, code=None):
         codes = {}
         if code is None:
-            for mapping in (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("mappings")
-                .stream()
-            ):
-                mapping = mapping.to_dict()
-
+            # MongoDB: Query mappings collection directly with target filter
+            for mapping in persistence().collection("mappings").find({"target": self.id}):
                 code_id = mapping["code"]
                 codes[code_id] = Terminology.build_code_list(mapping)
 
         else:
-            mapping = (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("mappings")
-                .document(code)
-                .get()
-                .to_dict()
-            )
+            # MongoDB: Find specific mapping by target and code
+            mapping = persistence().collection("mappings").find_one({"target": self.id, "code": code})
             if mapping is not None:
                 code_id = mapping["code"]
                 codes[code_id] = Terminology.build_code_list(mapping)
@@ -380,55 +357,32 @@ class Terminology(Serializable):
         prov = {}
 
         if code is None:
-            for prv in (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("provenance")
-                .stream()
-            ):
-
+            # MongoDB: provenance is a top-level collection, filter by target
+            for prv in persistence().collection("provenance").find({"target": self.id}):
                 try:
-                    prv = prv.to_dict()
-
-                except:
-                    print(
-                        "Something other than a dict was encountered for provenance. This is not good."
-                    )
+                    # prv is already a dict
+                    pass
+                except Exception:
+                    print("Something other than a dict was encountered for provenance. This is not good.")
                     print(prv)
-
                 id = prv["target"]
                 for change in prv["changes"]:
                     if "timestamp" in change:
                         if type(change["timestamp"]) is not str:
-                            change["timestamp"] = change["timestamp"].strftime(
-                                "%Y-%m-%d %I:%M%p"
-                            )
+                            change["timestamp"] = change["timestamp"].strftime("%Y-%m-%d %I:%M%p")
                 prov[id] = prv
         else:
-            prv = (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("provenance")
-                .document(code)
-                .get()
-                .to_dict()
-            )
+            # MongoDB: find one provenance doc for this target and code
+            prv = persistence().collection("provenance").find_one({"target": self.id, "code": code})
             if prv is not None and prv != {}:
                 id = prv["target"]
-
                 prov[id] = prv
                 for change in prv["changes"]:
                     if "timestamp" in change:
                         if type(change["timestamp"]) is not str:
-                            change["timestamp"] = change["timestamp"].strftime(
-                                "%Y-%m-%d %I:%M%p"
-                            )
+                            change["timestamp"] = change["timestamp"].strftime("%Y-%m-%d %I:%M%p")
             else:
                 prov[code] = []
-        # pdb.set_trace()
-
         return prov
 
     def add_provenance(
@@ -459,11 +413,22 @@ class Terminology(Serializable):
             print(f"Current Provenance isn't what we expected: {cur_prov}")
             # pdb.set_trace()
 
-        # pdb.set_trace()
-
-        persistence().collection(self.resource_type).document(self.id).collection(
-            "provenance"
-        ).document(target).set(cur_prov)
+        # pdb.set_trace()        # MongoDB: Store provenance in top-level collection instead of subcollection
+        # Check if provenance already exists
+        existing = persistence().collection("provenance").find_one({
+            "target": self.id, 
+            "code": target
+        })
+        
+        if existing:
+            # Update existing document
+            doc_id = existing.get("id") or existing.get("_id")
+            persistence().collection("provenance").document(doc_id).set(cur_prov)
+        else:
+            # Create new document with generated ID
+            doc_id = f"prov-{generate()}"
+            cur_prov["id"] = doc_id
+            persistence().collection("provenance").document(doc_id).set(cur_prov)
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
@@ -489,20 +454,17 @@ class Terminology(Serializable):
                 if coding_obj.code == mapping.code:
                     coding_obj.valid = True
 
-        tmref = (
-            persistence()
-            .collection(self.resource_type)
-            .document(self.id)
-            .collection("mappings")
-        )
-
+        # MongoDB: Check if mapping already exists
         old_mappings = ""
         try:
             assert code is not None
-            mapping = tmref.document(code).get().to_dict()
+            mapping = persistence().collection("mappings").find_one({
+                "target": self.id,
+                "code": code
+            })
         except:
             mapping = None
-            print(f"weird mapping: {tmref.get()}")
+            print(f"weird mapping query failed")
             pdb.set_trace()
         change_type = Terminology.ChangeType.AddMapping
         if mapping is not None:
@@ -518,7 +480,11 @@ class Terminology(Serializable):
             editor=editor,
         )
 
-        tmref.document(code).set(doc)
+        # MongoDB: Save mapping to mappings collection with target reference
+        doc["target"] = self.id
+        doc_id = f"mapping-{self.id}-{code}"
+        doc["id"] = doc_id
+        persistence().collection("mappings").document(doc_id).set(doc)
 
     def get_preference(self, code=None):
         pref = {}
@@ -527,34 +493,28 @@ class Terminology(Serializable):
         try:
             # If no code is provided, retrieve the terminology preference directly
             if code is None:
-                terminology_pref = (
-                    persistence()
-                    .collection(self.resource_type)
-                    .document(self.id)
-                    .collection('onto_api_preference')
-                    .document(term_pref_id)
-                    .get()
-                )
+                # MongoDB: Query onto_api_preference collection directly
+                terminology_pref = persistence().collection("onto_api_preference").find_one({
+                    "target": self.id,
+                    "code": term_pref_id
+                })
 
-                if terminology_pref.exists:
-                    pref[term_pref_id] = terminology_pref.to_dict() or {}
+                if terminology_pref:
+                    pref[term_pref_id] = terminology_pref or {}
                 else:
                     # Return an empty object if terminology preference doesn't exist
                     pref[term_pref_id] = {}
 
             # If a specific code is provided, get the preference
             else:
-                prv = (
-                    persistence()
-                    .collection(self.resource_type)
-                    .document(self.id)
-                    .collection('onto_api_preference')
-                    .document(code)
-                    .get()
-                )
+                # MongoDB: Query onto_api_preference collection directly
+                prv = persistence().collection("onto_api_preference").find_one({
+                    "target": self.id,
+                    "code": code
+                })
 
-                if prv.exists:
-                    pref[code] = prv.to_dict() or {}
+                if prv:
+                    pref[code] = prv or {}
                 else:
                     # Fall back to terminology preference if no specific code preference is found
                     pref = self.get_preference()
@@ -571,14 +531,15 @@ class Terminology(Serializable):
 
         try:
             # get current preferences, default to empty dict
-            cur_pref = self.get_preference(code=code).get(code, {})
-
-            # Add or update the preferences for the given API
+            cur_pref = self.get_preference(code=code).get(code, {})            # Add or update the preferences for the given API
             cur_pref["api_preference"] = api_preference
 
-            # Save the updated preferences back to the Firestore sub-collection
-            persistence().collection(self.resource_type).document(self.id) \
-                .collection("onto_api_preference").document(code).set(cur_pref)
+            # MongoDB: Save preferences to onto_api_preference collection
+            doc_id = f"pref-{self.id}-{code}"
+            cur_pref["target"] = self.id
+            cur_pref["code"] = code
+            cur_pref["id"] = doc_id
+            persistence().collection("onto_api_preference").document(doc_id).set(cur_pref)
 
         except Exception as e:
             print(f"An error occurred while updating preferences: {e}")
@@ -589,16 +550,16 @@ class Terminology(Serializable):
             code = "self"
 
         try:
-            # Define the collection reference
-            collection_ref = persistence().collection(self.resource_type) \
-                .document(self.id).collection("onto_api_preference")
+            # MongoDB: Find and delete preference document
+            pref_doc = persistence().collection("onto_api_preference").find_one({
+                "target": self.id,
+                "code": code
+            })
 
-            doc_ref = collection_ref.document(code)
-            doc_snapshot = doc_ref.get()
-
-            if doc_snapshot.exists:
+            if pref_doc:
                 # Delete the document if it exists
-                doc_ref.delete()
+                doc_id = pref_doc.get("id") or pref_doc.get("_id")
+                persistence().collection("onto_api_preference").document(doc_id).delete()
                 message = f"Successfully deleted preferences for code '{code}'."
             else:
                 message = f"No preferences found to delete for code '{code}'."
@@ -789,17 +750,16 @@ class MappingUserInputModel:
         """
 
         document_id = generate_paired_string(code, mapped_code)
-        doc_ref = (
-            persistence()
-            .collection("Terminology")
-            .document(id)
-            .collection("user_input")
-            .document(document_id)
-        )
+        
+        # MongoDB: Find user input document directly
+        user_input_doc = persistence().collection("user_input").find_one({
+            "target": id,
+            "document_id": document_id
+        })
 
-        comments_count = MappingUserInputModel.get_mapping_conversations_counts(doc_ref)
-        votes_count = MappingUserInputModel.get_mapping_votes_counts(doc_ref)
-        users_vote = MappingUserInputModel.get_users_mapping_vote(doc_ref, user_id)
+        comments_count = MappingUserInputModel.get_mapping_conversations_counts(user_input_doc)
+        votes_count = MappingUserInputModel.get_mapping_votes_counts(user_input_doc)
+        users_vote = MappingUserInputModel.get_users_mapping_vote(user_input_doc, user_id)
 
         return {
             "comments_count": comments_count,
@@ -807,21 +767,17 @@ class MappingUserInputModel:
             "users_vote": users_vote,
         }
 
-    def get_mapping_conversations_counts(doc_ref):
+    def get_mapping_conversations_counts(user_input_doc):
         """Counts the number of mapping_conversation records for a given mapping"""
-        document = doc_ref.get()
-        if document.exists:
-            data = document.to_dict()
-            conversations = data.get("mapping_conversations", [])
+        if user_input_doc:
+            conversations = user_input_doc.get("mapping_conversations", [])
             return len(conversations)
         return 0
 
-    def get_mapping_votes_counts(doc_ref):
+    def get_mapping_votes_counts(user_input_doc):
         """Counts up and down votes for a given mapping"""
-        document = doc_ref.get()
-        if document.exists:
-            data = document.to_dict()
-            mapping_votes = data.get("mapping_votes", {})
+        if user_input_doc:
+            mapping_votes = user_input_doc.get("mapping_votes", {})
             return {
                 "up": sum(
                     1 for vote in mapping_votes.values() if vote.get("vote") == "up"
@@ -832,14 +788,12 @@ class MappingUserInputModel:
             }
         return {"up": 0, "down": 0}
 
-    def get_users_mapping_vote(doc_ref, user_id):
+    def get_users_mapping_vote(user_input_doc, user_id):
         """Retrieves the current user's vote for a given mapping. If the user_id
         is not found(no vote exists for the user, or user_id is unknown/None) an
         empty string is returned."""
-        document = doc_ref.get()
-        if document.exists:
-            data = document.to_dict()
-            mapping_votes = data.get("mapping_votes", {})
+        if user_input_doc:
+            mapping_votes = user_input_doc.get("mapping_votes", {})
             user_vote = mapping_votes.get(user_id, {}).get("vote")
             return user_vote if user_vote else ""
         return ""

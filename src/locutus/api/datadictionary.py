@@ -62,6 +62,8 @@ class DataDictionary(Resource):
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id):
         dd = request.get_json()
+        if "_id" in dd:
+            del dd["_id"]
         if "id" not in dd:
             dd["id"] = id
 

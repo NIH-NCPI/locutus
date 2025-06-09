@@ -28,6 +28,7 @@ references to the various tables that comprise the data-dictionary
 
 class DataDictionary(Serializable):
     _id_prefix = "dd"
+    resource_type = "DataDictionary"
 
     def __init__(self, id=None, name=None, description=None, tables=None):
         super().__init__(

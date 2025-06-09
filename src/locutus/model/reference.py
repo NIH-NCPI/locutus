@@ -12,6 +12,7 @@ The reference just represents a placeholder for an entity from another table
 class Reference(Serializable):
     """A FHIR-like reference entity-for our needs, the reference should be to
     a local url."""
+    resource_type = "Reference"
 
     def __init__(self, reference=None, instance=None):
         if type(reference) is not str:

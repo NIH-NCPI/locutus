@@ -53,6 +53,7 @@ class OntologyAPI(Serializable):
         ontologies (list): A list of Ontologies objects.
         resource_type (str): The resource type.
     """
+    resource_type = "OntologyAPI"
 
     def __init__(
         self,

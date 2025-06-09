@@ -40,6 +40,7 @@ This will be references to the data-dictionaries associated with the study
 
 class Study(Serializable):
     _id_prefix = "st"
+    resource_type = "Study"
 
     def __init__(
         self,

@@ -49,6 +49,7 @@ the table with any changes.
 
 class Table(Serializable):
     _id_prefix = "tb"
+    resource_type = "Table"
 
     def __init__(
         self,
@@ -60,7 +61,6 @@ class Table(Serializable):
         filename=None,
         variables=[],
         terminology=None,
-        resource_type="Table",
         editor=None,
     ):
 
