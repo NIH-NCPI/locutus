@@ -27,6 +27,9 @@ class DocumentReference:
 
     def get(self):
         doc = self._collection.find_one({"_id": self._doc_id})
+        if doc:
+            # Ensure compatibility with Firestore and MongoDB
+            doc.pop("_id", None)
         return DocumentSnapshot(self._doc_id, doc)
 
     def set(self, data):
@@ -53,14 +56,16 @@ class CollectionReference:
     def stream(self):
         for doc in self._collection.find():
             doc_id = doc.get('_id') or doc.get('id')
+            doc.pop("_id", None)  # Remove MongoDB-specific field
             yield DocumentSnapshot(doc_id, doc)
-    
+
     def find(self, query=None):
         """Find documents matching the query"""
         if query is None:
             query = {}
         for doc in self._collection.find(query):
             doc_id = doc.get('_id') or doc.get('id')
+            doc.pop("_id", None)  # Remove MongoDB-specific field
             yield DocumentSnapshot(doc_id, doc)
     
     def find_one(self, query=None):
@@ -70,6 +75,7 @@ class CollectionReference:
         doc = self._collection.find_one(query)
         if doc:
             doc_id = doc.get('_id') or doc.get('id')
+            doc.pop("_id", None)  # Remove MongoDB-specific field
             return DocumentSnapshot(doc_id, doc)
         return None
     

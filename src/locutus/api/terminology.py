@@ -170,13 +170,10 @@ class Terminology(Resource):
     # @cross_origin()
     def delete(self, id):
         # Delete mappings collection - use direct query instead of subcollection
-        mappings = persistence().collection("mappings").find({"target": id})
-        for mapping in mappings:
-            persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).delete()
+        mappings = [doc.pop("_id", None) or doc for doc in persistence().collection("mappings").find({"target": id})]
         
-        dref = persistence().collection("Terminology").document(id)
-        t = dref.get().to_dict()
-
-        time_of_delete = dref.delete()
-
-        return t, 200, default_headers
+        dref = persistence().collection("Terminology").document(id).get()
+        if dref.exists:
+            dref_dict = dref.to_dict()
+            dref_dict.pop("_id", None)
+            return dref_dict, 200, default_headers

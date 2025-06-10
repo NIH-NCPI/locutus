@@ -8,7 +8,7 @@ from locutus.api import default_headers
 class Studies(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("Study").stream()],
+            [doc.pop("_id", None) or doc.to_dict() for doc in persistence().collection("Study").stream()],
             200,
             default_headers,
         )
@@ -58,9 +58,11 @@ class Study(Resource):
     def get(self, id):
         # pdb.set_trace()
         t = persistence().collection("Study").document(id).get()
-        if not t.exists:
-            return {"error": "Study not found"}, 404, default_headers
-        return t.to_dict(), 200, default_headers
+        if t.exists:
+            t_dict = t.to_dict()
+            t_dict.pop("_id", None)
+            return t_dict, 200, default_headers
+        return {"error": "Study not found"}, 404, default_headers
 
     def put(self, id):
         sty = request.get_json()

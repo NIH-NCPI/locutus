@@ -17,17 +17,21 @@ class TerminologyMappings(Resource):
         """
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
+        
         try:
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
-
+            
             termref = persistence().collection("Terminology").document(id)
             term = termref.get().to_dict()
 
             if term is not None:
+                # Remove MongoDB-specific fields before passing to constructor
                 if "resource_type" in term:
                     del term["resource_type"]
+                if "_id" in term:
+                    del term["_id"]
 
                 t = Term(**term)
 

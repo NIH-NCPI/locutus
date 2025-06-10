@@ -297,9 +297,8 @@ class Terminology(Serializable):
                 "target": self.id,
                 "code": code
             })
-
             if mapping is not None:
-                # Iterate over the codes in the mapping and toggle 'valid' to False
+                mapping.pop("_id", None)  # Remove MongoDB-specific field
                 for coding in mapping["codes"]:
                     coding["valid"] = False
 
@@ -462,6 +461,8 @@ class Terminology(Serializable):
                 "target": self.id,
                 "code": code
             })
+            if mapping:
+                mapping.pop("_id", None)  # Remove MongoDB-specific field
         except:
             mapping = None
             print(f"weird mapping query failed")

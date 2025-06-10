@@ -117,7 +117,7 @@ class Tables(Resource):
         but it's technically not wise to pull these into a single response.
         We should plan on paginating this at some point."""
         return (
-            [x.to_dict() for x in persistence().collection("Table").stream()],
+            [doc.pop("_id", None) or doc.to_dict() for doc in persistence().collection("Table").stream()],
             200,
             default_headers,
         )
@@ -160,6 +160,8 @@ class Table(Resource):
 
         if "resource_type" in tbl:
             del tbl["resource_type"]
+        if "_id" in tbl:
+            del tbl["_id"]
 
         t = mTable(**tbl)
         t.save()
@@ -181,7 +183,7 @@ class Table(Resource):
                 editor=editor,
             )
 
-            dref = persistence().collection("Table").document(id)
+            dref = persistence().collection("Table").document(id).get()
 
             # Delete any references to the table from any data-dictionaries:
             DataDictionaries().delete_table_references(id)
@@ -189,12 +191,12 @@ class Table(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        t = dref.get().to_dict()
-        time_of_delete = dref.delete()
-        # if t is not None:
-        #    persistence().save()
+        if dref.exists:
+            dref_dict = dref.to_dict()
+            dref_dict.pop("_id", None)
+            return dref_dict, 200, default_headers
 
-        return t, 200, default_headers
+        return {"message": "Table not found"}, 404, default_headers
 
 
 class HarmonyCSV(Resource):
