@@ -1,7 +1,11 @@
 from locutus import persistence
 from locutus.model.validation import validate_enums
 from locutus import logger
-import pdb
+import requests
+from datetime import datetime, timedelta
+from pathlib import Path
+import os
+import csv
 
 
 class ResourceSingletonBase:
@@ -103,16 +107,120 @@ class OntologyAPICollection(ResourceSingletonBase):
 
         logger.info(f"ontology data {ontology_data}")
         return ontology_data
-    
+
     def get_ontology_keys(self):
         """ """
         cached_data = self.get_cached_resource()
 
         for ontology_object in cached_data:
             ontologies = ontology_object.get("ontologies", {})
-            
+
             ontology_keys = ontologies.keys()
-            
+
             ontology_keys_list = list(ontology_keys)
 
             return ontology_keys_list
+
+
+class FTDOntologyLookup:
+    """
+    This class handles fetching the CSV data from GitHub, saving it locally,
+    and storing it in memory for later use in API calls.
+    The CSV is fetched every time the app is redeployed and saved to a directory.
+    """
+
+    _csv_url = "https://raw.githubusercontent.com/NIH-NCPI/locutus_utilities/main/data/input/ontology_data/locutus_system_map.csv"
+    _local_csv_path = "locutus/storage/data/references/ftd_ontology_lookup.csv"
+    abs_path = Path(__file__).parent / "../storage/data/references/ftd_ontology_lookup.csv"
+    _expiration_days = 90
+    stored_ontology_lookup = {}
+    reverse_lookup = {}
+
+    @staticmethod
+    def is_expired(filepath, expiration_days):
+        """
+        Check if the file is expired based on the modification date.
+        """
+        if not os.path.exists(filepath):
+            return True
+        file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
+        return datetime.now() - file_mtime > timedelta(days=expiration_days)
+
+    @classmethod
+    def load_data_to_memory(cls):
+        """
+        Load the data from the CSV file into memory.
+        This is called after the CSV is fetched or if it exists locally.
+    
+        """
+        if cls.stored_ontology_lookup: 
+            return
+
+        if os.path.exists(cls._local_csv_path):
+            with open(cls._local_csv_path, newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    curie = row.get("curie")
+                    system = row.get("system")
+
+                    if curie and system:
+                        cls.stored_ontology_lookup[curie] = system
+                        # Reverse lookup: also allow system-to-curie if needed
+                        if system not in cls.reverse_lookup:
+                            cls.reverse_lookup[system] = curie
+
+            print("Ontology data loaded into memory.")
+        else:
+            print("No CSV file found, unable to load data into memory.")
+
+    @classmethod
+    def fetch_and_store_csv(cls):
+        """
+        Fetch the CSV from GitHub if expired or missing, then store it locally and load into memory.
+        """
+        if cls.is_expired(cls._local_csv_path, cls._expiration_days):
+            print(f"Fetching the ontology metadata lookup CSV from GitHub to {cls._local_csv_path}...")
+            try:
+                response = requests.get(cls._csv_url)
+                response.raise_for_status()  # Ensure we get a successful response (200 OK)
+
+                # Ensure the directory exists
+                os.makedirs(os.path.dirname(cls._local_csv_path), exist_ok=True)
+
+                # Write the file content to the local path
+                with open(cls._local_csv_path, "wb") as f:
+                    f.write(response.content)
+                print("The ontology metadata lookup has been downloaded successfully.")
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching the CSV: {e}")
+        
+        # Now load the data into memory after the file is fetched or if it exists
+        cls.load_data_to_memory()
+
+    @classmethod
+    def get_mapped_system(cls, ori_system):
+        """
+        Get the system URL given a CURIE (e.g., 'LNC' → 'http://loinc.org').
+        """
+        ftd_ontology_lookup_path = cls.abs_path
+        with open(ftd_ontology_lookup_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if row.get("curie") == ori_system:
+                    return row.get("system")
+        return ori_system
+
+    @classmethod
+    def get_mapped_curie(cls, system_url):
+        """
+        Get the CURIE given a system URL (e.g., 'http://loinc.org' → 'LNC').
+        """
+        ftd_ontology_lookup_path = cls.abs_path
+        
+        with open(ftd_ontology_lookup_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if row.get("system") == system_url:
+                    return row.get("curie")
+        
+        return system_url

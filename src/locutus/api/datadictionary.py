@@ -6,7 +6,6 @@ from locutus.api.study import Studies
 from locutus.api import default_headers
 
 from flask_cors import cross_origin
-import pdb
 
 
 class DataDictionaries(Resource):
@@ -54,6 +53,7 @@ class DataDictionaries(Resource):
 
 
 class DataDictionary(Resource):
+
     def get(self, id):
         # pdb.set_trace()
         dref = persistence().collection("DataDictionary").document(id).get()

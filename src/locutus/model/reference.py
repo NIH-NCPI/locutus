@@ -2,7 +2,6 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus import persistence
 
-import pdb
 
 """
 The reference just represents a placeholder for an entity from another table
@@ -17,7 +16,6 @@ class Reference(Serializable):
     def __init__(self, reference=None, instance=None):
         if type(reference) is not str:
             print(f"What sort of reference is this?\n{reference}")
-            # pdb.set_trace()
 
         self.reference = reference
 

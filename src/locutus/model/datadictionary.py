@@ -3,7 +3,6 @@ from marshmallow import Schema, fields, post_load
 
 from locutus.model.reference import Reference
 
-import pdb
 
 """
 A data-dictionary is a collection of tables that, together, describe the 

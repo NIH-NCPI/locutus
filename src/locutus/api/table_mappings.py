@@ -1,6 +1,6 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
+from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology, Coding, CodingMapping, MappingUserInputModel
 from locutus.api.terminology_mappings import TerminologyMappings
@@ -91,9 +91,12 @@ class TableMapping(Resource):
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
-            
+
             table = Table.get(id)
             term = table.terminology.dereference()
+
+            # Ensure codes are not placeholders at this point.
+            code = normalize_ftd_placeholders(code)
 
             mappings = term.mappings(code)
             response = {"code": code, "mappings": []}

@@ -1,7 +1,7 @@
 from locutus import persistence
 from flask import session
 from flask_session import Session
-from locutus import logger
+from locutus import logger, get_code_index
 
 
 class APIError(Exception):
@@ -34,11 +34,13 @@ class CodeNotPresent(APIError):
     def __init__(self, code, terminology_id):
         self.code = code
         self.terminology_id = terminology_id
-        message = f"The code({self.code}) is not present in the terminology({self.terminology_id})."
+        code_index = get_code_index(code)
+        # More info on code format(code vs code_index) can be found in get_code_index
+        message = f"The code {self.code}, or possibly:{code_index}, is not present in the terminology({self.terminology_id})."
         logger.error(message)
         super().__init__(message, status_code=404)
 
-class InvalidEnumValueError(APIError):
+class InvalidValueError(APIError):
     """
     Raised when a value is not in the allowed set of enum values.
     """

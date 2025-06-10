@@ -1,10 +1,16 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
-from locutus.api import delete_collection
-from locutus.model.exceptions import CodeAlreadyPresent, CodeNotPresent
-from locutus.model.enumerations import *
+from locutus import (
+    persistence,
+    PROVENANCE_TIMESTAMP_FORMAT,
+    get_code_index,
+    FTD_PLACEHOLDERS,
+    normalize_ftd_placeholders,
+    format_ftd_code
+)
+from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
 from locutus.model.exceptions import *
+from locutus.model.lookups import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 from locutus.api import generate_paired_string
@@ -12,6 +18,7 @@ from nanoid import generate
 import time
 
 from locutus.model.user_input import UserInput
+from locutus.sessions import SessionManager
 
 import pdb
 
@@ -43,6 +50,8 @@ the "codes" array.
 class Coding:
 
     def __init__(self, code, display="", system=None, description=""):
+        code = normalize_ftd_placeholders(code)
+
         self.code = code
         self.display = display
         self.system = system
@@ -58,7 +67,6 @@ class Coding:
 
         @post_load
         def build_code(self, data, **kwargs):
-            # pdb.set_trace()
             return Coding(**data)
 
     def to_dict(self):
@@ -119,8 +127,6 @@ class Terminology(Serializable):
         self.url = url
         self.codes = []
 
-        # pdb.set_trace()
-
         # This probably doesn't make sense, stashing the system in at this
         # point, but we'll trust knuth for the time being and fix it when it is
         # clear that it is a bad idea.
@@ -162,6 +168,9 @@ class Terminology(Serializable):
 
     def add_code(self, code, display, description=None, editor=None):
         for cc in self.codes:
+            # Ensure codes are not placeholders at this point.
+            cc.code = normalize_ftd_placeholders(cc.code)
+
             if cc.code == code:
                 raise CodeAlreadyPresent(code, self.id, cc)
         new_coding = Coding(
@@ -185,9 +194,11 @@ class Terminology(Serializable):
                 target=code,
             )
 
-
     def remove_code(self, code, editor):
         code_found = False
+        # Ensure codes are not placeholders at this point.
+        code = normalize_ftd_placeholders(code)
+
         for cc in self.codes:
             if cc.code == code:
                 self.codes.remove(cc)
@@ -266,18 +277,28 @@ class Terminology(Serializable):
                         term_doc = persistence().collection(self.resource_type).document(self.id).collection(
                         "provenance"
                          )
-                        prov = term_doc.document(original_code).get().to_dict()
+                        ori_code_index = get_code_index(original_code)
+                        new_code_index = get_code_index(new_code)
+                        prov = term_doc.document(ori_code_index).get().to_dict()
                         prov["target"] = new_code
-                        term_doc.document(new_code).set(prov)
-                        term_doc.document(original_code).delete()
+                        term_doc.document(new_code_index).set(prov)
+                        term_doc.document(ori_code_index).delete()
                     return True
         return False
 
     def has_code(self, code):
         """Check if a code exists in the terminology.
-        
-        If the terminology has the code already this will return True
+
+        Args: 
+          code(str): Code to be checked against a Terminologies codes. 
+          Terminology codes are currently not cleaned for indexing. For 
+          more see get_code_index
+
+        Output:           
+         If the terminology has the code already this will return True
         """
+        # Ensure codes are not placeholders at this point.
+        code = normalize_ftd_placeholders(code)
 
         return any(entry.code == code for entry in self.codes)
 
@@ -292,15 +313,28 @@ class Terminology(Serializable):
 
         """
         if code is not None:
-            # MongoDB: Find specific mapping document
+            code = normalize_ftd_placeholders(code)
+
+            code_index = get_code_index(code)
+            tmref = (
+                persistence()
+                .collection("Terminology")
+                .document(self.id)
+                .collection("mappings")
+                .document(code)
+            )
+             # MongoDB: Find specific mapping document
             mapping = persistence().collection("mappings").find_one({
                 "target": self.id,
                 "code": code
             })
+
+            mapping = tmref.get().to_dict()
+            time_of_delete = 0
             if mapping is not None:
                 mapping.pop("_id", None)  # Remove MongoDB-specific field
-                for coding in mapping["codes"]:
-                    coding["valid"] = False
+                for codingmapping in mapping["codes"]:
+                    codingmapping["valid"] = False
 
                 # Save the updated mapping with the 'valid' field set to False
                 persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).set(mapping)
@@ -313,11 +347,14 @@ class Terminology(Serializable):
                 )
             else:
                 print(
-                    f"Soft deleting mappings for code, {code}, from Terminology, {self.name} but there were no mappings."
+                    f"Soft deleting mappings for code: {code}, doc_id:{code_index}, Terminology: {self.name} but there were no mappings."
                 )
         else:
             # MongoDB: Find all mappings for this terminology
             for mapping in persistence().collection("mappings").find({"target": self.id}):
+                mapping_code_id = mapping["code"]
+                code_index = get_code_index(mapping_code_id)
+
                 for coding in mapping["codes"]:
                     if "valid" in coding:
                         coding["valid"] = False
@@ -368,7 +405,9 @@ class Terminology(Serializable):
                 for change in prv["changes"]:
                     if "timestamp" in change:
                         if type(change["timestamp"]) is not str:
-                            change["timestamp"] = change["timestamp"].strftime("%Y-%m-%d %I:%M%p")
+                            change["timestamp"] = change["timestamp"].strftime(
+                                PROVENANCE_TIMESTAMP_FORMAT
+                            )
                 prov[id] = prv
         else:
             # MongoDB: find one provenance doc for this target and code
@@ -388,18 +427,37 @@ class Terminology(Serializable):
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
         if target is None:
-            target = "self"
+            code_index = "self"
+            normalized_target = "self"
+        else:
+            if target.count("|") > 1:
+                print(f"Warning: Invalid target format '{target}'. Skipping provenance addition.")
+                return
+
+            if "|" in target:
+                left, right = target.split("|", 1)
+                # Normalize each side of a paired target for the provenance target/display
+                normalized_left = normalize_ftd_placeholders(left)
+                normalized_right = normalize_ftd_placeholders(right)
+                normalized_target = generate_paired_string(normalized_left, normalized_right)
+
+                code_index = target # mapping pairs are already formatted as indexes
+            # Ensure special characters in single code targets are handled properly
+            else:
+                normalized_target = normalize_ftd_placeholders(target)
+                code_index = get_code_index(target)
+
         if timestamp is None:
             timestamp = datetime.now()
 
-        timestamp = timestamp.strftime("%Y-%m-%d %I:%M%p")
+        timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
         # cur_prov = None
-        cur_prov = self.get_provenance(target)[target]
+        cur_prov = self.get_provenance(code_index).get(normalized_target, None)
         if cur_prov is None or type(cur_prov) is list:
-            cur_prov = {"target": target, "changes": []}
+            cur_prov = {"target": normalized_target, "changes": []}
 
         baseprov = {
-            "target": target,
+            "target": normalized_target,
             "timestamp": timestamp,
             "action": change_type,
             "editor": editor,
@@ -432,6 +490,11 @@ class Terminology(Serializable):
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
     def set_mapping(self, code, codings, editor):
+        code_index = get_code_index(code)
+
+        # Ensure code is not a placeholder at this point.
+        code = normalize_ftd_placeholders(code)
+
         doc = {"code": code, "codes": []}
 
         new_mappings = []
@@ -439,7 +502,6 @@ class Terminology(Serializable):
             coding_dict = mapping.to_dict()
 
             # Validation of mapping_relationship
-
             ftd_terminology = FTDConceptMapTerminology()  
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
 
@@ -465,8 +527,7 @@ class Terminology(Serializable):
                 mapping.pop("_id", None)  # Remove MongoDB-specific field
         except:
             mapping = None
-            print(f"weird mapping query failed")
-            pdb.set_trace()
+            print(f"weird mapping: {tmref.get()}")
         change_type = Terminology.ChangeType.AddMapping
         if mapping is not None:
             # This is not super helpful, but at least we get some detail about which mappings were removed
@@ -550,8 +611,7 @@ class Terminology(Serializable):
         if code is None:
             code = "self"
 
-        try:
-            # MongoDB: Find and delete preference document
+        try:            # MongoDB: Find and delete preference document
             pref_doc = persistence().collection("onto_api_preference").find_one({
                 "target": self.id,
                 "code": code
@@ -699,22 +759,29 @@ class CodingMapping(Coding):
         valid=None,
         mapping_relationship=None,
         user_input=None,
+        ftd_code=None
     ):
         super().__init__(code, display, system, description)
         self.valid = valid
         self.mapping_relationship = mapping_relationship
         self.user_input = user_input
+        self.ftd_code = code # Default to given code, updated if necessary. 
 
     class _Schema(Schema):
         code = fields.Str(
-            required=True, error_messages={"required": "Codings *must* have a code "}
+            required=True, error_messages={"required": "CodingMappings *must* have a code "}
         )
         display = fields.Str()
-        system = fields.URL()
+        system = fields.URL(
+            required=True, error_messages={"required": "CodingMappings *must* have a system "}
+        )
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
         user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
+        ftd_code = fields.Str( 
+            required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
+        )
 
         @post_load
         def build_coding_mapping(self, data, **kwargs):
@@ -729,6 +796,11 @@ class CodingMapping(Coding):
             obj["valid"] = self.valid
         else:
             self.valid = True
+
+        # Formatted version of a code for MD to display.
+        formatted = format_ftd_code(self.ftd_code, FTDOntologyLookup.get_mapped_curie(self.system))
+        self.ftd_code = formatted
+        obj["ftd_code"] = self.ftd_code
 
         # Returns the mapping_relationship as "" if the attribute does not exist in database
         if self.mapping_relationship is not None:
@@ -749,6 +821,8 @@ class MappingUserInputModel:
         This function collects and formats the user_input data for a given mapping,
         then creates the user_input object to be included in a CodingMapping.
         """
+        code_index = get_code_index(code)
+        mapped_code_index = get_code_index(mapped_code)
 
         document_id = generate_paired_string(code, mapped_code)
         

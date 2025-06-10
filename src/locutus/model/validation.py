@@ -9,7 +9,7 @@ def validate_enums(codes, enums, additional_enums=None):
     :param codes: The codes to validate. Can be a dict, list, or string.
     :param enums: The valid enums. Can be a dict, list, or string.
     :param additional_enums: Additional enums to consider as valid. Should be a list or iterable.
-    :raises InvalidEnumValueError: If any code is not in the valid enums.
+    :raises InvalidValueError: If any code is not in the valid enums.
     """
     # Normalize enums
     if isinstance(enums, dict):
@@ -39,6 +39,6 @@ def validate_enums(codes, enums, additional_enums=None):
     # Validate each code
     invalid_codes = [code for code in code_list if code not in valid_enums]
     if invalid_codes:
-        raise InvalidEnumValueError(invalid_codes, valid_enums)
+        raise InvalidValueError(invalid_codes, valid_enums)
 
     return True

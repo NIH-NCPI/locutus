@@ -4,7 +4,7 @@ from locutus.model.terminology import Terminology
 from locutus.model.reference import Reference
 from locutus import persistence
 from locutus.model.terminology import Terminology as Term
-from locutus import clean_varname, strip_none
+from locutus import strip_none
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -31,8 +31,6 @@ import typing
 from datetime import datetime
 from marshmallow.exceptions import ValidationError
 from copy import deepcopy
-
-import pdb
 
 
 class InvalidVariableDefinition(Exception):
@@ -69,7 +67,7 @@ class Variable:
         self.data_type = None
 
         if self.code == "" and self.name != "":
-            self.code = clean_varname(self.name)
+            self.code = self.name
 
     class _Schema(Schema):
         @post_load
@@ -82,7 +80,6 @@ class Variable:
         return fields.Str
 
     def dump(self):
-        # pdb.set_trace()
         return self.__class__._get_schema().dump(self)
 
     def __init_subclass__(cls, **kwargs):
@@ -105,7 +102,6 @@ class Variable:
 
     @classmethod
     def _get_schema(cls):
-        # pdb.set_trace()
         if cls._schema is None:
             cls._schema = cls._Schema()
             cls._schema._parent = cls

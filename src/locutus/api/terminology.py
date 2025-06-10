@@ -6,8 +6,6 @@ from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 
-import pdb
-
 
 class TerminologyEdit(Resource):
     def put(self, id, code):
@@ -61,8 +59,6 @@ class TerminologyRenameCode(Resource):
             t = Term.get(id)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-
-        # pdb.set_trace()
 
         print(f"Code Updates requested: {code_updates}")
         print(f"Display Updates requested: {display_updates}")

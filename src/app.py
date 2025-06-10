@@ -3,7 +3,6 @@ from flask import Flask, request, render_template, url_for
 from flask_cors import CORS, cross_origin
 from flask_restful import Resource, Api
 
-import pdb
 
 # from locutus import init_base_storage
 
@@ -52,16 +51,22 @@ from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
 
 from locutus.sessions import SessionManager
 
-from locutus.api.user_input import TerminologyUserInput
+from locutus.api.user_input import TerminologyUserInput, TableUserInput
 
 from locutus.api.metadata import Version
 
 from locutus.api.user_prefs import UserPrefOntoFilters
 
+from locutus.model.lookups import FTDOntologyLookup
+
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
 CORS(app)
 api = Api(app)
+
+# Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
+FTDOntologyLookup.fetch_and_store_csv()
 
 # Sessions
 session_manager = SessionManager(app)
@@ -96,11 +101,11 @@ api.add_resource(Terminologies, "/api/Terminology")
 api.add_resource(Terminology, "/api/Terminology/<string:id>")
 api.add_resource(TerminologyMappings, "/api/Terminology/<string:id>/mapping")
 api.add_resource(
-    TerminologyMapping, "/api/Terminology/<string:id>/mapping/<string:code>"
+    TerminologyMapping, "/api/Terminology/<string:id>/mapping/<path:code>"
 )
 api.add_resource(
     MappingRelationship,
-    "/api/Terminology/<string:id>/mapping_relationship/<string:code>/mapping/<string:mapped_code>",
+    "/api/Terminology/<string:id>/mapping_relationship/<path:code>/mapping/<path:mapped_code>",
 )
 api.add_resource(
     TerminologyRenameCode,
@@ -115,7 +120,7 @@ api.add_resource(
 # GET/POST/PUT/DELETE Ontology API preferences at Code level
 api.add_resource(
     OntologyAPISearchPreferences,
-    "/api/Terminology/<string:id>/filter/<string:code>",
+    "/api/Terminology/<string:id>/filter/<path:code>",
     endpoint="onto_code_preferences",
 )
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Terminology
@@ -126,13 +131,13 @@ api.add_resource(
 # GET/PUT user_input sub-collection associated with a Terminology/code/input type
 api.add_resource(
     TerminologyUserInput,
-    "/api/Terminology/<string:id>/user_input/<string:code>/mapping/<string:mapped_code>/<string:type>",
+    "/api/Terminology/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:type>",
 )
 
 # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
 # code. Body for put will include display in addition to the code (and possibly
 # other stuff in the future. )
-api.add_resource(TerminologyEdit, "/api/Terminology/<string:id>/code/<string:code>")
+api.add_resource(TerminologyEdit, "/api/Terminology/<string:id>/code/<path:code>")
 api.add_resource(
     TableRenameCode,
     "/api/Table/<string:id>/rename",
@@ -141,10 +146,10 @@ api.add_resource(Tables, "/api/Table")
 api.add_resource(Table, "/api/Table/<string:id>")
 
 # PUT, DELETE
-api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<string:code>")
+api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<path:code>")
 
 # GET/DELETE/PUT
-api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<string:code>")
+api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<path:code>")
 # GET/DELETE
 api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
 api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")
@@ -157,13 +162,16 @@ api.add_resource(
 # GET/POST/PUT/DELETE Ontology API preferences at Variable level
 api.add_resource(
     TableOntologyAPISearchPreferences,
-    "/api/Table/<string:id>/filter/<string:code>",
+    "/api/Table/<string:id>/filter/<path:code>",
     endpoint="onto_var_preferences",
 )
 
 # GET/PUT/DELETE preferred_terminology sub-collection associated with a Table (shadow Terminology)
 api.add_resource(
     TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
+)
+api.add_resource(
+    TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:type>"
 )
 
 # POST
@@ -186,11 +194,11 @@ api.add_resource(
 api.add_resource(TerminologyProvenance, "/api/Provenance/Terminology/<string:id>")
 api.add_resource(
     TerminologyCodeProvenance,
-    "/api/Provenance/Terminology/<string:id>/code/<string:code>",
+    "/api/Provenance/Terminology/<string:id>/code/<path:code>",
 )
 api.add_resource(TableProvenance, "/api/Provenance/Table/<string:id>")
 api.add_resource(
-    TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<string:code>"
+    TableVarProvenance, "/api/Provenance/Table/<string:id>/code/<path:code>"
 )
 
 # GET Ontology All OntologyAPIs and ontology details
@@ -204,7 +212,6 @@ api.add_resource(
 @app.errorhandler(404)
 @cross_origin(allow_headers=["Content-Type"])
 def not_found(e):
-    # pdb.set_trace()
     return (
         render_template(
             "error_404.html",

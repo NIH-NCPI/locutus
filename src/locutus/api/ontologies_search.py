@@ -4,7 +4,7 @@ from locutus import logger
 from locutus.api import default_headers
 from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 from locutus.model.exceptions import *
-import pdb
+
 
 class OntologyAPIs(Resource):
     def get(self, api_id=None):

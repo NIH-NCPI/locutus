@@ -4,7 +4,6 @@ from marshmallow import Schema, fields, post_load
 from locutus.model.datadictionary import DataDictionary
 from locutus.model.reference import Reference
 
-import pdb
 
 """
 A Study represents a research study which will likely contain one or more
@@ -51,7 +50,7 @@ class Study(Serializable):
         title=None,
         url="",
         datadictionary=None,
-        resource_type=None
+        resource_type=None,
     ):
         super().__init__(id=id, collection_type="Study", resource_type="Study")
         self.name = name
@@ -81,8 +80,7 @@ class Study(Serializable):
             for ref in matching_references:
                 del self.datadictionary[ref]
 
-        return len(matching_references)        
-
+        return len(matching_references)
 
     def keys(self):
         return [self.title, self.url, self.name]
