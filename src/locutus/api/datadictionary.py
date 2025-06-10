@@ -12,7 +12,7 @@ import pdb
 class DataDictionaries(Resource):
     def get(self):
         return (
-            [doc.pop("_id", None) or doc.to_dict() for doc in persistence().collection("DataDictionary").stream()],
+            [doc.to_dict() for doc in persistence().collection("DataDictionary").stream()],
             200,
             default_headers,
         )

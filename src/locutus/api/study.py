@@ -8,7 +8,7 @@ from locutus.api import default_headers
 class Studies(Resource):
     def get(self):
         return (
-            [doc.pop("_id", None) or doc.to_dict() for doc in persistence().collection("Study").stream()],
+            [doc.to_dict() for doc in persistence().collection("Study").stream()],
             200,
             default_headers,
         )

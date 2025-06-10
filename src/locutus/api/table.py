@@ -117,7 +117,7 @@ class Tables(Resource):
         but it's technically not wise to pull these into a single response.
         We should plan on paginating this at some point."""
         return (
-            [doc.pop("_id", None) or doc.to_dict() for doc in persistence().collection("Table").stream()],
+            [doc.to_dict() for doc in persistence().collection("Table").stream()],
             200,
             default_headers,
         )
