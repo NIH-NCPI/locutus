@@ -88,13 +88,14 @@ class Serializable:
             return None
         
         if return_instance:
-            # Remove MongoDB-specific fields that shouldn't be passed to __init__
-            # Also remove resource_type if it exists since it's handled as a class attribute
-            filtered_resource = {k: v for k, v in resource.items() if k not in ['_id', 'resource_type']}
+            # Remove database-specific fields (any field starting with _) and system fields
+            # that shouldn't be passed to __init__
+            filtered_resource = {k: v for k, v in resource.items() 
+                               if not k.startswith('_') and k not in ['resource_type']}
             return cls(**filtered_resource)
         else:
-            # Return raw data but filter out MongoDB-specific fields
-            return {k: v for k, v in resource.items() if k not in ['_id']}
+            # Return raw data but filter out database-specific fields (any field starting with _)
+            return {k: v for k, v in resource.items() if not k.startswith('_')}
 
     def identify(self):
         if self.id is None:

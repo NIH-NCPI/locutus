@@ -315,52 +315,39 @@ class Terminology(Serializable):
         if code is not None:
             code = normalize_ftd_placeholders(code)
 
-            code_index = get_code_index(code)
-            tmref = (
-                persistence()
-                .collection("Terminology")
-                .document(self.id)
-                .collection("mappings")
-                .document(code)
-            )
-             # MongoDB: Find specific mapping document
+            # MongoDB: Find specific mapping document
             mapping = persistence().collection("mappings").find_one({
                 "target": self.id,
                 "code": code
             })
 
-            mapping = tmref.get().to_dict()
-            time_of_delete = 0
             if mapping is not None:
-                mapping.pop("_id", None)  # Remove MongoDB-specific field
                 for codingmapping in mapping["codes"]:
                     codingmapping["valid"] = False
 
                 # Save the updated mapping with the 'valid' field set to False
-                persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).set(mapping)
+                doc_id = mapping.get("id") or mapping.get("_id")
+                persistence().collection("mappings").document(doc_id).set(mapping)
 
                 self.add_provenance(
                     change_type=Terminology.ChangeType.SoftDeleteMapping,
                     target=code,
-                    old_value=mapping,
+                    old_value=str(mapping),
                     editor=editor,
                 )
             else:
                 print(
-                    f"Soft deleting mappings for code: {code}, doc_id:{code_index}, Terminology: {self.name} but there were no mappings."
+                    f"Soft deleting mappings for code: {code}, Terminology: {self.name} but there were no mappings."
                 )
         else:
             # MongoDB: Find all mappings for this terminology
             for mapping in persistence().collection("mappings").find({"target": self.id}):
-                mapping_code_id = mapping["code"]
-                code_index = get_code_index(mapping_code_id)
-
                 for coding in mapping["codes"]:
-                    if "valid" in coding:
-                        coding["valid"] = False
+                    coding["valid"] = False
 
                 # Save the updated mapping
-                persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).set(mapping)
+                doc_id = mapping.get("id") or mapping.get("_id")
+                persistence().collection("mappings").document(doc_id).set(mapping)
 
             self.add_provenance(
                 change_type=Terminology.ChangeType.SoftDeleteAllMappings,
@@ -513,9 +500,7 @@ class Terminology(Serializable):
 
             for coding_obj in self.codes:
                 if coding_obj.code == mapping.code:
-                    coding_obj.valid = True
-
-        # MongoDB: Check if mapping already exists
+                    coding_obj.valid = True        # MongoDB: Check if mapping already exists
         old_mappings = ""
         try:
             assert code is not None
@@ -523,11 +508,9 @@ class Terminology(Serializable):
                 "target": self.id,
                 "code": code
             })
-            if mapping:
-                mapping.pop("_id", None)  # Remove MongoDB-specific field
-        except:
+        except Exception as e:
             mapping = None
-            print(f"weird mapping: {tmref.get()}")
+            print(f"Error finding mapping for code {code}: {e}")
         change_type = Terminology.ChangeType.AddMapping
         if mapping is not None:
             # This is not super helpful, but at least we get some detail about which mappings were removed

@@ -110,6 +110,7 @@ class OntologyAPI(Serializable):
         
 class OntologyAPISearchModel():
 
+    @staticmethod
     def run_search_dragon(keywords, ontologies, apis, results_per_page, start_index):
         onto_seed_data = OntologyAPICollection()
         onto_data = onto_seed_data.get_ontology_data("system")
@@ -119,7 +120,18 @@ class OntologyAPISearchModel():
         valid_curies = onto_curies.values()
         for onto in ontologies:
             if onto not in valid_curies:
-                raise InvalidValueError(value=f"{onto}",valid_values=valid_curies)
-
-        search_result = run_search(onto_data, keywords, ontologies, apis, results_per_page, start_index)
-        return search_result
+                raise InvalidValueError(value=f"{onto}", valid_values=valid_curies)
+        
+        try:
+            # Ensure all parameters are of the expected types
+            keywords = str(keywords)
+            results_per_page = int(results_per_page)
+            start_index = int(start_index)
+            
+            # Make the search API call
+            search_result = run_search(onto_data, keywords, ontologies, apis, results_per_page, start_index)
+            return search_result
+        except Exception as e:
+            error_msg = f"Error in search_dragon.run_search: {str(e)}"
+            # The InvalidValueError doesn't accept a 'message' parameter, so we'll use the standard constructor
+            raise InvalidValueError(value=f"Search parameters", valid_values=error_msg)
