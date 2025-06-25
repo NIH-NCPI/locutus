@@ -4,6 +4,7 @@ import logging
 from urllib.parse import urlparse, unquote
 logger = logging.getLogger(__name__) 
 
+import pdb
 class DocumentSnapshot:
     def __init__(self, doc_id, data):
         self.id = doc_id
@@ -136,14 +137,28 @@ class FirestoreCompatibleClient:
         mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/")
         parsed = urlparse(mongo_uri)
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
+        logger.info(f"Mongo DB Interface")
         logger.info(f"Connecting to Mongo URI: {mongo_uri}")
         logger.info(f"Database name parsed: '{db_name}'")
         if not db_name:
             raise ValueError("Database name must be specified in the Mongo URI path!")
         self.client = MongoClient(mongo_uri)
+        available_dbs = self.client.list_database_names()
+
+        if db_name not in available_dbs:
+            raise ValueError(f"The specified database, {db_name}, isn't present in the database. Available DBs include: {', '.join(self.client.list_database_names())}")            
         self.db = self.client[db_name]
+        self.collection_list = self.db.list_collection_names()
+        logger.info(f"List of database collections in the connected DB: {', '.join(self.collection_list)}")
+
 
     def collection(self, collection_name):
+        if collection_name not in self.collection_list:
+            logger.info(f"{collection_name} is not present in the database. Available collections are:")
+            collection_names = "\n *".join(self.collection_list)
+            msg = f"  * {collection_names}"
+            logger.info(msg)
+            raise KeyError(msg)
         return CollectionReference(self.db[collection_name])
 
 # Maintain singleton client instance
