@@ -132,9 +132,9 @@ class CollectionReference:
 
 class FirestoreCompatibleClient:
     print("FirestoreCompatibleClient")
-    def __init__(self):
+    def __init__(self, mongo_uri="mongodb://localhost:27017"):
         # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
-        mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+        mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", mongo_uri)
         parsed = urlparse(mongo_uri)
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
         logger.info(f"Mongo DB Interface")
