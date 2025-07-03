@@ -15,7 +15,7 @@ def delete_collection(coll):
         doc.delete()
 
 
-def    persistence():
+def persistence():
     global _db
     if _db is None:
         # On my local machine, I'll use an environment variable to store the path to my

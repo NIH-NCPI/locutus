@@ -164,8 +164,8 @@ class FirestoreCompatibleClient:
 # Maintain singleton client instance
 _client = None
 
-def persistence():
+def persistence(mongo_uri=None):
     global _client
     if _client is None:
-        _client = FirestoreCompatibleClient()
+        _client = FirestoreCompatibleClient(mongo_uri)
     return _client
