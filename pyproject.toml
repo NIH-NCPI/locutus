@@ -1,9 +1,6 @@
 [build-system]
-requires = ["setuptools"] #, "setuptools-scm"]
+requires = ["setuptools>=61.0", "setuptools-scm"] 
 build-backend = "setuptools.build_meta"
-
-#[tool.setuptools_scm]
-#version_file = "locutus/_version.py"
 
 [project]
 name = "locutus"
@@ -30,6 +27,10 @@ dependencies = ["marshmallow",
                 ]
 
 dynamic = ["version"]
+
+[tool.setuptools_scm]
+version_file = "src/locutus/_version.py"
+
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
