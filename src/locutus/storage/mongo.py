@@ -132,7 +132,7 @@ class CollectionReference:
 
 class FirestoreCompatibleClient:
     print("FirestoreCompatibleClient")
-    def __init__(self, mongo_uri="mongodb://localhost:27017"):
+    def __init__(self, mongo_uri="mongodb://localhost:27017", missing_ok=False):
         # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
         mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", mongo_uri)
         parsed = urlparse(mongo_uri)
@@ -146,7 +146,9 @@ class FirestoreCompatibleClient:
         available_dbs = self.client.list_database_names()
 
         if db_name not in available_dbs:
-            raise ValueError(f"The specified database, {db_name}, isn't present in the database. Available DBs include: {', '.join(self.client.list_database_names())}")            
+            if not missing_ok:
+                raise ValueError(f"The specified database, {db_name}, isn't present in the database. Available DBs include: {', '.join(self.client.list_database_names())}")            
+            logger.info(f"Database, {db_name}, not currently found.")
         self.db = self.client[db_name]
         self.collection_list = self.db.list_collection_names()
         logger.info(f"List of database collections in the connected DB: {', '.join(self.collection_list)}")
@@ -164,8 +166,8 @@ class FirestoreCompatibleClient:
 # Maintain singleton client instance
 _client = None
 
-def persistence(mongo_uri=None):
+def persistence(mongo_uri=None, missing_ok=False):
     global _client
     if _client is None:
-        _client = FirestoreCompatibleClient(mongo_uri)
+        _client = FirestoreCompatibleClient(mongo_uri, missing_ok)
     return _client
