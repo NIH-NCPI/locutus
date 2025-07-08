@@ -8,7 +8,7 @@ from locutus.api import default_headers
 class Studies(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("Study").stream()],
+            [doc.to_dict() for doc in persistence().collection("Study").stream()],
             200,
             default_headers,
         )
@@ -39,11 +39,10 @@ class Studies(Resource):
     def delete_dd_references(self, id):
         affected_ids = 0
         for resource in persistence().collection("Study").stream():
-            resource = resource.to_dict()
-
-            if "resource_type" in resource:
-                del resource["resource_type"]
-            obj = mStudyTerm(**resource)
+            resource_dict = resource.to_dict()
+            if "resource_type" in resource_dict:
+                del resource_dict["resource_type"]
+            obj = mStudyTerm(**resource_dict)
 
             matched_references = obj.remove_dd(id)
 
@@ -58,7 +57,11 @@ class Studies(Resource):
 class Study(Resource):
     def get(self, id):
         t = persistence().collection("Study").document(id).get()
-        return t.to_dict(), 200, default_headers
+        if t.exists:
+            t_dict = t.to_dict()
+            t_dict.pop("_id", None)
+            return t_dict, 200, default_headers
+        return {"error": "Study not found"}, 404, default_headers
 
     def put(self, id):
         sty = request.get_json()

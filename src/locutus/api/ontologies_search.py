@@ -4,6 +4,7 @@ from locutus import logger
 from locutus.api import default_headers
 from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 from locutus.model.exceptions import *
+from locutus.model.exceptions import InvalidValueError
 
 
 class OntologyAPIs(Resource):
@@ -57,13 +58,33 @@ class OntologyAPISearch(Resource):
             if start_param is None:
                 raise LackingRequiredParameter("start")
 
+            # Convert string parameters to appropriate types
+            try:
+                results_n_param = int(results_n_param)
+                start_param = int(start_param)
+            except ValueError:
+                raise InvalidValueError(value="results_per_page or start_index", 
+                                       valid_values="These parameters must be valid integers")
+                
             search_results = OntologyAPISearchModel.run_search_dragon(
                 keyword_param, ontology_param, pref_api, results_n_param, start_param
             )
             return (search_results, 200, default_headers)
         
         except ValueError as e:
-            return {f"error {keyword_param, ontology_param, pref_api, results_n_param, start_param}": str(e)}, 400, default_headers
+            error_msg = f"Invalid parameters: keyword={keyword_param}, ontologies={ontology_param}, api={pref_api}, results_per_page={results_n_param}, start_index={start_param}. Error: {str(e)}"
+            logger.error(error_msg)
+            return {"error": error_msg}, 400, default_headers
+        
+        except InvalidValueError as e:
+            logger.error(f"Invalid value error: {e}")
+            return e.to_dict(), e.status_code, default_headers
         
         except APIError as e:
+            logger.error(f"API Error: {e}")
             return e.to_dict(), e.status_code, default_headers
+            
+        except Exception as e:
+            error_msg = f"Unexpected error during ontology search: {str(e)}"
+            logger.error(error_msg)
+            return {"error": error_msg}, 500, default_headers

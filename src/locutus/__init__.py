@@ -1,8 +1,16 @@
-# For now, we'll use my dumb JSON persistence storage
-# from locutus.storage import JStore
-from locutus.storage.firestore import persistence
 import logging
+import os
 
+
+
+db_type = os.getenv("DB_TYPE", "firestore").lower()
+
+if db_type == "mongodb":
+    from locutus.storage.mongo import persistence
+    print("Using MongoDB")
+else:
+    from locutus.storage.firestore import persistence
+    print("Using Firestore")
 _persistence = None
 
 PROVENANCE_TIMESTAMP_FORMAT = "%Y-%m-%d %I:%M:%S%p"
@@ -77,7 +85,9 @@ def get_code_index(code):
     for key, value in sp_char_mappings_indexes.items():
         code_index = code_index.replace(key, value)
     return code_index
-# Set the logging config
+
+
+#logging
 LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 def format_ftd_code(code, curie):
@@ -94,30 +104,28 @@ def format_ftd_code(code, curie):
         return code
 
 
-# Create a logger
+def format_ftd_code(code, curie):
+    """
+    Ensure the code is in CUR:123456 format using the ontology lookup.
+    If already formatted, return as-is. Otherwise, use the system to find the correct CUR prefix.
+    """
+    if ":" in code:
+        return code
+    if code and curie:
+        return f"{curie}:{code}"
+    else:
+        logger.warning(f"Something went wrong trying to format the ftd_code. {curie}:{code}")
+        return code
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 if logger.hasHandlers():
     logger.handlers.clear()
 
-# Create a console handler for logging to the console
+
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
 console_handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
-# Add handlers to the logger
 logger.addHandler(console_handler)
 
-"""
-def persistence():
-    global _persistence
-    return _persistence
-
-
-def init_base_storage(filepath="db"):
-    global _persistence
-
-    _persistence = JStore(filepath)
-
-    return _persistence
-"""

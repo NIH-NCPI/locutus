@@ -165,13 +165,11 @@ class Terminology(Resource):
 
     # @cross_origin()
     def delete(self, id):
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("mappings")
-        )
-        delete_collection(mapref)
+        # Delete mappings collection - use direct query instead of subcollection
+        mappings = [doc.to_dict() for doc in persistence().collection("mappings").find({"target": id})]
+        for mapping in mappings:
+            persistence().collection("mappings").document(mapping.get("id") or mapping.get("_id")).delete()
+        
         dref = persistence().collection("Terminology").document(id)
-        t = dref.get().to_dict()
-
-        time_of_delete = dref.delete()
-
-        return t, 200, default_headers
+        dref.delete()
+        return {"message": "Terminology deleted"}, 200, default_headers

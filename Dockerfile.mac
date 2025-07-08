@@ -1,0 +1,48 @@
+FROM python:3.11-alpine
+
+# Install system dependencies for building Python packages
+RUN apk update && apk add --no-cache \
+    git \
+    gcc \
+    g++ \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    make \
+    libc6-compat \
+    python3-dev \
+    libstdc++ \ 
+    linux-headers
+#can be env vars
+RUN export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1 \
+    export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
+
+RUN pip install grpcio   
+
+#WORKDIR .
+WORKDIR /app
+ENV FLASK_APP=src/app.py
+ENV FLASK_RUN_HOST=0.0.0.0
+#ENV PORT=8080
+
+# Copy the source code and project metadata
+COPY src ./src
+COPY pyproject.toml .
+COPY README.md .
+
+# Install Python dependencies from pyproject.toml
+RUN pip install .
+
+# Install github packages that do not conform to the toml file 
+COPY requirements.txt .
+
+# install git to enable installing the github package in the requirements
+# file then uninstall it as it is no longer necessary
+RUN apk update && \
+    apk add --no-cache git && \
+    pip install --no-cache-dir -r requirements.txt && \
+    apk del git
+
+# Cloud Run expects 8080, need to figure out how to change that
+EXPOSE 80
+CMD ["flask", "run"]

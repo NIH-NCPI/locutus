@@ -11,7 +11,7 @@ from flask_cors import cross_origin
 class DataDictionaries(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("DataDictionary").stream()],
+            [doc.to_dict() for doc in persistence().collection("DataDictionary").stream()],
             200,
             default_headers,
         )
@@ -32,14 +32,14 @@ class DataDictionaries(Resource):
 
     def delete_table_references(self, table_id):
         # Does this need to be batched. I'm assuming we'll end up using a
-        # different database before we get enough of these to matter
-
-        affected_dds = 0
+        # different database before we get enough of these to matter        affected_dds = 0
         for dd in persistence().collection("DataDictionary").stream():
             dd = dd.to_dict()
 
             if "resource_type" in dd:
                 del dd["resource_type"]
+            if "_id" in dd:
+                del dd["_id"]
             d = DD(**dd)
 
             matched_references = d.remove_table(table_id)
@@ -55,12 +55,19 @@ class DataDictionaries(Resource):
 class DataDictionary(Resource):
 
     def get(self, id):
-        t = persistence().collection("DataDictionary").document(id).get()
-        return t.to_dict()
+        # pdb.set_trace()
+        dref = persistence().collection("DataDictionary").document(id).get()
+        if dref.exists:
+            dref_dict = dref.to_dict()
+            dref_dict.pop("_id", None)
+            return dref_dict, 200, default_headers
+        return {"message": "Data dictionary not found"}, 404, default_headers
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id):
         dd = request.get_json()
+        if "_id" in dd:
+            del dd["_id"]
         if "id" not in dd:
             dd["id"] = id
 
@@ -94,6 +101,8 @@ class DataDictionaryTable(Resource):
 
         if "resource_type" in ddref:
             del ddref["resource_type"]
+        if "_id" in ddref:
+            del ddref["_id"]
         # We'll realize the data-dictionary and delete the id from there
         d = DD(**ddref)
 

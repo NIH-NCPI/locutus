@@ -26,7 +26,7 @@ class CodeAlreadyPresent(APIError):
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
         message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({self.existing_coding.display})."
-        logger.error(message)
+        logger.debug(message)  # Changed from error to debug level
         super().__init__(message, status_code=400)
 
 

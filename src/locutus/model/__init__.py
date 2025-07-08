@@ -83,14 +83,19 @@ class Serializable:
     @classmethod
     def get(cls, id, return_instance=True):
         """Pull instance from the database and (default) instantiate"""
-        resource = persistence().collection(cls.__name__).document(id).get().to_dict()
-
-        # Just in case we just need the dict representation as it is found in
-        # the database.
-        if not return_instance:
-            return resource
-
-        return cls(**resource)
+        resource = persistence().collection(cls.resource_type).document(id).get().to_dict()
+        if resource is None:
+            return None
+        
+        if return_instance:
+            # Remove database-specific fields (any field starting with _) and system fields
+            # that shouldn't be passed to __init__
+            filtered_resource = {k: v for k, v in resource.items() 
+                               if not k.startswith('_') and k not in ['resource_type']}
+            return cls(**filtered_resource)
+        else:
+            # Return raw data but filter out database-specific fields (any field starting with _)
+            return {k: v for k, v in resource.items() if not k.startswith('_')}
 
     def identify(self):
         if self.id is None:
@@ -134,7 +139,31 @@ class Serializable:
     @classmethod
     def build_object(cls, data):
         d = deepcopy(data)
+        # Remove MongoDB '_id' and resource_type if present
+        d.pop('_id', None)
+        d.pop('resource_type', None)
+        resource_type = data.get('resource_type', '').lower()
+        return cls._factory_workers[resource_type](**d)
 
-        if "resource_type" in d:
-            del d["resource_type"]
-        return cls._factory_workers[data["resource_type"].lower()](**d)
+    def add_provenance(self, target, prov):
+        # Check if provenance already exists
+        existing = persistence().collection("provenance").find_one({
+            "target": self.id, 
+            "code": target
+        })
+        
+        provenance_doc = {
+            "target": self.id,
+            "code": target,
+            **prov
+        }
+        
+        if existing:
+            # Update existing document - use existing ID
+            doc_id = existing.get("id") or existing.get("_id")
+            persistence().collection("provenance").document(doc_id).set(provenance_doc)
+        else:
+            # Create new document with generated ID
+            doc_id = f"prov-{generate()}"
+            provenance_doc["id"] = doc_id
+            persistence().collection("provenance").document(doc_id).set(provenance_doc)
