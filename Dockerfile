@@ -13,24 +13,25 @@ RUN apk update && apk add --no-cache git
 
 # Install additional build dependencies for ARM64 (Apple Silicon)
 RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
-        apk add --no-cache \
-            gcc \
-            g++ \
-            musl-dev \
-            libffi-dev \
-            openssl-dev \
-            make \
-            libc6-compat \
-            python3-dev \
-            libstdc++ \
-            linux-headers; \
-        export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1; \
-        export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1; \
-        pip install grpcio; \
+    apk add --no-cache \
+    gcc \
+    g++ \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    make \
+    libc6-compat \
+    python3-dev \
+    libstdc++ \
+    linux-headers; \
+    export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1; \
+    export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1; \
+    pip install grpcio; \
     fi
 
 # Copy the source code and project metadata
-COPY src ./src
+COPY . /app
+WORKDIR /app
 COPY pyproject.toml .
 COPY README.md .
 
