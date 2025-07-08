@@ -30,8 +30,9 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
     fi
 
 # Copy the source code and project metadata
-COPY . /app
+COPY .git /app/.git
 WORKDIR /app
+COPY src ./src
 COPY pyproject.toml .
 COPY README.md .
 
