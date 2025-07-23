@@ -46,14 +46,18 @@ the "codes" array.
 
 
 class Coding:
-
     def __init__(self, code, display="", system=None, description=""):
-        code = normalize_ftd_placeholders(code)
+        if not isinstance(code, str) or not code.strip():
+            raise ValueError("Code is a required string and cannot be empty.")
+        if not isinstance(system, str) or not system.strip():
+            raise ValueError("System is a required string and cannot be empty.")
 
-        self.code = code
-        self.display = display
-        self.system = system
-        self.description = description
+        code = normalize_ftd_placeholders(code)
+        self.code = code.strip()
+        self.display = display.strip() if isinstance(display, str) else display
+        self.system = system.strip()
+        self.description = description.strip() if isinstance(description, str) else description
+
 
     class _Schema(Schema):
         code = fields.Str(
