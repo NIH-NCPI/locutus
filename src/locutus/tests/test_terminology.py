@@ -16,6 +16,18 @@ def sample_terminology():
         codes=initial_codes
     )
 
+def test_terminology_id(sample_terminology):
+    assert sample_terminology.id[0:3] == "tm-"
+    
+    term = Terminology(
+        id = "ForcedID",
+        name="Ontology One",
+        url="http://example.com/ont1",
+        description="A sample oncology terminology"
+    )
+
+    assert term.id == "ForcedID"
+
 def test_terminology_init(sample_terminology):
     assert sample_terminology.name == "Ontology One"
     assert sample_terminology.url == "http://example.com/ont1"
