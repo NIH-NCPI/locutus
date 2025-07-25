@@ -173,3 +173,28 @@ def test_mappings(sample_terminology):
     mappings = [mp for mp in sample_terminology.mappings("C99")["C99"] if mp.valid]
     assert len(mappings) == 0 # No mappings for non-existent code
 
+def test_get_provenance(sample_terminology):
+    # Test with no provenance
+    assert sample_terminology.get_provenance("C1")["C1"] == []
+
+    # Add some provenance
+    sample_terminology.add_provenance(change_type="created", editor="admin", target="C1", details="Initial creation")
+    sample_terminology.add_provenance(change_type="modified", editor="user1", target="C1", old_value="valA", new_value="valB")
+
+    provenance_c1 = sample_terminology.get_provenance("C1")["C1"]["changes"]
+    assert len(provenance_c1) == 2
+    assert provenance_c1[0]["action"] == "created"
+    assert provenance_c1[1]["editor"] == "user1"
+
+    assert sample_terminology.get_provenance("C2")["C2"] == []
+
+def test_add_provenance(sample_terminology):
+    initial_provenance_count = len(sample_terminology.get_provenance("C1")["C1"])
+    sample_terminology.add_provenance(change_type="added", editor="test_editor", target="C1", new_entry="Some new data")
+    assert len(sample_terminology.get_provenance("C1")["C1"]["changes"]) == initial_provenance_count + 1
+    new_provenance_entry = sample_terminology.get_provenance("C1")["C1"]["changes"][-1]
+    assert new_provenance_entry["action"] == "added"
+    assert new_provenance_entry["editor"] == "test_editor"
+    assert new_provenance_entry["target"] == "C1"
+    assert new_provenance_entry["new_entry"] == "Some new data"
+    assert "timestamp" in new_provenance_entry
