@@ -103,12 +103,22 @@ def test_add_code(sample_terminology):
     assert new_code.system == "http://example.com/ont1"
     assert new_code.description == "Description for C3"
 
+    # Verify that the addition was reflected in prov
+    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
+    assert prov['action'] == "Add Term"
+    assert prov['new_value'] == "C3"
+
 def test_remove_code(sample_terminology):
     sample_terminology.remove_code("C1", editor="unit-test")
     assert len(sample_terminology.codes) == 1
     assert not sample_terminology.has_code("C1")
     assert sample_terminology.has_code("C2")
 
+    # Verify that the removal was reflected in prov
+    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
+    assert prov['action'] == "Remove Term"
+    assert prov['new_value'] == "C1"
+ 
     # Test removing a non-existent code
     with pytest.raises(KeyError) as e_info:
         sample_terminology.remove_code("C99", editor="unit-test")
