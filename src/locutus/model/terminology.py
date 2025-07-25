@@ -151,6 +151,27 @@ class Terminology(Serializable):
                     )
         super().identify()
 
+    @classmethod
+    def delete(cls, id):
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("mappings")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("provenance")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("onto_api_preference")
+        )
+        delete_collection(mapref)
+
+
+        dref = persistence().collection("Terminology").document(id)
+        t = dref.get().to_dict()
+
+        time_of_delete = dref.delete()
+
     def keys(self):
         return [self.url, self.name]
 
@@ -530,12 +551,12 @@ class Terminology(Serializable):
 
         doc = {"code": code, "codes": []}
 
+        # Validation of mapping_relationship
+        ftd_terminology = FTDConceptMapTerminology()  
         new_mappings = []
         for mapping in codings:
             coding_dict = mapping.to_dict()
 
-            # Validation of mapping_relationship
-            ftd_terminology = FTDConceptMapTerminology()  
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
 
             # Add 'valid' explicitly to the mapping document
