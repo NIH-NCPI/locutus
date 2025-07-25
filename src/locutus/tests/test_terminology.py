@@ -11,13 +11,35 @@ def sample_terminology():
         Coding(code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
         Coding(code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
     ]
-    yield Terminology(
+
+    t = Terminology(
         id="ontology-one",
         name="Ontology One",
         url="http://example.com/ont1",
         description="A sample oncology terminology",
         codes=initial_codes
     )
+    t.save()
+    yield t
+    Terminology.delete("ontology-one")
+
+@pytest.fixture
+def sample_terminology_with_editor():
+    initial_codes = [
+        Coding(code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
+        Coding(code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
+    ]
+
+    t = Terminology(
+        id="ontology-one",
+        name="Ontology One",
+        url="http://example.com/ont1",
+        description="A sample oncology terminology",
+        editor="unit tests",
+        codes=initial_codes
+    )
+    t.save()
+    yield t
     Terminology.delete("ontology-one")
 
 def test_terminology_id(sample_terminology):
@@ -39,6 +61,27 @@ def test_terminology_init(sample_terminology):
     assert sample_terminology.description == "A sample oncology terminology"
     assert len(sample_terminology.codes) == 2
     assert sample_terminology.codes[0].code == "C1"
+
+def test_terminology_prov_on_init(sample_terminology_with_editor):
+    assert len(sample_terminology_with_editor.get_provenance()) == 1
+    prov = sample_terminology_with_editor.get_provenance("self")["self"]
+    assert prov['target'] == "self"
+
+    p1 = prov['changes'][0]
+    assert p1['action'] == "Create Terminology"
+    assert p1['editor'] == "unit tests"
+    assert p1['target'] == "self"
+    assert "timestamp" in p1 
+    
+    # We started with 2 codes in it, so the provenance should include those two
+    p2 = prov['changes'][1]
+    assert p2['action'] == "Add Term"
+    assert p2['new_value'] == "C1"
+
+    p3 = prov['changes'][2]
+    assert p3['action'] == "Add Term"
+    assert p3['new_value'] == "C2"
+
 
 def test_build_code_dict(sample_terminology):
     code_dict = sample_terminology.build_code_dict()
