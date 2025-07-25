@@ -171,6 +171,7 @@ class Terminology(Serializable):
         t = dref.get().to_dict()
 
         time_of_delete = dref.delete()
+        return t
 
     def keys(self):
         return [self.url, self.name]
