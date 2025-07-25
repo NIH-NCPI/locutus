@@ -131,6 +131,15 @@ class Terminology(Serializable):
         self.url = url
         self.codes = []
 
+        if editor:
+            self.save()
+            self.add_provenance(
+                Terminology.ChangeType.Create,
+                editor=editor,
+                target="self",
+                new_value="Instantiation"
+            )
+
         # This probably doesn't make sense, stashing the system in at this
         # point, but we'll trust knuth for the time being and fix it when it is
         # clear that it is a bad idea.
@@ -147,7 +156,7 @@ class Terminology(Serializable):
                         Terminology.ChangeType.AddTerm,
                         editor=editor,
                         target="self",
-                        new_value=code,
+                        new_value=code.code,
                     )
         super().identify()
 
