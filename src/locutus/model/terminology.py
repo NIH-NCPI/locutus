@@ -15,6 +15,9 @@ from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
 
+
+from locutus.model.lookups import FTDConceptMapTerminology
+
 from locutus.model.user_input import UserInput
 from locutus.sessions import SessionManager
 
@@ -801,9 +804,11 @@ class CodingMapping(Coding):
     ):
         super().__init__(code, display, system, description)
         self.valid = valid
-        self.mapping_relationship = mapping_relationship
         self.user_input = user_input
         self.ftd_code = code # Default to given code, updated if necessary. 
+
+        FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
+        self.mapping_relationship = mapping_relationship
 
     class _Schema(Schema):
         code = fields.Str(
