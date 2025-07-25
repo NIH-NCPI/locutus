@@ -11,24 +11,27 @@ def sample_terminology():
         Coding(code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
         Coding(code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
     ]
-    return Terminology(
+    yield Terminology(
+        id="ontology-one",
         name="Ontology One",
         url="http://example.com/ont1",
         description="A sample oncology terminology",
         codes=initial_codes
     )
+    Terminology.delete("ontology-one")
 
 def test_terminology_id(sample_terminology):
-    assert sample_terminology.id[0:3] == "tm-"
+    # Normally we want these to have unique IDs, but for this we should just reuse the same one
+    assert sample_terminology.id == "ontology-one"
     
     term = Terminology(
-        id = "ForcedID",
         name="Ontology One",
         url="http://example.com/ont1",
         description="A sample oncology terminology"
     )
 
-    assert term.id == "ForcedID"
+    assert term.id[0:3] == "tm-"
+    Terminology.delete(term.id)
 
 def test_terminology_init(sample_terminology):
     assert sample_terminology.name == "Ontology One"
