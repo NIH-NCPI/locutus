@@ -1,7 +1,8 @@
 import pytest
 import json
-from locutus.model.terminology import Terminology, Coding
+from locutus.model.terminology import Terminology, Coding, CodingMapping
 
+import pdb
 
 @pytest.fixture
 def sample_terminology():
@@ -83,3 +84,26 @@ def test_has_code(sample_terminology):
     assert sample_terminology.has_code("C1")
     assert sample_terminology.has_code("C2")
     assert not sample_terminology.has_code("C99")
+
+
+def test_delete_mappings(sample_terminology):
+    # Setup some dummy mappings for testing the stub
+    sample_terminology.save()
+    sample_terminology.set_mapping("C1", [CodingMapping("MAP1", display="Map One", system="http://map.com", mapping_relationship='equivalent')], "editorA")
+    sample_terminology.set_mapping("C2", [CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")
+    sample_terminology.set_mapping("C1", [CodingMapping("MAP3", "Map Three", "http://map.com", mapping_relationship='equivalent')], "editorB")
+
+    # Test deleting a specific code's mapping for an editor
+    sample_terminology.delete_mappings(editor="editorA", code="C1")
+
+    mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
+
+    assert len(mappings) == 0 # Only editorB's mapping for C1 should remain
+    assert sample_terminology.mappings("C2") # C2 mapping for editorA should still exist
+
+    # Test deleting all mappings for an editor
+    sample_terminology.delete_mappings(editor="editorA")
+    mappings = [mp for mp in sample_terminology.mappings("C2")["C2"] if mp.valid]
+    assert len(mappings) == 0 # C2 mapping for editorA should be gone
+    mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
+    assert len(mappings) == 0 # editorB's mapping for C1 should remain
