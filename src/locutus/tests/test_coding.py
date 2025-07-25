@@ -5,19 +5,7 @@ from locutus.model.terminology import Coding
 
 
 import pdb
-"""This was generated using gemini based on the following prompt
-class Coding
 
-class Coding
-  - init(str: code (required),    # Short ontological term
-         str: display, # Human friendly description of the term
-         str: system (required),  # ontological system of the terms origin
-         str: description # A higher level description of the terms meaning
-         )  # This function initializes Coding objects
-  - to_dict() # Returns a JSON like representation of the Coding object
-
-  Using the above pseudo class, write a set of unit tests using PyTest
-"""
 
 class TestCoding:
     """
