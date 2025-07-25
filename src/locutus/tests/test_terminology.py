@@ -87,6 +87,28 @@ def test_has_code(sample_terminology):
     assert not sample_terminology.has_code("C99")
 
 
+def test_set_mapping(sample_terminology):
+    # Initially, no mappings
+    mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
+    assert len(mappings) == 0
+
+    # Set a mapping
+    coding_map = CodingMapping("MAPPED_CODE", "Mapped Display", "http://mapping.system", mapping_relationship="")
+    sample_terminology.set_mapping("C1", [coding_map], "test_editor")
+
+    retrieved_mappings = sample_terminology.mappings("C1")["C1"]
+    assert len(retrieved_mappings) == 1
+    assert retrieved_mappings[0].code == "MAPPED_CODE"
+    assert retrieved_mappings[0].display == "Mapped Display"
+    assert retrieved_mappings[0].system == "http://mapping.system"
+
+    # Set another mapping for the same code by a different editor
+    coding_map_2 = CodingMapping("MAPPED_CODE_2", "Mapped Display 2", "http://mapping.system", mapping_relationship="")
+    sample_terminology.set_mapping("C1", [coding_map, coding_map_2], "another_editor")
+    
+    retrieved_mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
+    assert len(retrieved_mappings) == 2 # Should now have mappings from both editors
+
 def test_delete_mappings(sample_terminology):
     # Setup some dummy mappings for testing the stub
     sample_terminology.save()
@@ -150,3 +172,4 @@ def test_mappings(sample_terminology):
 
     mappings = [mp for mp in sample_terminology.mappings("C99")["C99"] if mp.valid]
     assert len(mappings) == 0 # No mappings for non-existent code
+
