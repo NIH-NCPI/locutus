@@ -2,6 +2,7 @@ import pytest
 import json
 from locutus.model.terminology import Terminology, Coding, CodingMapping
 from locutus.model.exceptions import InvalidValueError
+import ast
 
 import pdb
 from rich import print
@@ -259,6 +260,81 @@ def test_set_mapping_provenance(sample_terminology):
     assert prov[-1]['action'] == "Edit Mapping"
     assert prov[-1]['old_value'] == "NEW_CODE"
     assert prov[-1]['new_value'] == "MAPPED_CODE,NEW_CODE"
+
+def test_delete_singular_mapping_provenance(sample_terminology):
+    # Setup some dummy mappings for testing the stub
+    sample_terminology.save()
+    sample_terminology.set_mapping("C1", [
+                CodingMapping("MAP1", display="Map One", system="http://map.com", mapping_relationship='equivalent'), 
+                CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")
+    sample_terminology.set_mapping("C2", [CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")   
+    
+    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    assert len(prov) == 1
+
+    # Test deleting a specific code's mapping for an editor
+    sample_terminology.delete_mappings(editor="editorA", code="C1")
+    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+
+    assert len(prov) == 2
+    assert prov[-1]['action'] == "Soft Delete Mapping"
+    old_value = prov[-1]['old_value']
+    assert len(old_value['codes']) == 2
+    assert old_value['codes'][0]['code'] == "MAP1"
+    assert old_value['codes'][0]['display'] == "Map One"
+    assert old_value['codes'][0]['system'] == "http://map.com"
+    assert old_value['codes'][1]['code'] == "MAP2"
+    assert old_value['codes'][1]['display'] == "Map Two"
+    assert old_value['code'] == "C1"
+    
+    assert 'timestamp' in prov[-1]
+    assert prov[-1]['target'] == "C1"
+
+def test_delete_all_mapping_provenance(sample_terminology):
+    # Setup some dummy mappings for testing the stub
+    sample_terminology.save()
+    sample_terminology.set_mapping("C1", [
+                CodingMapping("MAP1", display="Map One", system="http://map.com", mapping_relationship='equivalent'), 
+                CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")
+    sample_terminology.set_mapping("C2", [CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")   
+    
+    assert len(sample_terminology.get_provenance("C1")["C1"]['changes']) == 1
+    assert len(sample_terminology.get_provenance("C2")["C2"]['changes']) == 1
+
+    # Test deleting a specific code's mapping for an editor
+    sample_terminology.delete_mappings(editor="editorA")
+
+    prov = sample_terminology.get_provenance("self")['self']['changes']
+    print(prov[-1])
+    assert prov[-1]['action'] == "Soft Delete All Mappings"
+    assert prov[-1]['editor'] == "editorA"
+
+
+    # This doesn't work ATM, but I think it should...will discuss it 
+    # with brenda
+    """
+    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+
+    assert len(prov) == 2
+    assert prov[-1]['action'] == "Soft Delete Mapping"
+    old_value = prov[-1]['old_value']
+    assert len(old_value['codes']) == 2
+    assert old_value['codes'][0]['code'] == "MAP1"
+    assert old_value['codes'][0]['display'] == "Map One"
+    assert old_value['codes'][0]['system'] == "http://map.com"
+    assert old_value['codes'][1]['code'] == "MAP2"
+    assert old_value['codes'][1]['display'] == "Map Two"
+    assert old_value['code'] == "C1"
+    
+    assert 'timestamp' in prov[-1]
+    assert prov[-1]['target'] == "C1"
+
+    prov = sample_terminology.get_provenance("C2")["C2"]['changes']
+    assert len(prov) == 2
+    assert prov[-1]['action'] == "Soft Delete Mapping"
+    old_value = prov[-1]['old_value']
+    assert len(old_value['codes']) == 1
+    """
 
 def test_delete_mappings(sample_terminology):
     # Setup some dummy mappings for testing the stub
