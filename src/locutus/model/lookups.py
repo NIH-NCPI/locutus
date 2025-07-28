@@ -105,7 +105,7 @@ class OntologyAPICollection(ResourceSingletonBase):
                 if field in ontology_details:
                     ontology_data[ontology_code.upper()] = ontology_details[field]
 
-        logger.info(f"ontology data {ontology_data}")
+        logger.debug(f"ontology data {ontology_data}")
         return ontology_data
 
     def get_ontology_keys(self):
