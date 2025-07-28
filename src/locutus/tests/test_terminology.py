@@ -234,6 +234,32 @@ def test_set_mapping(sample_terminology):
     retrieved_mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
     assert len(retrieved_mappings) == 2 # Should now have mappings from both editors
 
+def test_set_mapping_provenance(sample_terminology):
+    # Set a mapping
+    coding_map = CodingMapping("MAPPED_CODE", "Mapped Display", "http://mapping.system", mapping_relationship="")
+    sample_terminology.set_mapping("C1", [coding_map], "unit-test")
+
+    # Verify that the chnge was reflected in prov for the terminology
+    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    assert len(prov) == 1
+    assert prov[0]['action'] == "Add Mapping"
+    assert prov[0]['old_value'] == ""
+    assert prov[0]['new_value'] == "MAPPED_CODE"
+
+    sample_terminology.set_mapping("C1", [CodingMapping("NEW_CODE", "New Mapped Display", "http://mapping.system", mapping_relationship="equivalent")], "unit-test")
+    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    assert len(prov) == 2
+    assert prov[-1]['action'] == "Edit Mapping"
+    assert prov[-1]['old_value'] == "MAPPED_CODE"
+    assert prov[-1]['new_value'] == "NEW_CODE"
+
+    sample_terminology.set_mapping("C1", [coding_map, CodingMapping("NEW_CODE", "New Mapped Display", "http://mapping.system", mapping_relationship="equivalent")], "unit-test")
+    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    assert len(prov) == 3
+    assert prov[-1]['action'] == "Edit Mapping"
+    assert prov[-1]['old_value'] == "NEW_CODE"
+    assert prov[-1]['new_value'] == "MAPPED_CODE,NEW_CODE"
+
 def test_delete_mappings(sample_terminology):
     # Setup some dummy mappings for testing the stub
     sample_terminology.save()
