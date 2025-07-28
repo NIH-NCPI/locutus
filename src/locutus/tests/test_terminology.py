@@ -4,6 +4,7 @@ from locutus.model.terminology import Terminology, Coding, CodingMapping
 from locutus.model.exceptions import InvalidValueError
 
 import pdb
+from rich import print
 
 @pytest.fixture
 def sample_terminology():
@@ -132,10 +133,78 @@ def test_rename_code(sample_terminology):
     assert renamed_code.display == "New Code One Display"
     assert renamed_code.description == "Description for C1" # Description should remain unchanged
 
+
+
     sample_terminology.rename_code("C2", new_code="C2", new_display="C2 New Display", new_description="Updated description for C2", editor="unit-test")
     updated_code = next(c for c in sample_terminology.codes if c.code == "C2")
     assert updated_code.display == "C2 New Display"
     assert updated_code.description == "Updated description for C2"
+    # Verify that the chnge was reflected in prov
+    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
+    assert prov['action'] == "Edit Term"
+    assert prov['old_value'] == "display: Code Two,description: Description for C2"
+    assert prov['new_value'] == "display: C2 New Display,description: Updated description for C2"
+
+def test_rename_code_provenance_code_and_display(sample_terminology):
+    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
+
+    # Verify that the chnge was reflected in prov for the terminology
+    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
+    assert prov['action'] == "Edit Term"
+    assert prov['old_value'] == "code: C1,display: Code One"
+    assert prov['new_value'] == "code: C1_NEW,display: New Code One Display"
+
+    # Verify that the the old code's prov is gone (should be under the new code now)
+    assert sample_terminology.get_provenance("C1")['C1'] == []
+
+    # Verify that the chnge was reflected in prov for the code's new name
+    print(sample_terminology.get_provenance("C1_NEW"))
+    prov = sample_terminology.get_provenance("C1_NEW")['C1_NEW']['changes'][-1]
+    assert prov['action'] == "Edit Term"
+    assert prov['old_value'] == "code: C1,display: Code One"
+    assert prov['new_value'] == "code: C1_NEW,display: New Code One Display"
+
+def test_rename_code_provenance_description_only(sample_terminology):
+    sample_terminology.rename_code("C1", new_code="C1", new_display=None, new_description="Updated description for C1", editor='unit-test')
+    prov = sample_terminology.get_provenance("C1")['C1']['changes']
+    assert len(prov) == 1
+    assert prov[0]['action'] == 'Edit Term'
+    assert prov[0]['old_value'] == "description: Description for C1"
+    assert prov[0]['new_value'] == "description: Updated description for C1"
+
+def test_rename_code_provenance_display_only(sample_terminology):
+    sample_terminology.rename_code("C1", new_code="C1", new_display="Updated Display", editor='unit-test')
+    prov = sample_terminology.get_provenance("C1")['C1']['changes']
+    assert len(prov) == 1
+    assert prov[0]['action'] == 'Edit Term'
+    assert prov[0]['old_value'] == "display: Code One"
+    assert prov[0]['new_value'] == "display: Updated Display"
+
+def test_rename_code_provenance_code_only(sample_terminology):
+    # First, we'll update the display so that the provenance is longer than 1 entry
+    sample_terminology.rename_code("C1", new_code="C1", new_display="Updated Display", editor='unit-test')
+    assert len(sample_terminology.get_provenance("C1")['C1']['changes']) == 1
+
+    # Test only changing the code
+    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display=None, editor="unit-test")
+    # Verify that the chnge was reflected in prov for the terminology
+    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
+    assert prov['action'] == "Edit Term"
+    assert prov['old_value'] == "code: C1"
+    assert prov['new_value'] == "code: C1_NEW"
+
+    # Verify that the the old code's prov is gone (should be under the new code now)
+    assert sample_terminology.get_provenance("C1")['C1'] == [] 
+    
+    # Verify that the chnge was reflected in prov for the code's new name
+    prov = sample_terminology.get_provenance("C1_NEW")['C1_NEW']['changes']
+    assert len(prov) == 2
+    assert prov[0]['action'] == "Edit Term"
+    assert prov[0]['old_value'] == "display: Code One"
+    assert prov[0]['new_value'] == "display: Updated Display"
+    assert prov[1]['action'] == "Edit Term"
+    assert prov[1]['old_value'] == "code: C1"
+    assert prov[1]['new_value'] == "code: C1_NEW"
 
 def test_has_code(sample_terminology):
     assert sample_terminology.has_code("C1")
