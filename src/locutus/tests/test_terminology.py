@@ -309,12 +309,7 @@ def test_delete_all_mapping_provenance(sample_terminology):
     assert prov[-1]['action'] == "Soft Delete All Mappings"
     assert prov[-1]['editor'] == "editorA"
 
-
-    # This doesn't work ATM, but I think it should...will discuss it 
-    # with brenda
-    """
     prov = sample_terminology.get_provenance("C1")["C1"]['changes']
-
     assert len(prov) == 2
     assert prov[-1]['action'] == "Soft Delete Mapping"
     old_value = prov[-1]['old_value']
@@ -334,7 +329,6 @@ def test_delete_all_mapping_provenance(sample_terminology):
     assert prov[-1]['action'] == "Soft Delete Mapping"
     old_value = prov[-1]['old_value']
     assert len(old_value['codes']) == 1
-    """
 
 def test_delete_mappings(sample_terminology):
     # Setup some dummy mappings for testing the stub
