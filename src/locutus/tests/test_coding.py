@@ -2,6 +2,7 @@
 # test_coding.py
 import pytest
 from locutus.model.terminology import Coding 
+from locutus import get_code_index
 
 # import pdb
 
@@ -51,7 +52,45 @@ class TestCoding:
         )
         assert coding.code == ".."
 
-        
+    def test_code_index(self):
+        assert get_code_index(".") == "<FTD-DOT>"
+        assert get_code_index(".something") == ".something"
+        assert get_code_index("some.thing") == "some.thing"
+        assert get_code_index("something.") == "something."
+                
+        assert get_code_index("..") == "<FTD-DOT-DOT>"
+        assert get_code_index("..something") == "..something"
+        assert get_code_index("some..thing") == "some..thing"
+        assert get_code_index("something..") == "something.."
+
+        assert get_code_index("#") == "<FTD-HASH>"
+        assert get_code_index("#something") == "<FTD-HASH>something"
+        assert get_code_index("some#thing") == "some<FTD-HASH>thing"
+        assert get_code_index("something#") == "something<FTD-HASH>"
+
+    def test_coding_with_hashes(self):
+        coding = Coding(
+            code="<FTD-HASH>89",
+            display="Fever",
+            system="LOINC",
+            description="Clinical finding of elevated body temperature"
+        )
+        assert coding.code == "#89"
+        coding = Coding(
+            code="8<FTD-HASH>9",
+            display="Fever",
+            system="LOINC",
+            description="Clinical finding of elevated body temperature"
+        )
+        assert coding.code == "8#9"
+        coding = Coding(
+            code="89<FTD-HASH>",
+            display="Fever",
+            system="LOINC",
+            description="Clinical finding of elevated body temperature"
+        )
+        assert coding.code == "89#"
+
 
     def test_coding_initialization_with_whitespace(self):
         """Tests initialization with whitespace in string fields."""
