@@ -4,7 +4,9 @@ Locutus provides the backend for a web based terminology mapping tool in the ver
 
 There isn't much here at this time, but there are some example data based on a real research data-dictionary along with standard CRUD functionality.
 
-API Functionality:
+## New! Log Level Environment Variable
+By default, the log level is warnings only, however, you can set it to any of the standard python log levels, INFO, DEBUG, etc using the environment variablele, LOCUTUS_LOGLEVEL
+# API Functionality:
 
 ## Terminologies:
 
