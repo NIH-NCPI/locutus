@@ -118,7 +118,7 @@ class TerminologyRenameCode(Resource):
 class Terminologies(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("Terminology").stream()],
+            Terminology.get(),
             200,
             default_headers,
         )
