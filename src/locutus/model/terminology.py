@@ -14,7 +14,7 @@ from locutus.model.lookups import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
-
+from locutus import logger
 
 from locutus.model.lookups import FTDConceptMapTerminology
 
@@ -174,6 +174,15 @@ class Terminology(Serializable):
             persistence().collection("Terminology").document(id).collection("onto_api_preference")
         )
         delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("preferred_terminology")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("user_input")
+        )
+        delete_collection(mapref)
+        
 
 
         dref = persistence().collection("Terminology").document(id)
@@ -248,7 +257,7 @@ class Terminology(Serializable):
                 code_found = True
         if not code_found:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
-            print(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def rename_code(
@@ -768,7 +777,7 @@ class Terminology(Serializable):
             # Reference to the sub-collection document named "self"
             doc_ref = persistence().collection(self.resource_type).document(self.id) \
                 .collection("preferred_terminology").document("self")
-
+            
             # Create a list of references based on the provided preferred terminologies
             references = [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
 
@@ -783,7 +792,8 @@ class Terminology(Serializable):
             )
 
         except Exception as e:
-            print(f"An error occurred while adding preferred terminology: {e}")
+            message = f"An error occurred while adding preferred terminology: {e}"
+            logger.error(message)
             raise
 
     def remove_preferred_terminology(self):
@@ -805,9 +815,10 @@ class Terminology(Serializable):
 
         except Exception as e:
             message = f"An error occurred while deleting preferences for '{self.id}': {e}"
+            logger.error(message)
             raise
 
-        print(message)
+        logger.debug(message)
 
         return message
 
