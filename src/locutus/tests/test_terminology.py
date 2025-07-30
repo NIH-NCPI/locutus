@@ -2,9 +2,8 @@ import pytest
 import json
 from locutus.model.terminology import Terminology, Coding, CodingMapping
 from locutus.model.exceptions import InvalidValueError
-import ast
 
-import pdb
+# import pdb
 from rich import print
 
 @pytest.fixture
@@ -43,6 +42,19 @@ def sample_terminology_with_editor():
     t.save()
     yield t
     Terminology.delete("ontology-one")
+
+
+def test_terminology_get(sample_terminology):
+    all_terms = Terminology.get(return_instance=False)
+    assert len(all_terms) > 1
+
+    one_term = Terminology.get(all_terms[0]['id'])
+    assert one_term.id == all_terms[0]['id']
+
+    one_term = Terminology.get(all_terms[0]['id'], return_instance=False)
+    assert type(one_term) is dict 
+    assert one_term['id'] == all_terms[0]['id']
+
 
 def test_terminology_id(sample_terminology):
     # Normally we want these to have unique IDs, but for this we should just reuse the same one
@@ -362,7 +374,6 @@ def test_mapping_relationship(sample_terminology):
         raise pytest.fail(f"There was a problem with acceptable mapping relationships: {e}")
     
     with pytest.raises(InvalidValueError) as e_info:
-        #pdb.set_trace()
         mapping_c2_editorA = CodingMapping("MAP_C2_A", "Map C2 A", "http://map.com/A", mapping_relationship='asdf')
 
 
