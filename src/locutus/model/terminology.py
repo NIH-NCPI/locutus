@@ -398,6 +398,13 @@ class Terminology(Serializable):
                     if "valid" in coding:
                         coding["valid"] = False
 
+
+                self.add_provenance(
+                    change_type=Terminology.ChangeType.SoftDeleteMapping,
+                    target=mapping_code_id,
+                    old_value=mapping,
+                    editor=editor,
+                )
                 # Save the updated mapping
                 mapref.document(code_index).set(mapping)
 
