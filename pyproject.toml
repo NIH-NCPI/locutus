@@ -25,6 +25,7 @@ dependencies = ["marshmallow",
                 "nanoid",
                 "PyYAML",
                 "rich",
+                "search-dragon@git+https://github.com/NIH-NCPI/search-dragon.git",
                 "firebase-admin"
                 ]
 
