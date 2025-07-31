@@ -1,11 +1,8 @@
 # For now, we'll use my dumb JSON persistence storage
 # from locutus.storage import JStore
-from locutus.storage.firestore import persistence
 from search_dragon import logger as getlogger
 import logging
 from os import getenv 
-
-_persistence = None
 
 PROVENANCE_TIMESTAMP_FORMAT = "%Y-%m-%d %I:%M:%S%p"
 
@@ -114,3 +111,4 @@ def init_base_storage(filepath="db"):
 
     return _persistence
 """
+from .storage import persistence
