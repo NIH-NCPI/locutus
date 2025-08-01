@@ -12,7 +12,7 @@ authors = [
 ]
 description = "Research terminology management system."
 readme = "README.md"
-requires-python = ">3.10"
+requires-python = ">=3.13"
 keywords = ["Vocabulary", "Research Data", "Borg"]
 classifiers = [
     "Programming Language :: Python :: 3",
