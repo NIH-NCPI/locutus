@@ -81,8 +81,22 @@ class Serializable:
         self.resource_type = resource_type
 
     @classmethod
-    def get(cls, id, return_instance=True):
+    def get(cls, id=None, return_instance=True):
         """Pull instance from the database and (default) instantiate"""
+
+        # Return all items of this type.
+        if id is None:
+            serializables = []
+
+            for item in persistence().collection(cls.__name__).stream():
+                item = item.to_dict()
+                if return_instance:
+                    serializables.append(cls(**item))
+                else:
+                    serializables.append(item)
+            return serializables
+
+        # Return a single resource
         resource = persistence().collection(cls.__name__).document(id).get().to_dict()
 
         # Just in case we just need the dict representation as it is found in

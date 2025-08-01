@@ -1,7 +1,9 @@
 # For now, we'll use my dumb JSON persistence storage
 # from locutus.storage import JStore
 from locutus.storage.firestore import persistence
+from search_dragon import logger as getlogger
 import logging
+from os import getenv 
 
 _persistence = None
 
@@ -95,18 +97,9 @@ def format_ftd_code(code, curie):
 
 
 # Create a logger
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-if logger.hasHandlers():
-    logger.handlers.clear()
-
-# Create a console handler for logging to the console
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
-# Add handlers to the logger
-logger.addHandler(console_handler)
+llevel =getenv('LOCUTUS_LOGLEVEL', logging.WARN)
+logger = getlogger(logformat=LOGGING_FORMAT, loglevel=llevel)
+logger.info(f"Logger instanced with level: {llevel}")
 
 """
 def persistence():

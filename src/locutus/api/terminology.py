@@ -118,7 +118,7 @@ class TerminologyRenameCode(Resource):
 class Terminologies(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("Terminology").stream()],
+            Terminology.get(),
             200,
             default_headers,
         )
@@ -165,13 +165,6 @@ class Terminology(Resource):
 
     # @cross_origin()
     def delete(self, id):
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("mappings")
-        )
-        delete_collection(mapref)
-        dref = persistence().collection("Terminology").document(id)
-        t = dref.get().to_dict()
-
-        time_of_delete = dref.delete()
+        t = Terminology.delete(id)
 
         return t, 200, default_headers

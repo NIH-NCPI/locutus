@@ -4,6 +4,7 @@ from locutus import logger
 import requests
 from datetime import datetime, timedelta
 from pathlib import Path
+from search_dragon.support import ftd_ontology_lookup
 import os
 import csv
 
@@ -105,7 +106,7 @@ class OntologyAPICollection(ResourceSingletonBase):
                 if field in ontology_details:
                     ontology_data[ontology_code.upper()] = ontology_details[field]
 
-        logger.info(f"ontology data {ontology_data}")
+        logger.debug(f"ontology data {ontology_data}")
         return ontology_data
 
     def get_ontology_keys(self):
@@ -155,44 +156,24 @@ class FTDOntologyLookup:
         """
         if cls.stored_ontology_lookup: 
             return
+        
+        for curie, system in ftd_ontology_lookup().items():
+            if curie and system:
+                cls.stored_ontology_lookup[curie] = system
+                # Reverse lookup: also allow system-to-curie if needed
+                if system not in cls.reverse_lookup:
+                    cls.reverse_lookup[system] = curie
 
-        if os.path.exists(cls._local_csv_path):
-            with open(cls._local_csv_path, newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    curie = row.get("curie")
-                    system = row.get("system")
+            logger.debug("Ontology data loaded into memory.")
 
-                    if curie and system:
-                        cls.stored_ontology_lookup[curie] = system
-                        # Reverse lookup: also allow system-to-curie if needed
-                        if system not in cls.reverse_lookup:
-                            cls.reverse_lookup[system] = curie
-
-            print("Ontology data loaded into memory.")
-        else:
-            print("No CSV file found, unable to load data into memory.")
 
     @classmethod
     def fetch_and_store_csv(cls):
         """
         Fetch the CSV from GitHub if expired or missing, then store it locally and load into memory.
+
+        EST 2025-07-30 - I've moved the this into the search dragon library. 
         """
-        if cls.is_expired(cls._local_csv_path, cls._expiration_days):
-            print(f"Fetching the ontology metadata lookup CSV from GitHub to {cls._local_csv_path}...")
-            try:
-                response = requests.get(cls._csv_url)
-                response.raise_for_status()  # Ensure we get a successful response (200 OK)
-
-                # Ensure the directory exists
-                os.makedirs(os.path.dirname(cls._local_csv_path), exist_ok=True)
-
-                # Write the file content to the local path
-                with open(cls._local_csv_path, "wb") as f:
-                    f.write(response.content)
-                print("The ontology metadata lookup has been downloaded successfully.")
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching the CSV: {e}")
         
         # Now load the data into memory after the file is fetched or if it exists
         cls.load_data_to_memory()

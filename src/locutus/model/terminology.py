@@ -14,6 +14,9 @@ from locutus.model.lookups import *
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
+from locutus import logger
+
+from locutus.model.lookups import FTDConceptMapTerminology
 
 from locutus.model.user_input import UserInput
 from locutus.sessions import SessionManager
@@ -46,14 +49,18 @@ the "codes" array.
 
 
 class Coding:
-
     def __init__(self, code, display="", system=None, description=""):
-        code = normalize_ftd_placeholders(code)
+        if not isinstance(code, str) or not code.strip():
+            raise ValueError("Code is a required string and cannot be empty.")
+        if not isinstance(system, str) or not system.strip():
+            raise ValueError("System is a required string and cannot be empty.")
 
-        self.code = code
-        self.display = display
-        self.system = system
-        self.description = description
+        code = normalize_ftd_placeholders(code)
+        self.code = code.strip()
+        self.display = display.strip() if isinstance(display, str) else display
+        self.system = system.strip()
+        self.description = description.strip() if isinstance(description, str) else description
+
 
     class _Schema(Schema):
         code = fields.Str(
@@ -124,6 +131,15 @@ class Terminology(Serializable):
         self.url = url
         self.codes = []
 
+        if editor:
+            self.save()
+            self.add_provenance(
+                Terminology.ChangeType.Create,
+                editor=editor,
+                target="self",
+                new_value="Instantiation"
+            )
+
         # This probably doesn't make sense, stashing the system in at this
         # point, but we'll trust knuth for the time being and fix it when it is
         # clear that it is a bad idea.
@@ -140,9 +156,40 @@ class Terminology(Serializable):
                         Terminology.ChangeType.AddTerm,
                         editor=editor,
                         target="self",
-                        new_value=code,
+                        new_value=code.code,
                     )
         super().identify()
+
+    @classmethod
+    def delete(cls, id):
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("mappings")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("provenance")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("onto_api_preference")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("preferred_terminology")
+        )
+        delete_collection(mapref)
+        mapref = (
+            persistence().collection("Terminology").document(id).collection("user_input")
+        )
+        delete_collection(mapref)
+        
+
+
+        dref = persistence().collection("Terminology").document(id)
+        t = dref.get().to_dict()
+
+        time_of_delete = dref.delete()
+        return t
 
     def keys(self):
         return [self.url, self.name]
@@ -210,7 +257,7 @@ class Terminology(Serializable):
                 code_found = True
         if not code_found:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
-            print(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def rename_code(
@@ -360,6 +407,13 @@ class Terminology(Serializable):
                     if "valid" in coding:
                         coding["valid"] = False
 
+
+                self.add_provenance(
+                    change_type=Terminology.ChangeType.SoftDeleteMapping,
+                    target=mapping_code_id,
+                    old_value=mapping,
+                    editor=editor,
+                )
                 # Save the updated mapping
                 mapref.document(code_index).set(mapping)
 
@@ -523,12 +577,12 @@ class Terminology(Serializable):
 
         doc = {"code": code, "codes": []}
 
+        # Validation of mapping_relationship
+        ftd_terminology = FTDConceptMapTerminology()  
         new_mappings = []
         for mapping in codings:
             coding_dict = mapping.to_dict()
 
-            # Validation of mapping_relationship
-            ftd_terminology = FTDConceptMapTerminology()  
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
 
             # Add 'valid' explicitly to the mapping document
@@ -723,7 +777,7 @@ class Terminology(Serializable):
             # Reference to the sub-collection document named "self"
             doc_ref = persistence().collection(self.resource_type).document(self.id) \
                 .collection("preferred_terminology").document("self")
-
+            
             # Create a list of references based on the provided preferred terminologies
             references = [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
 
@@ -738,7 +792,8 @@ class Terminology(Serializable):
             )
 
         except Exception as e:
-            print(f"An error occurred while adding preferred terminology: {e}")
+            message = f"An error occurred while adding preferred terminology: {e}"
+            logger.error(message)
             raise
 
     def remove_preferred_terminology(self):
@@ -760,9 +815,10 @@ class Terminology(Serializable):
 
         except Exception as e:
             message = f"An error occurred while deleting preferences for '{self.id}': {e}"
+            logger.error(message)
             raise
 
-        print(message)
+        logger.debug(message)
 
         return message
 
@@ -797,9 +853,11 @@ class CodingMapping(Coding):
     ):
         super().__init__(code, display, system, description)
         self.valid = valid
-        self.mapping_relationship = mapping_relationship
         self.user_input = user_input
         self.ftd_code = code # Default to given code, updated if necessary. 
+
+        FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
+        self.mapping_relationship = mapping_relationship
 
     class _Schema(Schema):
         code = fields.Str(
