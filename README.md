@@ -25,6 +25,11 @@ Finally, if you want to halt on the first error, simply using the -x flag.
 $ pytest -x src/locutus/tests/test_terminology.py
 ```
 
+If you are testing with Mongo on your localhost: 
+```bash
+$ LOCUTUS_DB_TYPE=mongodb LOCUTUS_LOGLEVEL=DEBUG pytest
+```
+
 # API Functionality:
 
 ## Terminologies:
