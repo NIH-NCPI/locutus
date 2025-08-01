@@ -21,6 +21,11 @@ class DocumentSnapshot:
             return {}
         # Filter out any database-specific fields (starting with _)
         return {k: v for k, v in self._data.items() if not k.startswith('_')}
+    
+    def delete(self):
+        pdb.set_trace()
+        print(self._data)
+        print(self.id)
 
 
 class DocumentReference:
@@ -128,6 +133,9 @@ class CollectionReference:
             upsert=True
         )
 
+    def list_documents(self, page_size):
+        return [doc for doc in self.stream()]
+
 
 class FirestoreCompatibleClient:
     print("FirestoreCompatibleClient")
@@ -161,6 +169,7 @@ class FirestoreCompatibleClient:
             collection_names = "\n *".join(self.collection_list)
             msg = f"  * {collection_names}"
             logger.info(msg)
+            
             raise KeyError(msg)
         return CollectionReference(self.db[collection_name])
 
