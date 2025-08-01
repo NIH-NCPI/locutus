@@ -8,6 +8,8 @@ ENV FLASK_RUN_HOST=0.0.0.0
 COPY src  ./src
 COPY pyproject.toml . 
 COPY README.md .
+RUN apk update && \
+  apk add --no-cache git
 RUN pip install . 
 
 # Install github packages that do not conform to the toml file 
