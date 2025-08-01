@@ -165,8 +165,7 @@ class FTDOntologyLookup:
                     cls.reverse_lookup[system] = curie
 
             logger.debug("Ontology data loaded into memory.")
-        else:
-            logger.error("No CSV file found, unable to load data into memory.")
+
 
     @classmethod
     def fetch_and_store_csv(cls):

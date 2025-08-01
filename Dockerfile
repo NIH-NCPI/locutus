@@ -16,10 +16,7 @@ RUN apk update && \
 COPY requirements.txt .
 # install git to enable installing the github package in the requirements
 # file then uninstall it as it is no longer necessary 
-RUN apk update && \
-    apk add --no-cache git && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apk del git
+RUN apk del git
 
 # Cloud Run expects 8080, need to figure out how to change that
 EXPOSE 8080 
