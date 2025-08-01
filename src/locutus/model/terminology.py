@@ -103,7 +103,7 @@ class Terminology(Serializable):
                         Terminology.ChangeType.AddTerm,
                         editor=editor,
                         target="self",
-                        new_value=code.code,
+                        new_value=code,
                     )
         super().identify()
 
