@@ -48,64 +48,11 @@ the "codes" array.
 """
 
 
-class Coding:
-    def __init__(self, code, display="", system=None, description=""):
-        if not isinstance(code, str) or not code.strip():
-            raise ValueError("Code is a required string and cannot be empty.")
-        if not isinstance(system, str) or not system.strip():
-            raise ValueError("System is a required string and cannot be empty.")
-
-        code = normalize_ftd_placeholders(code)
-        self.code = code.strip()
-        self.display = display.strip() if isinstance(display, str) else display
-        self.system = system.strip()
-        self.description = description.strip() if isinstance(description, str) else description
-
-
-    class _Schema(Schema):
-        code = fields.Str(
-            required=True, error_messages={"required": "Codings *must* have a code "}
-        )
-        display = fields.Str()
-        system = fields.URL()
-        description = fields.Str()
-
-        @post_load
-        def build_code(self, data, **kwargs):
-            return Coding(**data)
-
-    def to_dict(self):
-        obj = {"code": self.code, "display": self.display}
-
-        if self.description != "":
-            obj["description"] = self.description
-
-        if self.system is not None:
-            obj["system"] = self.system
-
-        return obj
-
 
 class Terminology(Serializable):
     _id_prefix = "tm"
 
-    class ChangeType(StrEnum):
-        Create = "Create Terminology"
-        CreateTable = "Create Table"
-        RemoveTable = "Remove Table"
-        AddVariables = "Add Variables"
-        AddTerm = "Add Term"
-        RemoveTerm = "Remove Term"
-        EditTerm = "Edit Term"
-        AddMapping = "Add Mapping"
-        SoftDeleteMapping = "Soft Delete Mapping"
-        SoftDeleteAllMappings = "Soft Delete All Mappings"
-        EditMapping = "Edit Mapping"
-        ApprovalRequested = "Approval Requested"
-        Approved = "Approved"
-        ApprovalDenied = "Approval Denied"
-        ReplacePrefTerm = "Add/Replace Preferred Terminology"
-        AddMappingQuality = "Add Mapping Quality"
+
 
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
@@ -162,6 +109,7 @@ class Terminology(Serializable):
 
     @classmethod
     def delete(cls, id):
+        """This is being moved to other places and will no longer be necessary here. 
         mapref = (
             persistence().collection("Terminology").document(id).collection("mappings")
         )
@@ -182,7 +130,7 @@ class Terminology(Serializable):
             persistence().collection("Terminology").document(id).collection("user_input")
         )
         delete_collection(mapref)
-        
+        """
 
 
         dref = persistence().collection("Terminology").document(id)
