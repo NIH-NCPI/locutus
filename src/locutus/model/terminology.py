@@ -216,6 +216,10 @@ class Terminology(Serializable):
             cc.code = normalize_ftd_placeholders(cc.code)
 
             if cc.code == code:
+                # For now, if editor is none, we know this came from the database
+                # and it's not actually an error
+                if editor is None:
+                    return 
                 raise CodeAlreadyPresent(code, self.id, cc)
         new_coding = Coding(
             code=code, display=display, system=self.url, description=description
