@@ -118,7 +118,7 @@ class TerminologyRenameCode(Resource):
 class Terminologies(Resource):
     def get(self):
         return (
-            Terminology.get(),
+            Term.get(),
             200,
             default_headers,
         )
@@ -165,6 +165,6 @@ class Terminology(Resource):
 
     # @cross_origin()
     def delete(self, id):
-        t = Terminology.delete(id)
+        t = Term.delete(id)
 
         return t, 200, default_headers
