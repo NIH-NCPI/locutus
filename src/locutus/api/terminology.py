@@ -118,7 +118,7 @@ class TerminologyRenameCode(Resource):
 class Terminologies(Resource):
     def get(self):
         return (
-            Term.get(),
+            Term.get(return_instance=False),
             200,
             default_headers,
         )
