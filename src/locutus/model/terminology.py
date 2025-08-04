@@ -856,7 +856,8 @@ class CodingMapping(Coding):
         self.user_input = user_input
         self.ftd_code = code # Default to given code, updated if necessary. 
 
-        FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
+        if mapping_relationship is not None:
+            FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
         self.mapping_relationship = mapping_relationship
 
     class _Schema(Schema):
