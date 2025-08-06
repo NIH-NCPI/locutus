@@ -3,7 +3,7 @@ from nanoid import generate
 from copy import deepcopy
 
 from locutus import persistence
-
+from pymongo import ASCENDING
 """
 The application should set this to the desired 
 _datastore = None
@@ -69,21 +69,28 @@ class Simple:
     _schema = None 
     _factory_workers = {}
 
-    def __init__(self, _id=None, collection_type=None, resource_type=None):
-        self._id = _id 
+    def __init__(self, _id=None, id=None, collection_type=None, resource_type=None):
+        self.id = id 
+        self._id = _id
+        if id is None and _id is not None:
+            self.id = str(_id)
         self._collection_type = collection_type 
         self.resource_type = resource_type 
 
     @classmethod
-    def find(cls, params, return_instance=True):
+    def find(cls, params, sorting=None, return_instance=True):
         """Pull instance from the database and (default) instantiate"""
 
         items = []
 
         # Return a single resource
-        for item in persistence().collection(cls.__name__).find(params).stream():
+        cref = persistence().collection(cls.__name__)
+        for item in cref.find(params, sorting=sorting):
             item = item.to_dict()
+            print(item)
             if return_instance:
+                if item is not None and "id" in item:
+                    print(item)
                 items.append(cls(**item))
             else:
                 items.append(item)
@@ -92,7 +99,8 @@ class Simple:
 
     def save(self):
         # commit the data to persistent storage
-        persistence().collection(self.resource_type).document(self._id).set(self.dump())
+        self._id = persistence().collection(self.resource_type).document(self._id).set(self.dump())
+        self.id = str(self._id)
 
     def dump(self):
         return self.__class__._get_schema().dump(self)
