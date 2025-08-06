@@ -25,7 +25,6 @@ def validate_enums(codes, enums, additional_enums=None):
     if additional_enums:
         valid_enums += list(additional_enums)
 
-
     # Normalize codes
     if isinstance(codes, dict):  # Assuming Coding or CodingMapping object
         code_list = [entry.get("code") for entry in codes.values()]
