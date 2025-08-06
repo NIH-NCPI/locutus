@@ -1,11 +1,38 @@
 
 # test_coding.py
 import pytest
-from locutus.model.terminology import Coding 
+from locutus.model.coding import Coding 
 from locutus import get_code_index
 
-# import pdb
+import pdb
 
+from rich import print
+
+@pytest.fixture
+def coding_one():
+    c1 = Coding(terminology_id="Example-Terminology",
+        code="code1",
+        display="Code One",
+        description="A Very Fine Description for the glorious term, 'code1'",
+        system="http://example.com/example-terminology",
+        rank=1 
+    )
+    c1.save()
+    yield c1 
+    c1.delete()
+
+@pytest.fixture
+def coding_two():
+    c2 = Coding(terminology_id="Example-Terminology",
+        code="code2",
+        display="Code Two",
+        description="A Very Fine Description for the glorious term, 'code2'",
+        system="http://example.com/example-terminology",
+        rank=2
+    )
+    c2.save()
+    yield c2
+    c2.delete()
 
 class TestCoding:
     """
@@ -14,29 +41,90 @@ class TestCoding:
 
     def test_coding_initialization_required_fields(self):
         """Tests successful initialization with only required fields."""
-        coding = Coding(code="SNOMED", system="SNOMED CT")
+        with pytest.raises(TypeError) as e:
+            Coding(code="SNOMED", system="https://snomedct.org")
+
+        with pytest.raises(ValueError, match="Term ID is required for all Codings.") as e:
+            Coding(terminology_id="", code="SNOMED", system="https://snomedct.org")
+
+        coding = Coding(terminology_id="term1", code="SNOMED", system="SNOMED CT")
+        assert coding.id is None
         assert coding.code == "SNOMED"
         assert coding.system == "SNOMED CT"
         assert coding.display == ""
         assert coding.description == ""
 
-    def test_coding_initialization_all_fields(self):
+    def test_coding_initialization_all_fields(self, coding_one):
         """Tests successful initialization with all fields."""
-        coding = Coding(
-            code="12345",
-            display="Fever",
-            system="LOINC",
-            description="Clinical finding of elevated body temperature"
+        
+        assert coding_one.code == "code1"
+        assert coding_one.display == "Code One"
+        assert coding_one.system == "http://example.com/example-terminology"
+        assert coding_one.description == "A Very Fine Description for the glorious term, 'code1'"
+    
+    def test_delete(self, coding_one):
+        assert coding_one.valid == None 
+        coding_one.delete(hard_delete=False)
+
+        coding = Coding.get(terminology_id=coding_one.terminology_id, code=coding_one.code)
+        assert coding.valid == False 
+        coding = Coding(terminology_id="term1", code="SNOMED", system="SNOMED CT")
+        coding.save()
+
+        c = Coding.get(code="SNOMED", system="SNOMED CT")
+        assert c.code == coding.code 
+        assert c.terminology_id == coding.terminology_id 
+        coding.delete(hard_delete=True)
+
+        c = Coding.get(code="SNOMED", system="SNOMED CT")
+        assert c == [] 
+
+    def test_get_order(self, coding_two, coding_one):
+        c3 = Coding(terminology_id="Example-Terminology",
+            code="code3",
+            display="Code Three",
+            description="number three",
+            system="http://example.com/example-terminology",
+            rank=0
         )
-        assert coding.code == "12345"
-        assert coding.display == "Fever"
-        assert coding.system == "LOINC"
-        assert coding.description == "Clinical finding of elevated body temperature"
+        c3.save()
+        codes = Coding.get(system=coding_one.system)
+
+        assert type(codes) is list
+        # We should be able to get both of our codes back by querying the system and they
+        # should be ordered by rank
+        assert len(codes) == 3
+        assert codes[0].code == c3.code
+        assert codes[1].code == coding_one.code 
+        assert codes[2].code == coding_two.code
+     
+        c3.delete()
+
+    def test_basic_persistence(self, coding_one, coding_two):
+        assert coding_one._id is not None
+        assert coding_one._id == coding_one.id
+        codes = Coding.get(system=coding_one.system)
+
+        assert type(codes) is list
+        # We should be able to get both of our codes back by querying the system
+        assert len(codes) == 2 
+
+        # We should be able to get both of our codes back by querying by the terminology ID
+        codes = Coding.get(terminology_id=coding_one.terminology_id)
+        print(codes)
+        assert len(codes) == 2
+
+        code = Coding.get(system=coding_one.system, code=coding_one.code)
+        assert code.code == coding_one.code 
+        assert code.system == coding_one.system 
+        assert code.terminology_id == coding_one.terminology_id 
+        assert code.description == coding_one.description
 
     def test_coding_with_dots(self):
         """Tests successful initialization with all fields."""
 
         coding = Coding(
+            terminology_id="term1", 
             code="<FTD-DOT>",
             display="Fever",
             system="LOINC",
@@ -45,6 +133,7 @@ class TestCoding:
         assert coding.code == "."
 
         coding = Coding(
+            terminology_id="term1", 
             code="<FTD-DOT-DOT>",
             display="Fever",
             system="LOINC",
@@ -70,6 +159,7 @@ class TestCoding:
 
     def test_coding_with_hashes(self):
         coding = Coding(
+            terminology_id="term1", 
             code="<FTD-HASH>89",
             display="Fever",
             system="LOINC",
@@ -77,6 +167,7 @@ class TestCoding:
         )
         assert coding.code == "#89"
         coding = Coding(
+            terminology_id="term1", 
             code="8<FTD-HASH>9",
             display="Fever",
             system="LOINC",
@@ -84,6 +175,7 @@ class TestCoding:
         )
         assert coding.code == "8#9"
         coding = Coding(
+            terminology_id="term1", 
             code="89<FTD-HASH>",
             display="Fever",
             system="LOINC",
@@ -95,6 +187,7 @@ class TestCoding:
     def test_coding_initialization_with_whitespace(self):
         """Tests initialization with whitespace in string fields."""
         coding = Coding(
+            terminology_id="term1", 
             code="  CODE123  ",
             display="  Display Text  ",
             system="  SYSTEM_A  ",
@@ -107,7 +200,7 @@ class TestCoding:
 
     def test_coding_to_dict_required_fields(self):
         """Tests to_dict method with only required fields."""
-        coding = Coding(code="ICD10", system="ICD-10-CM")
+        coding = Coding(terminology_id="term1", code="ICD10", system="ICD-10-CM")
         expected_dict = {
             "code": "ICD10",
             "display": "",
@@ -118,6 +211,7 @@ class TestCoding:
     def test_coding_to_dict_all_fields(self):
         """Tests to_dict method with all fields."""
         coding = Coding(
+            terminology_id="term1", 
             code="456",
             display="Headache",
             system="RxNorm",
@@ -134,28 +228,28 @@ class TestCoding:
     def test_coding_missing_code_raises_error(self):
         """Tests that missing 'code' raises ValueError."""
         with pytest.raises(ValueError, match="Code is a required string and cannot be empty."):
-            Coding(code="", system="SystemX")
+            Coding(terminology_id="term1", code="", system="SystemX")
         with pytest.raises(ValueError, match="Code is a required string and cannot be empty."):
-            Coding(code="   ", system="SystemX")
+            Coding(terminology_id="term1", code="   ", system="SystemX")
         with pytest.raises(ValueError, match="Code is a required string and cannot be empty."):
-            Coding(code=None, system="SystemX")
+            Coding(terminology_id="term1", code=None, system="SystemX")
         with pytest.raises(ValueError, match="Code is a required string and cannot be empty."):
-            Coding(code=123, system="SystemX")
+            Coding(terminology_id="term1", code=123, system="SystemX")
 
     def test_coding_missing_system_raises_error(self):
         """Tests that missing 'system' raises ValueError."""
         with pytest.raises(ValueError, match="System is a required string and cannot be empty."):
-            Coding(code="CodeY", system="")
+            Coding(terminology_id="term1", code="CodeY", system="")
         with pytest.raises(ValueError, match="System is a required string and cannot be empty."):
-            Coding(code="CodeY", system="   ")
+            Coding(terminology_id="term1", code="CodeY", system="   ")
         with pytest.raises(ValueError, match="System is a required string and cannot be empty."):
-            Coding(code="CodeY", system=None)
+            Coding(terminology_id="term1", code="CodeY", system=None)
         with pytest.raises(ValueError, match="System is a required string and cannot be empty."):
-            Coding(code="CodeY", system=456)
+            Coding(terminology_id="term1", code="CodeY", system=456)
 
     def test_coding_optional_fields_none(self):
         """Tests that optional fields correctly handle None values."""
-        coding = Coding(code="TestCode", system="TestSystem", display=None, description=None)
+        coding = Coding(terminology_id="term1", code="TestCode", system="TestSystem", display=None, description=None)
         assert coding.display is None
         assert coding.description is None
         assert coding.to_dict()["display"] is None
@@ -163,7 +257,7 @@ class TestCoding:
 
     def test_coding_optional_fields_empty_string(self):
         """Tests that optional fields handle empty string values (and strip them)."""
-        coding = Coding(code="TestCode", system="TestSystem", display="", description="  ")
+        coding = Coding(terminology_id="term1", code="TestCode", system="TestSystem", display="", description="  ")
         assert coding.display == ""
         assert coding.description == ""
         assert "description" not in coding.to_dict()

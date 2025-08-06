@@ -21,6 +21,8 @@ from locutus.model.lookups import FTDConceptMapTerminology
 from locutus.model.user_input import UserInput
 from locutus.sessions import SessionManager
 
+from locutus.model.coding import Coding
+
 import pdb
 
 
