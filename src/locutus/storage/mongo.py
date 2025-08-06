@@ -1,13 +1,15 @@
 import os
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
+from bson import ObjectId
 from locutus import logger
 from urllib.parse import urlparse, unquote
 
 import pdb
 class DocumentSnapshot:
-    def __init__(self, doc_id, data):
+    def __init__(self, doc_id, data, collection):
         self.id = doc_id
         self._data = data
+        self._collection = collection
 
     @property
     def exists(self):
@@ -20,12 +22,14 @@ class DocumentSnapshot:
         if not self._data:
             return {}
         # Filter out any database-specific fields (starting with _)
-        return {k: v for k, v in self._data.items() if not k.startswith('_')}
+        this = {k: v for k, v in self._data.items()} # if not k.startswith('_')}
+        if 'id' not in this:
+            this['id'] = str(this['_id'])
+        return this
     
     def delete(self):
-        pdb.set_trace()
-        print(self._data)
-        print(self.id)
+        result = self._collection.delete_one({"_id": ObjectId(self._doc_id)})
+
 
 
 class DocumentReference:
@@ -37,27 +41,37 @@ class DocumentReference:
     def get(self):
         # Try to find by _id first (MongoDB native way)
         print(f"[DEBUG] Looking for document with _id: {self._doc_id}")
-        doc = self._collection.find_one({"_id": self._doc_id})
+        doc = self._collection.find_one({"_id": ObjectId(self._doc_id)})
         if not doc:
             # If not found, try to find by id field (Firestore compatibility)
             print(f"[DEBUG] Not found by _id, trying id field: {self._doc_id}")
-            doc = self._collection.find_one({"id": self._doc_id})
+            doc = self._collection.find_one({"id": str(self._doc_id)})
         
         if doc:
             # Ensure compatibility with Firestore and MongoDB
-            print(f"[DEBUG] Found document: {doc.get('id', 'no-id')} / {doc.get('name', 'no-name')}")
+            print(f"[DEBUG] Found document: {doc.get('_id', 'no-id')} / {doc.get('name', 'no-name')}")
             # Remove all database-specific fields (starting with _)
-            doc = {k: v for k, v in doc.items() if not k.startswith('_')}
+            doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
+            if "id" not in doc:
+                doc['id'] = doc["_id"]
         else:
             print(f"[DEBUG] Document not found: {self._doc_id}")
-        return DocumentSnapshot(self._doc_id, doc)
+        return DocumentSnapshot(self._doc_id, doc, collection=self._collection)
 
     def set(self, data):
         # Overwrites the entire document (upsert = True)
         # Use the id field for consistency, and also set _id for MongoDB compatibility
-        data["id"] = self._doc_id
-        data["_id"] = self._doc_id
-        self._collection.replace_one({"_id": self._doc_id}, data, upsert=True)
+        if self._doc_id:
+            data["_id"] = ObjectId(self._doc_id)
+            data["id"] = self._doc_id
+            doc = self._collection.replace_one({"_id": ObjectId(self._doc_id)}, data, upsert=True)
+        else:
+            # pdb.set_trace()
+            _id = self._collection.insert_one(data)
+            data["_id"] = str(_id.inserted_id)
+            data["id"] = data["_id"]
+
+        return data["_id"]
 
     def update(self, fields):
         # Merges fields into existing doc
@@ -69,9 +83,11 @@ class DocumentReference:
 
     def delete(self):
         # Try to delete by _id first, then by id field for compatibility
-        result = self._collection.delete_one({"_id": self._doc_id})
+        # pdb.set_trace()
+        result = self._collection.delete_one({"_id": ObjectId(self._doc_id)})
         if result.deleted_count == 0:
-            self._collection.delete_one({"id": self._doc_id})
+            result = self._collection.delete_one({"id": ObjectId(self._doc_id)})
+        return result
     
     def collection(self, subcollection_name):
         # Implement Firestore-style subcollections using MongoDB collection naming convention
@@ -99,16 +115,21 @@ class CollectionReference:
         for doc in self._collection.find():
             doc_id = doc.get('_id') or doc.get('id')
             # Remove all database-specific fields (starting with _)
-            filtered_doc = {k: v for k, v in doc.items() if not k.startswith('_')}
-            yield DocumentSnapshot(doc_id, filtered_doc)
+            filtered_doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
+            yield DocumentSnapshot(doc_id, filtered_doc, collection=self._collection)
     
-    def find(self, query=None):
+    def find(self, query=None, sorting=None):
         """Find documents matching the query - returns raw dictionaries for direct use"""
         if query is None:
             query = {}
-        for doc in self._collection.find(query):
+
+        # if sorting is None:
+        #    sorting = [("_id", ASCENDING)]
+
+        for doc in self._collection.find(query).sort(sorting):
             # Remove all database-specific fields (starting with _)
-            yield {k: v for k, v in doc.items() if not k.startswith('_')}
+            doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
+            yield DocumentSnapshot(doc['_id'], doc, collection=self._collection)
     
     def find_one(self, query=None):
         """Find one document matching the query - returns raw dictionary for direct use"""
@@ -139,6 +160,16 @@ class CollectionReference:
 
 class FirestoreCompatibleClient:
     print("FirestoreCompatibleClient")
+    allowed_collections = [
+        "DataDictionary",
+        "OntologyAPI",
+        "Study",
+        "Table",
+        "Terminology",
+        "Coding",
+        "Mapping",
+        "Provenance"
+    ]
     def __init__(self, mongo_uri=None, missing_ok=False):
         # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
         # pdb.set_trace()
@@ -157,17 +188,16 @@ class FirestoreCompatibleClient:
         if db_name not in available_dbs:
             if not missing_ok:
                 raise ValueError(f"The specified database, {db_name}, isn't present in the database. Available DBs include: {', '.join(self.client.list_database_names())}")            
-            logger.info(f"Database, {db_name}, not currently found.")
+            logger.error(f"Database, {db_name}, not currently found.")
         self.db = self.client[db_name]
         self.collection_list = self.db.list_collection_names()
-        logger.info(f"List of database collections in the connected DB: {', '.join(self.collection_list)}")
+        logger.info(f"List of database collections in the connected DB: \n{', '.join(self.collection_list)}")
 
 
     def collection(self, collection_name):
-        if collection_name not in self.collection_list:
-            logger.info(f"{collection_name} is not present in the database. Available collections are:")
-            collection_names = "\n *".join(self.collection_list)
-            msg = f"  * {collection_names}"
+        if collection_name not in FirestoreCompatibleClient.allowed_collections:
+            collection_names = "\n *".join(FirestoreCompatibleClient.allowed_collections)
+            msg = f"{collection_name} is not present in the database. Available collections are:\n * {collection_names}"
             logger.info(msg)
             
             raise KeyError(msg)
@@ -176,7 +206,7 @@ class FirestoreCompatibleClient:
 # Maintain singleton client instance
 _client = None
 
-def persistence(mongo_uri=None, missing_ok=False):
+def persistence(mongo_uri=None, missing_ok=True):
     global _client
     if _client is None:
         _client = FirestoreCompatibleClient(mongo_uri, missing_ok)
