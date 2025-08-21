@@ -15,6 +15,8 @@ from locutus.model.exceptions import *
 
 USER_INPUT_CHAR_LIMIT = 1000
 
+import pdb
+
 class UserInput:
 
     def __init__(self, return_format, input_type, update_policy):
@@ -106,6 +108,33 @@ class UserInput:
         except Exception as e:
             return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {document_id}: {e}"), 500
 
+    def delete_user_conversations(self, resource_type, collection_type, id, code, mapped_code):
+        document_id = generate_mapping_index(code, mapped_code)
+        doc_ref = persistence().collection(resource_type).document(id) \
+                .collection(collection_type).document(document_id)
+        existing_data = doc_ref.get().to_dict()
+
+        if "mapping_votes" not in existing_data:
+            doc_ref.delete()
+        else:
+            if "mapping_conversations" in existing_data:
+                existing_data.pop("mapping_conversations")
+                doc_ref.set(existing_data)
+
+
+    def delete_user_votes(self, resource_type, collection_type, id, code, mapped_code):
+        document_id = generate_mapping_index(code, mapped_code)
+        doc_ref = persistence().collection(resource_type).document(id) \
+                .collection(collection_type).document(document_id)
+        existing_data = doc_ref.get().to_dict()
+
+        if "mapping_conversations" not in existing_data:
+            doc_ref.delete()
+        else:
+            if "mapping_votes" in existing_data:
+                existing_data.pop("mapping_votes")
+                doc_ref.set(existing_data)
+
     def create_or_replace_user_input(self, resource_type, collection_type, id, code, mapped_code, type, body):
         """
         Creates or replaces a document in the 'user_input' sub-collection data
@@ -172,7 +201,7 @@ class UserInput:
             existing_data[type].insert(0, formatted_user_input[0])
         elif user_input_instance.update_policy == "update":
             try:
-                self.update_or_append_input(
+                UserInput.update_or_append_input(
                     existing_data[type],
                     editor,
                     formatted_user_input,
@@ -190,7 +219,8 @@ class UserInput:
             return (f"An error occurred while updating firestore {id} \
                     {resource_type} - {document_id}: {e}"), 500
 
-    def update_or_append_input(self, existing_data, user_id, new_record, return_format):
+    @classmethod
+    def update_or_append_input(cls, existing_data, user_id, new_record, return_format):
         """
         For user_input types that allow only one record per user(update_policy=update),
         update existing user_input or append user_input if the user has no existing data.
