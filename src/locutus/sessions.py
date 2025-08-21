@@ -101,19 +101,31 @@ class SessionManager:
         Returns:
             editor="editor" or editor=None
         """
-        if 'user_id' in session:
-            logging.info(f"The session is active. Session object: {session}")
-            return session['user_id']
-        elif editor:
-            logging.info(
-                f"The session is not active. Falling back to the existing editor: {editor}"
-            )
-            return editor
-        else:
-            logging.info(
-                f"The session is not active. There is no editor defined. editor: {editor}"
-            )
-            return None
+        try:
+            if 'user_id' in session:
+                logging.info(f"The session is active. Session object: {session}")
+                return session['user_id']
+            elif editor:
+                logging.info(
+                    f"The session is not active. Falling back to the existing editor: {editor}"
+                )
+                return editor
+            else:
+                logging.info(
+                    f"The session is not active. There is no editor defined. editor: {editor}"
+                )
+                return None
+        except RuntimeError as e:
+            if editor:
+                logging.info(
+                    f"The session is not active. Falling back to the existing editor: {editor}"
+                )
+                return editor
+            else:
+                logging.info(
+                    f"The session is not active. There is no editor defined. editor: {editor}"
+                )
+                return None    
 
     def create_current_datetime():
         """
