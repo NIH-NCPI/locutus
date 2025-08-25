@@ -5,11 +5,12 @@ from locutus.model.terminology import Coding, Terminology as Term
 from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
-
+from bson import json_util 
+import json
 
 class TerminologyEdit(Resource):
     def put(self, id, code):
-        """Add a new code to an existing terminology."""
+        """Add a new code to an existing terminology."""        
         body = request.get_json()
         display = body.get("display")
         description = body.get("description")
@@ -23,7 +24,7 @@ class TerminologyEdit(Resource):
             t.add_code(
                 code=code, display=display, description=description, editor=editor
             )
-            return t.dump(), 201, default_headers
+            return json.loads(json_util.dumps(t.dump())), 201, default_headers
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -42,7 +43,7 @@ class TerminologyEdit(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return t.dump(), 200, default_headers
+        return json.loads(json_util.dumps(t.dump())), 200, default_headers
 
 
 class TerminologyRenameCode(Resource):
@@ -112,13 +113,13 @@ class TerminologyRenameCode(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return t.dump(), 201, default_headers
+        return json.loads(json_util.dumps(t.dump())), 201, default_headers
 
 
 class Terminologies(Resource):
     def get(self):
         return (
-            Term.get(return_instance=False),
+            json.loads(json_util.dumps(Term.get(return_instance=False))),
             200,
             default_headers,
         )
@@ -134,11 +135,10 @@ class Terminologies(Resource):
             if "resource_type" in term:
                 del term["resource_type"]
 
+            term['editor'] = editor
             t = Term(**term)
             t.save()
-            t.add_provenance(
-                t.ChangeType.AddTerm, editor=editor, target="self"
-            )
+
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
         return t.dump(), 201, default_headers
@@ -149,7 +149,8 @@ class Terminology(Resource):
         response = Term.get(id, return_instance=False)
 
         if response is not None:
-            return response, 200, default_headers
+            return json.loads(json_util.dumps(response)), 200, default_headers
+        
         return (response, 404, default_headers)
 
     def put(self, id):
@@ -165,6 +166,9 @@ class Terminology(Resource):
 
     # @cross_origin()
     def delete(self, id):
-        t = Term.delete(id)
+        t = Term.get(id, return_instance=True)
 
-        return t, 200, default_headers
+        if t:
+            t = t.delete()
+
+        return json.loads(json_util.dumps(t)), 200, default_headers
