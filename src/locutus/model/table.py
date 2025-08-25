@@ -1,5 +1,7 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
+import locutus 
+"""
 from locutus import (
     persistence,
     strip_none,
@@ -7,6 +9,7 @@ from locutus import (
     normalize_ftd_placeholders,
     get_code_index
 )
+"""
 from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
@@ -71,8 +74,8 @@ class Table(Serializable):
 
         super().__init__(id=id, collection_type="Table", resource_type="Table")
 
-        if strip_none(code) == "":
-            code = strip_none(name)
+        if locutus.strip_none(code) == "":
+            code = locutus.strip_none(name)
 
         self.id = id
         self.name = name
@@ -119,7 +122,7 @@ class Table(Serializable):
 
     def remove_variable(self, varname, editor):
         success = False
-        varname = normalize_ftd_placeholders(varname)
+        varname = locutus.normalize_ftd_placeholders(varname)
 
         for var in self.variables:
             if var.name == varname:
@@ -141,9 +144,9 @@ class Table(Serializable):
     def rename_var(self, original_varname, new_varname, new_description, editor):
         status = 200
         # Ensure codes are not placeholders at this point.
-        original_varname = normalize_ftd_placeholders(original_varname)
+        original_varname = locutus.normalize_ftd_placeholders(original_varname)
 
-        new_varname = normalize_ftd_placeholders(new_varname)
+        new_varname = locutus.normalize_ftd_placeholders(new_varname)
 
         print(
             f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
@@ -204,13 +207,13 @@ class Table(Serializable):
                     )
                     if original_varname != new_varname:
                         term_doc = (
-                            persistence()
+                            locutus.persistence()
                             .collection(terminology.resource_type)
                             .document(terminology.id)
                             .collection("provenance")
                         )
-                        original_code_index = get_code_index(original_code)
-                        new_code_index = get_code_index(var.code)
+                        original_code_index = locutus.get_code_index(original_code)
+                        new_code_index = locutus.get_code_index(var.code)
                         prov = term_doc.document(original_code_index).get().to_dict()
                         prov["target"] = var.code
                         term_doc.document(new_code_index).set(prov)
@@ -231,7 +234,7 @@ class Table(Serializable):
         v = variable
 
         # Ensure the name is not a ftd_placeholder
-        v["name"] = normalize_ftd_placeholders(v["name"])
+        v["name"] = locutus.normalize_ftd_placeholders(v["name"])
 
         if type(variable) is dict:
             # For now, let's insure that the enumerations terminology is there or

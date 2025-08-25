@@ -1,6 +1,6 @@
-from . import Serializable
+from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
+import locutus # import persistence
 
 
 """
@@ -44,7 +44,7 @@ class Reference(Serializable):
         if self._reference is None:
             resource_type, id = self.reference.split("/")
             resource_raw = (
-                persistence().collection(resource_type).document(id).get().to_dict()
+                locutus.persistence().collection(resource_type).document(id).get().to_dict()
             )
             self._reference = Serializable.build_object(resource_raw)
 
