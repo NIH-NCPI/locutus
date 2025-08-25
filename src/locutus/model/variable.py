@@ -2,9 +2,9 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus.model.terminology import Terminology
 from locutus.model.reference import Reference
-from locutus import persistence
+import locutus #import persistence
 from locutus.model.terminology import Terminology as Term
-from locutus import strip_none
+# from locutus import strip_none
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -61,9 +61,9 @@ class Variable:
     def __init__(self, code="", name="", description=""):
         """Default variable type is a basic string"""
         # super().__init__(self, "Variable", self.__class__.__name__)
-        self.name = strip_none(name)
-        self.code = strip_none(code)
-        self.description = strip_none(description)
+        self.name = locutus.strip_none(name)
+        self.code = locutus.strip_none(code)
+        self.description = locutus.strip_none(description)
         self.data_type = None
 
         if self.code == "" and self.name != "":
@@ -140,7 +140,7 @@ class EnumerationVariable(Variable):
     def get_terminology(self):
 
         terminology = (
-            persistence()
+            locutus.persistence()
             .collection("Terminology")
             .document(self.enumerations.reference_id())
             .get()
