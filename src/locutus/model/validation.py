@@ -1,4 +1,3 @@
-from locutus import persistence
 from locutus.model.exceptions import *
 
 
