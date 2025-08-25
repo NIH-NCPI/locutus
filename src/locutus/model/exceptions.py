@@ -1,7 +1,6 @@
-from locutus import persistence
 from flask import session
 from flask_session import Session
-from locutus import logger, get_code_index
+import locutus # import logger, get_code_index
 
 
 class APIError(Exception):
@@ -26,7 +25,7 @@ class CodeAlreadyPresent(APIError):
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
         message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({self.existing_coding.display})."
-        logger.error(message)
+        locutus.logger.error(message)
         super().__init__(message, status_code=400)
 
 
@@ -34,10 +33,10 @@ class CodeNotPresent(APIError):
     def __init__(self, code, terminology_id):
         self.code = code
         self.terminology_id = terminology_id
-        code_index = get_code_index(code)
+        code_index = locutus.get_code_index(code)
         # More info on code format(code vs code_index) can be found in get_code_index
         message = f"The code {self.code}, or possibly:{code_index}, is not present in the terminology({self.terminology_id})."
-        logger.error(message)
+        locutus.logger.error(message)
         super().__init__(message, status_code=404)
 
 class InvalidValueError(APIError):
@@ -48,7 +47,7 @@ class InvalidValueError(APIError):
         self.value = value
         self.valid_values = valid_values
         message = f"Value({self.value}) is not valid. The value should be one of:({self.valid_values})"
-        logger.error(message)
+        locutus.logger.error(message)
         super().__init__(message, status_code=400)
 
 class LackingUserID(APIError):
@@ -58,7 +57,7 @@ class LackingUserID(APIError):
     def __init__(self, editor):
         self.editor = editor
         message = f"This action requires an editor or session! Current editor or user_id: ({self.editor})"
-        logger.error(message)
+        locutus.logger.error(message)
         super().__init__(message, status_code=400)
 
 class LackingRequiredParameter(APIError):
@@ -68,5 +67,5 @@ class LackingRequiredParameter(APIError):
     def __init__(self, param):
         self.param = param
         message = f"This action requires the parameter: '{self.param}'"
-        logger.error(message)
+        locutus.logger.error(message)
         super().__init__(message, status_code=400)
