@@ -1,5 +1,9 @@
-from . import Serializable
+from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
+
+import locutus 
+
+"""
 from locutus import (
     persistence,
     PROVENANCE_TIMESTAMP_FORMAT,
@@ -7,24 +11,25 @@ from locutus import (
     FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,
     format_ftd_code
-)
+)"""
 from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
-from locutus.model.exceptions import *
-from locutus.model.lookups import *
+import locutus.model.exceptions
+import locutus.model.lookups 
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 from datetime import datetime
 import time
 from locutus import logger
 
-from locutus.model.lookups import FTDConceptMapTerminology
-
+from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
+from locutus.model.onto_api_preference import OntoApiPreference
+import locutus.model.provenance
 from locutus.model.user_input import UserInput
 from locutus.sessions import SessionManager
 
-from locutus.model.coding import Coding
+from locutus.model.coding import Coding, BasicCoding
+from locutus.model.reference import Reference
 
 import pdb
-
 
 """
 A terminology exists on its own within the project but can be referenced by 
@@ -54,8 +59,6 @@ the "codes" array.
 class Terminology(Serializable):
     _id_prefix = "tm"
 
-
-
     class MappingStatus(StrEnum):
         AwaitingApproval = "Awaiting Approval"
         Approved = "Approved"
@@ -64,26 +67,33 @@ class Terminology(Serializable):
     def __init__(
         self,
         id=None,
+        _id=None,
         name=None,
         url=None,
         description=None,
         codes=None,
         resource_type=None,
+        preferred_terminologies=[],
+        api_preferences={},
         editor=None,
     ):
         super().__init__(
-            id=id, collection_type="Terminology", resource_type="Terminology"
+            id=id, _id=_id, collection_type="Terminology", resource_type="Terminology"
         )
-        self.id = id
         self.name = name
         self.description = description
         self.url = url
         self.codes = []
 
+        self.api_preferences = api_preferences
+        self.preferred_terminologies = preferred_terminologies
+
+        super().identify()
+
         if editor:
             self.save()
             self.add_provenance(
-                Terminology.ChangeType.Create,
+                locutus.model.provenance.Provenance.ChangeType.Create,
                 editor=editor,
                 target="self",
                 new_value="Instantiation"
@@ -95,22 +105,63 @@ class Terminology(Serializable):
         if codes is not None:
             for code in codes:
                 if type(code) is dict:
+                    code['terminology_id'] = self.id
+                    code['system'] = self.url
                     code = Coding(**code)
                 # print(code)
                 code.system = self.url
+                code.save()
                 self.codes.append(code)
 
                 if editor:
                     self.add_provenance(
-                        Terminology.ChangeType.AddTerm,
+                        locutus.model.provenance.Provenance.ChangeType.AddTerm,
                         editor=editor,
                         target="self",
-                        new_value=code,
+                        new_value=code.code,
                     )
-        super().identify()
+
+    def find_match(self, return_instance=True):
+
+        if self.url is not None and self.url.strip() != "" \
+            and self.name is not None and self.name.strip() != "":
+            params = {
+                "url": self.url,
+                "name": self.name
+            }
+
+            return self.__class__.find(params, return_instance)
+        
+        raise ValueError(f"Terminology.find_match() requires both a url and name.")
+
+    def delete(self, hard_delete=True):
+        if not hard_delete:
+            self.valid =False 
+            self.save()
+            t = self.to_dict()
+        else:
+            dref = locutus.persistence().collection(self._collection_type).document(self._id)
+            t = dref.get().to_dict()
+
+            time_of_delete = dref.delete()
+        # Delete all provenance
+        for prov in locutus.model.provenance.Provenance.find({"terminology_id": self.id}):
+            prov.delete(hard_delete=hard_delete)
+
+        all_codings = locutus.model.coding.Coding.get(
+                                terminology_id=self.id,
+                                valid_only=False
+        )
+        if type(all_codings) is locutus.model.coding.Coding:
+            all_codings = [all_codings]
+
+        for coding in all_codings:
+            coding.delete(hard_delete=hard_delete)
+
+        return t
 
     @classmethod
-    def delete(cls, id):
+    def _delete(cls, id):
         """This is being moved to other places and will no longer be necessary here. 
         mapref = (
             persistence().collection("Terminology").document(id).collection("mappings")
@@ -135,7 +186,7 @@ class Terminology(Serializable):
         """
 
 
-        dref = persistence().collection("Terminology").document(id)
+        dref = locutus.persistence().collection("Terminology").document(id)
         t = dref.get().to_dict()
 
         time_of_delete = dref.delete()
@@ -146,11 +197,16 @@ class Terminology(Serializable):
 
     def build_code_dict(self):
         codings = {}
-        for code in self.codes:
+
+        for code in locutus.model.coding.Coding.get(
+                                terminology_id=self.id,
+                                return_instance=True,
+                                valid_only=True):
             codings[code.code] = code
 
         return codings
 
+    """
     def build_code_list(mapping):
         codes = []
         code_id = mapping["code"]
@@ -159,31 +215,52 @@ class Terminology(Serializable):
             codes.append(CodingMapping(**codingmapping))
 
         return codes
+    """
 
     def add_code(self, code, display, description=None, editor=None):
-        for cc in self.codes:
-            # Ensure codes are not placeholders at this point.
-            cc.code = normalize_ftd_placeholders(cc.code)
 
-            if cc.code == code:
-                raise CodeAlreadyPresent(code, self.id, cc)
-        new_coding = Coding(
-            code=code, display=display, system=self.url, description=description
-        )
+        coding = locutus.model.coding.Coding.get(
+                    terminology_id=self.id,
+                    code=code)
+
+        if type(coding) is list and len(coding) != 0:
+            # This definitely should not return more than one coding
+            raise locutus.model.exceptions.InvalidValueError(code, "too many codes already exist in the database")
+        if type(coding) is Coding:
+            if coding.valid:
+                raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding.to_dict())
+            coding.valid=True
+            coding.save()
+            new_coding=coding
+        else:
+            new_coding = Coding(terminology_id=self.id,
+                                code=code, 
+                                display=display, 
+                                description=description,
+                                system=self.url, 
+                                editor=editor,
+                                rank=len(self.codes)
+                                )
+        for cc in self.codes:
+            if cc == code:
+                raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, cc)
+
+        new_coding.save()
+
         self.codes.append(new_coding)
         self.save()
 
         if editor:
             # This adds provenance to the Terminology/Table itself
             self.add_provenance(
-                Terminology.ChangeType.AddTerm,
+                locutus.model.provenance.Provenance.ChangeType.AddTerm,
                 editor=editor,
                 target="self",
                 new_value=code,
             )
             # This adds provenance to the code itself
             self.add_provenance(
-                Terminology.ChangeType.AddTerm,
+                locutus.model.provenance.Provenance.ChangeType.AddTerm,
                 editor=editor,
                 target=code,
             )
@@ -191,21 +268,27 @@ class Terminology(Serializable):
     def remove_code(self, code, editor):
         code_found = False
         # Ensure codes are not placeholders at this point.
-        code = normalize_ftd_placeholders(code)
+        code = locutus.normalize_ftd_placeholders(code)
 
-        for cc in self.codes:
-            if cc.code == code:
-                self.codes.remove(cc)
-                self.delete_mappings(code=code, editor=editor)
-                self.save()
-                self.add_provenance(
-                    Terminology.ChangeType.RemoveTerm,
-                    editor=editor,
-                    target="self",
-                    new_value=code,
-                )
-                code_found = True
-        if not code_found:
+        coding = self.get_coding(code)
+        
+        if coding is not None:
+            # We might want to actually call self.delete_mappings(code=code)
+            # if we want to reflect, in provenance, that we lost some mappings
+            # However, that wasn't what we were doing, so leaving things as 
+            # they were for now
+            # EST - 2025-08-18
+            coding.valid = False
+            self.codes.remove(coding)
+            self.save()
+            self.add_provenance(
+                locutus.model.provenance.Provenance.ChangeType.RemoveTerm,
+                editor=editor,
+                target="self",
+                new_value=code,
+            )
+            code_found = True
+        else:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
             logger.error(msg)
             raise KeyError(msg)
@@ -254,29 +337,30 @@ class Terminology(Serializable):
                 self.save()
                 if new_values:
                     self.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm,
+                        change_type=locutus.model.provenance.Provenance.ChangeType.EditTerm,
                         target=original_code,
                         old_value=old_values,
                         new_value=new_values,
                         editor=editor,
                     )
                     self.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm,
+                        change_type=locutus.model.provenance.Provenance.ChangeType.EditTerm,
                         target="self",
                         old_value=old_values,
                         new_value=new_values,
                         editor=editor,
                     )
                     if original_code != new_code:
-                        term_doc = persistence().collection(self.resource_type).document(self.id).collection(
-                        "provenance"
-                         )
-                        ori_code_index = get_code_index(original_code)
-                        new_code_index = get_code_index(new_code)
-                        prov = term_doc.document(ori_code_index).get().to_dict()
-                        prov["target"] = new_code
-                        term_doc.document(new_code_index).set(prov)
-                        term_doc.document(ori_code_index).delete()
+                        prov = locutus.model.provenance.Provenance.mapping_provenance(
+                            terminology_id=self.id, 
+                            target_coding=original_code, 
+                            valid_only=False,
+                            return_instance=True
+                        )
+
+                        for prv in prov:
+                            prv.target=new_code 
+                            prv.save()
                     return True
         return False
 
@@ -292,7 +376,7 @@ class Terminology(Serializable):
          If the terminology has the code already this will return True
         """
         # Ensure codes are not placeholders at this point.
-        code = normalize_ftd_placeholders(code)
+        code = locutus.normalize_ftd_placeholders(code)
 
         return any(entry.code == code for entry in self.codes)
 
@@ -308,12 +392,29 @@ class Terminology(Serializable):
         """
         if code is not None:
             # Ensure codes are not placeholders at this point.
-            code = normalize_ftd_placeholders(code)
+            coding = self.get_coding(code)
 
-            code_index = get_code_index(code)
+            old_values = {
+                "code": coding.code,
+                "codes": coding.delete_mappings()
+            }
+
+            self.add_provenance(
+                change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
+                target=code,
+                old_value=old_values,
+                new_value="deleted",
+                editor=editor,
+            )
+            # coding.save()
+            
+            """
+            code = locutus.normalize_ftd_placeholders(code)
+
+            code_index = locutus.get_code_index(code)
 
             tmref = (
-                persistence()
+                locutus.persistence()
                 .collection("Terminology")
                 .document(self.id)
                 .collection("mappings")
@@ -331,18 +432,33 @@ class Terminology(Serializable):
                 tmref.set(mapping)
 
                 self.add_provenance(
-                    change_type=Terminology.ChangeType.SoftDeleteMapping,
+                    change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
                     target=code,
                     old_value=mapping,
                     editor=editor,
-                )
-            else:
-                print(
-                    f"Soft deleting mappings for code: {code}, doc_id:{code_index}, Terminology: {self.name} but there were no mappings."
-                )
+                ) """
+            if len(old_values['codes']) == 0:
+                logger.debug(f"Soft deleting mappings for code: {code}, Terminology: {self.name} but there were no mappings.")
+
         else:
+            for coding in self.codes:
+                old_values = {
+                    "code": coding.code,
+                    "codes": coding.delete_mappings()
+                }
+
+                self.add_provenance(
+                    change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
+                    target=coding.code,
+                    old_value=old_values,
+                    new_value="deleted",
+                    editor=editor,
+                )
+
+                # coding.save()
+                """
             mapref = (
-                persistence()
+                locutus.persistence()
                 .collection("Terminology")
                 .document(self.id)
                 .collection("mappings")
@@ -351,24 +467,25 @@ class Terminology(Serializable):
             for mapping_doc in mapref.stream():
                 mapping = mapping_doc.to_dict()
                 mapping_code_id = mapping["code"]
-                code_index = get_code_index(mapping_code_id)
+                code_index = locutus.get_code_index(mapping_code_id)
 
                 for coding in mapping["codes"]:
                     if "valid" in coding:
                         coding["valid"] = False
 
-
+            
                 self.add_provenance(
-                    change_type=Terminology.ChangeType.SoftDeleteMapping,
+                    change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
                     target=mapping_code_id,
                     old_value=mapping,
                     editor=editor,
                 )
                 # Save the updated mapping
-                mapref.document(code_index).set(mapping)
+                # mapref.document(code_index).set(mapping)
+                """
 
             self.add_provenance(
-                change_type=Terminology.ChangeType.SoftDeleteAllMappings,
+                change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteAllMappings,
                 target="self",
                 old_value="valid=True",
                 new_value="valid=False",
@@ -377,9 +494,21 @@ class Terminology(Serializable):
 
     def mappings(self, code=None):
         codes = {}
+
+        if code is not None:
+            coding = self.get_coding(code)
+            if coding is None or coding.mappings is None:
+                codes[code] = []
+            else:
+                codes[code] = coding.mappings
+        else:
+            for code in self.codes:
+                codes[code.code] = code.mappings
+        return codes
+        """
         if code is None:
             for mapping in (
-                persistence()
+                locutus.persistence()
                 .collection(self.resource_type)
                 .document(self.id)
                 .collection("mappings")
@@ -391,10 +520,10 @@ class Terminology(Serializable):
                 codes[code_id] = Terminology.build_code_list(mapping)
 
         else:
-            code_index = get_code_index(code)
+            code_index = locutus.get_code_index(code)
 
             mapping = (
-                persistence()
+                locutus.persistence()
                 .collection(self.resource_type)
                 .document(self.id)
                 .collection("mappings")
@@ -409,70 +538,58 @@ class Terminology(Serializable):
                 codes[code] = []
 
         return codes
+        """
+
+    def get_coding(self, code):
+        for item in self.codes:
+            if item.code == code:
+                return item 
+        return None 
 
     def get_provenance(self, code=None):
         prov = {}
 
         if code is None:
-            for prv in (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("provenance")
-                .stream()
-            ):
+            # This isn't really relevant any more, but the FE does use it so we will keep it 
+            prov['self'] = {}
+            prov['self']['target'] = "self"
+            changes = []
 
-                try:
-                    prv = prv.to_dict()
-
-                except:
-                    print(
-                        "Something other than a dict was encountered for provenance. This is not good."
+            for prv in locutus.model.provenance.Provenance.terminology_provenance(terminology_id=self.id):
+                if type(prv['timestamp']) is not str:
+                    prv['timestamp'] = prv['timestamp'].strftime(
+                        locutus.PROVENANCE_TIMESTAMP_FORMAT
                     )
-                    print(prv)
-
-                id = prv["target"]
-                for change in prv["changes"]:
-                    if "timestamp" in change:
-                        if type(change["timestamp"]) is not str:
-                            change["timestamp"] = change["timestamp"].strftime(
-                                PROVENANCE_TIMESTAMP_FORMAT
-                            )
-                prov[id] = prv
+                changes.append(prv)
+            prov['self']['changes'] = changes
         else:
-            code_index = get_code_index(code)
-            prv = (
-                persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("provenance")
-                .document(code_index)
-                .get()
-                .to_dict()
-            )
-            if prv is not None and prv != {}:
-                id = prv["target"]
+            prov[code] = {}
+            prov[code]["target"] = code
+            changes = []
 
-                prov[id] = prv
-                for change in prv["changes"]:
-                    if "timestamp" in change:
-                        if type(change["timestamp"]) is not str:
-                            change["timestamp"] = change["timestamp"].strftime(
-                                PROVENANCE_TIMESTAMP_FORMAT
-                            )
-            else:
-                code_index = get_code_index(code)
-
-                prov[code_index] = []
-
+            for prv in locutus.model.provenance.Provenance.mapping_provenance(terminology_id=self.id, target_coding=code):   
+                if prv is not None:             
+                    if type(prv['timestamp']) is not str:
+                        prv['timestamp'] = prv['timestamp'].strftime(
+                            locutus.PROVENANCE_TIMESTAMP_FORMAT
+                        )
+                    changes.append(prv)
+                else:
+                    changes = []
+            prov[code]['changes'] = changes
         return prov
 
     def add_provenance(
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
         if target is None:
-            code_index = "self"
-            normalized_target = "self"
+            p = locutus.model.provenance.Provenance.add_terminology_provenance(
+                terminology_id=self.id, 
+                action=change_type,
+                editor=editor,
+                timestamp=timestamp,
+                **kwargs
+            )
         else:
             if target.count("|") > 1:
                 print(f"Warning: Invalid target format '{target}'. Skipping provenance addition.")
@@ -481,56 +598,46 @@ class Terminology(Serializable):
             if "|" in target:
                 left, right = target.split("|", 1)
                 # Normalize each side of a paired target for the provenance target/display
-                normalized_left = normalize_ftd_placeholders(left)
-                normalized_right = normalize_ftd_placeholders(right)
+                normalized_left = locutus.normalize_ftd_placeholders(left)
+                normalized_right = locutus.normalize_ftd_placeholders(right)
                 normalized_target = generate_paired_string(normalized_left, normalized_right)
 
                 code_index = target # mapping pairs are already formatted as indexes
             # Ensure special characters in single code targets are handled properly
             else:
-                normalized_target = normalize_ftd_placeholders(target)
-                code_index = get_code_index(target)
+                normalized_target = locutus.normalize_ftd_placeholders(target)
+                code_index = locutus.get_code_index(target)
 
-        if timestamp is None:
-            timestamp = datetime.now()
+            p = locutus.model.provenance.Provenance.add_mapping_provenance(
+                terminology_id=self.id, 
+                action=change_type,
+                editor=editor,
+                target_coding=normalized_target,
+                timestamp=timestamp,
+                **kwargs
+            )
 
-        timestamp = timestamp.strftime(PROVENANCE_TIMESTAMP_FORMAT)
-        # cur_prov = None
-        cur_prov = self.get_provenance(code_index).get(normalized_target, None)
-        if cur_prov is None or type(cur_prov) is list:
-            cur_prov = {"target": normalized_target, "changes": []}
-
-        baseprov = {
-            "target": normalized_target,
-            "timestamp": timestamp,
-            "action": change_type,
-            "editor": editor,
-        }
-        prov = {**kwargs, **baseprov}
-
-        try:
-            cur_prov["changes"].append(prov)
-        except:
-            print(f"Current Provenance isn't what we expected: {cur_prov}")
-
-        persistence().collection(self.resource_type).document(self.id).collection(
-            "provenance"
-        ).document(code_index).set(cur_prov)
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
     def set_mapping(self, code, codings, editor):
-        code_index = get_code_index(code)
+        code_index = locutus.get_code_index(code)
 
         # Ensure code is not a placeholder at this point.
-        code = normalize_ftd_placeholders(code)
+        code = locutus.normalize_ftd_placeholders(code)
 
         doc = {"code": code, "codes": []}
 
         # Validation of mapping_relationship
         ftd_terminology = FTDConceptMapTerminology()  
         new_mappings = []
+
+        coding = self.get_coding(code)
+        old_mappings = ",".join([x.code for x in coding.mappings])
+        # Reset the mappings and rebuild them below
+        coding.mappings = []
         for mapping in codings:
+            coding.mappings.append(mapping)
             coding_dict = mapping.to_dict()
 
             ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
@@ -544,26 +651,14 @@ class Terminology(Serializable):
             for coding_obj in self.codes:
                 if coding_obj.code == mapping.code:
                     coding_obj.valid = True
+        coding.save()
 
-        tmref = (
-            persistence()
-            .collection(self.resource_type)
-            .document(self.id)
-            .collection("mappings")
-        )
 
-        old_mappings = ""
-        try:
-            assert code_index is not None
-            mapping = tmref.document(code_index).get().to_dict()
-        except:
-            mapping = None
-            print(f"weird mapping: {tmref.get()}")
-        change_type = Terminology.ChangeType.AddMapping
-        if mapping is not None:
+
+        change_type = locutus.model.provenance.Provenance.ChangeType.AddMapping
+        if old_mappings != "":
             # This is not super helpful, but at least we get some detail about which mappings were removed
-            old_mappings = ",".join([x["code"] for x in mapping["codes"]])
-            change_type = Terminology.ChangeType.EditMapping
+            change_type = locutus.model.provenance.Provenance.ChangeType.EditMapping
 
         self.add_provenance(
             change_type=change_type,
@@ -572,86 +667,84 @@ class Terminology(Serializable):
             new_value=",".join(new_mappings),
             editor=editor,
         )
+        self.save()
+        # tmref.document(code_index).set(doc)
 
-        tmref.document(code_index).set(doc)
+
+    def get_api_preferences(self):
+        return {
+            "api_preference":  self.api_preferences
+        }
+
+
+    def add_api_preferences(self, api, preferences):
+        if len(preferences) > 0:
+            self.api_preferences[api] = preferences
+            #self.api_preferences.set_preference(api, preferences)
+
+    def remove_api_preferences(self):
+        self.api_preferences = {}
 
     def get_preference(self, code=None):
-        pref = {}
-        term_pref_id = "self"  # Identifier for terminology preference
+        prefs = {}
+        if code is not None:
+            coding = self.get_coding(code)
+            if coding:
+                cp = coding.get_api_preferences()
+                if cp["api_preference"]:
+                    prefs[code] = cp
 
-        try:
-            # If no code is provided, retrieve the terminology preference directly
-            if code is None:
-                terminology_pref = (
-                    persistence()
-                    .collection(self.resource_type)
-                    .document(self.id)
-                    .collection('onto_api_preference')
-                    .document(term_pref_id)
-                    .get()
-                )
+        # For terminology preferences
+        else:        
+            cp = self.get_api_preferences()
+            if cp['api_preference']:
+                prefs['self'] = cp
 
-                if terminology_pref.exists:
-                    pref[term_pref_id] = terminology_pref.to_dict() or {}
-                else:
-                    # Return an empty object if terminology preference doesn't exist
-                    pref[term_pref_id] = {}
-
-            # If a specific code is provided, get the preference
-            else:
-                code_index = get_code_index(code)
-                prv = (
-                    persistence()
-                    .collection(self.resource_type)
-                    .document(self.id)
-                    .collection('onto_api_preference')
-                    .document(code_index)
-                    .get()
-                )
-
-                if prv.exists:
-                    pref[code] = prv.to_dict() or {}
-                else:
-                    # Fall back to terminology preference if no specific code preference is found
-                    pref = self.get_preference()
-
-        except Exception as e:
-            print(f"An error occurred while retrieving preferences: {str(e)}")
-            raise
-
-        return pref
+        return prefs
 
     def add_or_update_pref(self, api_preference, code=None):
         if code is None:
-            code = "self"
-
-        try:
-            # get current preferences, default to empty dict
-            cur_pref = self.get_preference(code=code).get(code, {})
-
-            # Add or update the preferences for the given API
-            cur_pref["api_preference"] = api_preference
-
-            code_index = get_code_index(code)
-
-            # Save the updated preferences back to the Firestore sub-collection
-            persistence().collection(self.resource_type).document(self.id) \
-                .collection("onto_api_preference").document(code_index).set(cur_pref)
-
-        except Exception as e:
-            print(f"An error occurred while updating preferences: {e}")
-            raise
+            self.remove_api_preferences()
+            for api in api_preference:
+                self.add_api_preferences(api, api_preference[api])
+            self.save()
+        else:
+            coding = self.get_coding(code)
+            if coding:
+                coding.remove_api_preferences()
+                for api in api_preference:
+                    coding.add_api_preferences(api, api_preference[api])
+                coding.save()
 
     def remove_pref(self, code=None):
         if code is None:
-            code = "self"
+            if len(self.api_preferences) > 0:
+                message = f"Successfully deleted preferences for Terminology '{self.name}'."
+            else:
+                message = f"No preferences found to delete for code '{self.name}'."
 
+            self.remove_api_preferences()
+        else:
+            coding = self.get_coding(code)
+            if coding:
+                if len(coding.api_preferences) > 0:
+                    message = f"Successfully deleted preferences for code '{code}'."
+                else:
+                    message = f"No preferences found to delete for code '{code}'."
+
+                coding.remove_api_preferences()
+            else:
+                message = f"No coding found in {self.name} for code, {code}."
+
+        logger.debug(message)
+        return message
+        """
         try:
             # Define the collection reference
-            collection_ref = persistence().collection(self.resource_type) \
+            collection_ref = locutus.persistence().collection(self.resource_type) \
                 .document(self.id).collection("onto_api_preference")
 
-            code_index = get_code_index(code)
+            code_index = locutus.get_code_index(code)
 
             doc_ref = collection_ref.document(code_index)
             doc_snapshot = doc_ref.get()
@@ -670,6 +763,7 @@ class Terminology(Serializable):
         print(message)
 
         return message
+        """
 
     def get_preferred_terminology(self):
         """
@@ -690,8 +784,13 @@ class Terminology(Serializable):
             ]
         } 
         """
+
+        return {
+            "references": self.preferred_terminologies
+        }
+        """
         try:
-            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+            doc_ref = locutus.persistence().collection(self.resource_type).document(self.id) \
                 .collection("preferred_terminology").document("self")
 
             doc_snapshot = doc_ref.get()
@@ -705,7 +804,7 @@ class Terminology(Serializable):
         except Exception as e:
             print(f"An error occurred while retrieving preferred terminology: {e}")
             raise
-
+        """
     def replace_preferred_terminology(self, editor, preferred_terminology):
         """
         Creates or replaces a document in the 'preferred_terminology' sub-collection
@@ -723,9 +822,20 @@ class Terminology(Serializable):
             }
         ]
         """
+
+        self.preferred_terminologies =  [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
+        self.save()
+        self.add_provenance(
+            locutus.model.provenance.Provenance.ChangeType.ReplacePrefTerm,
+            target="self",
+            new_value=self.preferred_terminologies,
+            editor=editor,
+        )
+
+        """
         try:
             # Reference to the sub-collection document named "self"
-            doc_ref = persistence().collection(self.resource_type).document(self.id) \
+            doc_ref = locutus.persistence().collection(self.resource_type).document(self.id) \
                 .collection("preferred_terminology").document("self")
             
             # Create a list of references based on the provided preferred terminologies
@@ -735,7 +845,7 @@ class Terminology(Serializable):
             doc_ref.set({"references": references})
 
             self.add_provenance(
-            Terminology.ChangeType.ReplacePrefTerm,
+            locutus.model.provenance.Provenance.ChangeType.ReplacePrefTerm,
             target="self",
             new_value=references,
             editor=editor,
@@ -745,12 +855,30 @@ class Terminology(Serializable):
             message = f"An error occurred while adding preferred terminology: {e}"
             logger.error(message)
             raise
+        """
 
-    def remove_preferred_terminology(self):
+    def remove_preferred_terminology(self, editor=None):
+        if len(self.preferred_terminologies) > 0:
+            message = f"Successfully deleted preferences for '{self.id}'."
+            self.add_provenance(
+                locutus.model.provenance.Provenance.ChangeType.RemovePrefTerm,
+                target="self",
+                old_value=",".join([x['reference'] for x in self.preferred_terminologies]),
+                editor=editor,
+            )
+        else:
 
+            message = f"No preferences found to delete for '{self.id}'."
+        self.preferred_terminologies = []
+        self.save()
+
+        logger.debug(message)
+        return message 
+
+        """
         try:
             # Define the collection reference
-            collection_ref = persistence().collection(self.resource_type) \
+            collection_ref = locutus.persistence().collection(self.resource_type) \
                 .document(self.id).collection("preferred_terminology")
 
             doc_ref = collection_ref.document("self")
@@ -771,7 +899,7 @@ class Terminology(Serializable):
         logger.debug(message)
 
         return message
-
+        """
     class _Schema(Schema):
         id = fields.Str()
         name = fields.Str(required=True)
@@ -779,82 +907,12 @@ class Terminology(Serializable):
         description = fields.Str()
         codes = fields.List(fields.Nested(Coding._Schema))
         resource_type = fields.Str()
+        api_preferences = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
+        preferred_terminologies = fields.List(fields.Nested(Reference._Schema))
 
         @post_load
         def build_terminology(self, data, **kwargs):
             return Terminology(**data)
-
-class CodingMapping(Coding):
-    """
-    Inherits Terminonlogy.Coding. Adds mapping specific attributes.
-    Note: Placed here to avoid circular imports. Move only with refactor.
-    """
-
-    def __init__(
-        self,
-        code,
-        display=None,
-        system=None,
-        description="",
-        valid=None,
-        mapping_relationship=None,
-        user_input=None,
-        ftd_code=None
-    ):
-        super().__init__(code, display, system, description)
-        self.valid = valid
-        self.user_input = user_input
-        self.ftd_code = code # Default to given code, updated if necessary. 
-
-        FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
-        self.mapping_relationship = mapping_relationship
-
-    class _Schema(Schema):
-        code = fields.Str(
-            required=True, error_messages={"required": "CodingMappings *must* have a code "}
-        )
-        display = fields.Str()
-        system = fields.URL(
-            required=True, error_messages={"required": "CodingMappings *must* have a system "}
-        )
-        description = fields.Str()
-        valid = fields.Bool()
-        mapping_relationship = fields.Str()
-        user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
-        ftd_code = fields.Str( 
-            required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
-        )
-
-        @post_load
-        def build_coding_mapping(self, data, **kwargs):
-            return CodingMapping(**data)
-
-    def to_dict(self):
-        """Inherits Terminonlogy.Coding. Adds mapping specific attributes."""
-        obj = super().to_dict()
-
-        # Marks the mapping valid if the attribute does not exist in the database
-        if self.valid is not None:
-            obj["valid"] = self.valid
-        else:
-            self.valid = True
-
-        # Formatted version of a code for MD to display.
-        formatted = format_ftd_code(self.ftd_code, FTDOntologyLookup.get_mapped_curie(self.system))
-        self.ftd_code = formatted
-        obj["ftd_code"] = self.ftd_code
-
-        # Returns the mapping_relationship as "" if the attribute does not exist in database
-        if self.mapping_relationship is not None:
-            obj["mapping_relationship"] = self.mapping_relationship
-        else:
-            obj["mapping_relationship"] = ""
-
-        # Returns the user_input for a mapping if requested
-        if self.user_input is not None:
-            obj["user_input"] = self.user_input
-
-        return obj
 
 
 class MappingUserInputModel:
@@ -863,17 +921,17 @@ class MappingUserInputModel:
         This function collects and formats the user_input data for a given mapping,
         then creates the user_input object to be included in a CodingMapping.
         """
-        code_index = get_code_index(code)
-        mapped_code_index = get_code_index(mapped_code)
+        code_index = locutus.get_code_index(code)
+        mapped_code_index = locutus.get_code_index(mapped_code)
 
         # Ensure codes/mappings are not placeholders at this point
-        code = normalize_ftd_placeholders(code)
+        code = locutus.normalize_ftd_placeholders(code)
 
-        mapped_code = normalize_ftd_placeholders(mapped_code)
+        mapped_code = locutus.normalize_ftd_placeholders(mapped_code)
 
         document_id = generate_mapping_index(code, mapped_code)
         doc_ref = (
-            persistence()
+            locutus.persistence()
             .collection("Terminology")
             .document(id)
             .collection("user_input")
