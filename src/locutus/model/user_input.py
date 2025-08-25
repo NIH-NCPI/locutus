@@ -8,32 +8,37 @@ Current Use:
 
 """
 from marshmallow import Schema, fields, post_load
-from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
+# from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
+import locutus
 from locutus.api import generate_mapping_index, get_editor
 from locutus.sessions import SessionManager
 from locutus.model.exceptions import *
 
+from .simple import Simple
 USER_INPUT_CHAR_LIMIT = 1000
 
-class UserInput:
+import pdb
 
+class UserInput:
     def __init__(self, return_format, input_type, update_policy):
         self.return_format = return_format
         self.input_type = input_type
         self.update_policy = update_policy
 
-    def get_input_class(self, type):
+    @classmethod 
+    def get_input_class(cls, type):
         """
         Returns the appropriate UserInput subclass for the given type.
         """
         if type == "mapping_conversations":
-            return MappingConversations()
+            return MappingConversation
         elif type == "mapping_votes":
-            return MappingVotes()
+            return MappingVote
         else:
             raise ValueError("Invalid input type specified.")
 
-    def get_user_input(self, resource_type, collection_type, id, code, mapped_code, type):
+    @classmethod 
+    def get_user_input(cls, resource_type, collection_type, id, code, mapped_code, type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -63,15 +68,32 @@ class UserInput:
         }
         """
         try:
+            user_input_class = cls.get_input_class(type)
+            existing_data = user_input_class.get(
+                terminology_id=id,
+                source_code=code,
+                mapped_code=mapped_code,
+                return_instance=False
+            )
+            
+            if existing_data == []:
+                return {resource_type: id,
+                        "code": code,
+                        "source_code": code,
+                        "mapped_code": mapped_code,
+                        "message": "No user input for this mapping."}
+            existing_data['code'] = existing_data['source_code']
+            return existing_data 
+            """
             document_id = generate_mapping_index(code, mapped_code)
-            doc_ref = persistence().collection(resource_type).document(id) \
+            doc_ref = locutus.persistence().collection(resource_type).document(id) \
                 .collection(collection_type).document(document_id)
 
             doc_snapshot = doc_ref.get()
 
             # Ensure codes/mappings are not placeholders at this point.
-            code = normalize_ftd_placeholders(code)
-            mapped_code = normalize_ftd_placeholders(mapped_code)
+            code = locutus.normalize_ftd_placeholders(code)
+            mapped_code = locutus.normalize_ftd_placeholders(mapped_code)
 
             if doc_snapshot.exists:
                 existing_data = doc_snapshot.to_dict()
@@ -82,7 +104,7 @@ class UserInput:
                         "message": "No user input for this mapping."}
 
             # Use the type to instantiate the corresponding UserInput subclass
-            user_input_instance = self.get_input_class(type)
+            user_input_instance = cls.get_input_class(type)
 
             # Retrieve the specific input data using the type
             input_data = existing_data.get(type)
@@ -102,11 +124,68 @@ class UserInput:
                 "mapped_code": mapped_code,
                 type: serialized_data[type]
             }
+            """
 
         except Exception as e:
-            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code} or {document_id}: {e}"), 500
+            return (f"An error occurred while retrieving user input for {id} {resource_type} - {code}/{mapped_code}: {e}"), 500
 
-    def create_or_replace_user_input(self, resource_type, collection_type, id, code, mapped_code, type, body):
+    @classmethod 
+    def delete_user_conversations(cls, resource_type, collection_type, id, code, mapped_code, hard_delete=False):
+        user_input = MappingConversation.get(terminology_id=id,
+                                    source_code=code,
+                                    mapped_code=mapped_code,
+                                    return_instance=True)
+        user_input.delete(hard_delete=hard_delete)
+    
+    def exists_in_db(self, 
+                    return_instance=True):
+
+        item = self.__class__.get(terminology_id=self.terminology_id,
+                        source_code=self.source_code, 
+                        mapped_code=self.mapped_code,  
+                        return_instance=return_instance)
+
+        if item == []:
+            return None
+
+        if len(item) == 1:
+            return item[0]
+        return item
+
+    @classmethod 
+    def get(cls, _id=None, terminology_id=None, source_code=None, mapped_code=None, return_instance=True):
+        if _id is not None:
+            return cls.find({"_id": _id}, return_instance=return_instance)
+
+        if (not isinstance(terminology_id, str) or not terminology_id.strip()):
+            raise ValueError("Terminology ID is required to get a coding without an _id.")
+        
+        params = {
+            "terminology_id": terminology_id
+        }
+
+        if source_code is not None:
+            params['source_code'] = source_code 
+        if mapped_code is not None:
+            params['mapped_code'] = mapped_code 
+
+        conversations = cls.find(params, return_instance=return_instance)
+
+        if len(conversations) == 1:
+            return conversations[0]
+        
+        return conversations
+
+    @classmethod 
+    def delete_user_votes(cls, resource_type, collection_type, id, code, mapped_code, hard_delete=False):
+        user_input = MappingVote.get(terminology_id=id,
+                                    source_code=code,
+                                    mapped_code=mapped_code,
+                                    return_instance=True)
+        user_input.delete(hard_delete=hard_delete)
+
+    @classmethod
+    def create_or_replace_user_input(cls, resource_type, collection_type, id, code, mapped_code, type, input_value, editor):
         """
         Creates or replaces a document in the 'user_input' sub-collection data
         for a user.
@@ -114,83 +193,32 @@ class UserInput:
         # Prep the data
         try:
             document_id = generate_mapping_index(code, mapped_code)
-            editor = get_editor(body=body, editor=None)
+            editor = get_editor(body={}, editor=editor)
             if editor is None:
                 raise LackingUserID(editor)
 
             # Instantiate the appropriate UserInput subclass
-            user_input_instance = self.get_input_class(type)
+            input_class = cls.get_input_class(type)
+            user_input_instance = input_class(terminology_id=id, 
+                                                        source_code=code,
+                                                        mapped_code=mapped_code)
 
             # Build and format user_input as necessary
-            user_input = user_input_instance.build_user_input(
-                body.get(user_input_instance.input_type),
-                editor=editor
-            )
+            input_data = user_input_instance.add_input(input_value, editor=editor)
 
-            formatted_user_input = user_input_instance.format_for_storage(user_input)
+            user_input_instance.save()
 
-        except Exception as e:
-            return (f"ERROR: while creating the user_input from body: {e}"), 500
-
-        # Validate
-        try:
-            user_input_instance.validate_input(user_input)
-        except ValueError as e:
-            return {"message": str(e)}, 400
-
-        # Prep any existing data
-        try:
-            doc_ref = persistence().collection(resource_type).document(id) \
-                .collection(collection_type).document(document_id)
-
-            # Fetch existing data for the document if it exists
-            doc_snapshot = doc_ref.get()
-            existing_data = doc_snapshot.to_dict() if doc_snapshot.exists else {}
-
-            # Ensure codes/mappings are not placeholders at this point.
-            code = normalize_ftd_placeholders(code)
-            mapped_code = normalize_ftd_placeholders(mapped_code)
-
-            # Required for indexing
-            existing_data['code'] = code
-            existing_data['mapped_code'] = mapped_code 
-
-            # Initialize type structure using return_format if it doesn't exist
-            if type not in existing_data:
-                existing_data[type] = user_input_instance.return_format()
-
-        except Exception as e:
-            return (f"An error occured during update setup {e}"), 500
-
-        # Update existing data, or append new records depending on the defined update_policy
-        if user_input_instance.update_policy == "append":
-            if user_input_instance.return_format != list:
-                return (
-                    f"ERROR: Invalid combination of update_policy 'append' and return_format"
-                ), 400
-
-            existing_data[type].insert(0, formatted_user_input[0])
-        elif user_input_instance.update_policy == "update":
-            try:
-                self.update_or_append_input(
-                    existing_data[type],
-                    editor,
-                    formatted_user_input,
-                    user_input_instance.return_format,
-                )
-            except Exception as e:
-                return (f"An error occurred while appending data. {e}"), 500
-
-        # Update the Firestore document with the new data.
-        try:
-            doc_ref.set(existing_data)
-            return existing_data
+            content = user_input_instance.dump()
+            # For the time being, we will reuse the old name for source_code to avoid breaking FE
+            content['code'] = content['source_code']
+            return content
 
         except Exception as e:
             return (f"An error occurred while updating firestore {id} \
                     {resource_type} - {document_id}: {e}"), 500
 
-    def update_or_append_input(self, existing_data, user_id, new_record, return_format):
+    @classmethod
+    def update_or_append_input(cls, existing_data, user_id, new_record, return_format):
         """
         For user_input types that allow only one record per user(update_policy=update),
         update existing user_input or append user_input if the user has no existing data.
@@ -223,7 +251,7 @@ class UserInput:
                 raise ValueError("The existing data should be of return_format type 'list'.")
 
 
-class MappingConversations(UserInput):
+class MappingConversation(Simple, UserInput):
     """Represents a user's comments or notes for multiple mappings. Used
         to serialize and deserialize data.
     
@@ -238,9 +266,46 @@ class MappingConversations(UserInput):
             "note": "note here"
         }
     """
-    def __init__(self):
-        super().__init__(return_format=list, input_type="note", update_policy="append")
-        self.mapping_conversations = []
+    def __init__(self,
+                terminology_id,
+                source_code,
+                mapped_code,
+                id=None,
+                _id=None,
+                mapping_conversations=None):
+        if mapping_conversations is None:
+            mapping_conversations = []
+        self.terminology_id=terminology_id 
+        self.source_code=source_code 
+        self.mapped_code=mapped_code 
+
+
+        prev = self.exists_in_db(return_instance=False)
+        if prev is not None:
+            _id = prev['_id']
+
+            if id is None:
+                id = prev['id']
+            if mapping_conversations == []:
+                mapping_conversations = prev['mapping_conversations']
+
+        Simple.__init__(self, id=id,
+                        _id=_id, 
+                        collection_type="mapping_conversations",
+                        resource_type="MappingConversation")
+
+        UserInput.__init__(self, return_format=list, input_type="note", update_policy="append")
+
+
+        self.mapping_conversations = mapping_conversations
+
+
+    def add_input(self, input, editor=None):
+        input_data=self.build_user_input(input, editor)
+        self.mapping_conversations.append(input_data)
+
+    def get_input(self):
+        return self.mapping_conversations
 
     def build_user_input(self, note, editor=None):
         """
@@ -282,6 +347,11 @@ class MappingConversations(UserInput):
 
     class _Schema(Schema):
         """Schema for serializing/deserializing multiple mapping conversations."""
+        id = fields.Str()
+        source_code = fields.Str()
+        mapped_code = fields.Str()
+        terminology_id = fields.Str()
+
         mapping_conversations = fields.List(fields.Dict(keys=fields.Str(),
                                                             values=fields.Str()))
 
@@ -306,7 +376,7 @@ class MappingConversations(UserInput):
         }
 
 
-class MappingVotes(UserInput):
+class MappingVote(Simple, UserInput):
     """
     Represents multiple user votes.
 
@@ -319,9 +389,38 @@ class MappingVotes(UserInput):
     }
 
     """
-    def __init__(self):
-        super().__init__(return_format=dict, input_type="vote", update_policy="update")
-        self.mapping_votes = {}
+    def __init__(self,
+                terminology_id,
+                source_code,
+                mapped_code,
+                id=None,
+                _id=None,
+                mapping_votes=None):
+
+        if mapping_votes is None:
+            mapping_votes = {}
+        self.terminology_id=terminology_id 
+        self.source_code=source_code 
+        self.mapped_code=mapped_code 
+
+        prev = self.exists_in_db(return_instance=False)
+
+        if prev is not None:
+            _id = prev['_id']
+
+            if id is None:
+                id = prev['id']
+            if mapping_votes == {}:
+                mapping_votes = prev['mapping_votes']
+
+        Simple.__init__(self, id=id,
+                        _id=_id, 
+                        collection_type="mapping_votes",
+                        resource_type="MappingVote")
+
+
+        UserInput.__init__(self, return_format=list, input_type="note", update_policy="append")
+        self.mapping_votes = mapping_votes
 
     def build_user_input(self, vote, editor=None):
         """
@@ -357,6 +456,13 @@ class MappingVotes(UserInput):
                                     "date": vote["date"]} for vote in mapping_votes
     }
 
+    def add_input(self, input, editor=None):
+        input_data=self.build_user_input(input, editor)
+        self.mapping_votes[input_data['user_id']] = input_data
+
+    def get_input(self):
+        return self.mapping_votes
+
     def validate_input(self, user_input):
         vote = user_input.get('vote')
         if not vote or vote not in ['up', 'down']:
@@ -376,10 +482,16 @@ class MappingVotes(UserInput):
         """
         Marshmallow schema for serializing and deserializing mapping votes.
         """        
+
+        id = fields.Str()
+        source_code = fields.Str()
+        mapped_code = fields.Str()
+        terminology_id = fields.Str()
         mapping_votes = fields.Dict(
             keys=fields.Str(),
             values=fields.Dict(keys=fields.Str(), values=fields.Str())
         )
+
         @post_load
         def build_mapping_votes(self, data, **kwargs):
             """
