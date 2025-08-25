@@ -1,4 +1,4 @@
-from . import Serializable
+from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
 
 from locutus.model.reference import Reference
