@@ -63,10 +63,10 @@ class DocumentReference:
         # Use the id field for consistency, and also set _id for MongoDB compatibility
         if self._doc_id:
             data["_id"] = ObjectId(self._doc_id)
-            data["id"] = self._doc_id
+            if "id" not in data:
+                data["id"] = self._doc_id
             doc = self._collection.replace_one({"_id": ObjectId(self._doc_id)}, data, upsert=True)
         else:
-            # pdb.set_trace()
             _id = self._collection.insert_one(data)
             data["_id"] = str(_id.inserted_id)
             data["id"] = data["_id"]
@@ -83,7 +83,6 @@ class DocumentReference:
 
     def delete(self):
         # Try to delete by _id first, then by id field for compatibility
-        # pdb.set_trace()
         result = self._collection.delete_one({"_id": ObjectId(self._doc_id)})
         if result.deleted_count == 0:
             result = self._collection.delete_one({"id": ObjectId(self._doc_id)})
@@ -118,18 +117,24 @@ class CollectionReference:
             filtered_doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
             yield DocumentSnapshot(doc_id, filtered_doc, collection=self._collection)
     
-    def find(self, query=None, sorting=None):
+    def find(self, query=None, sorting=None, return_instance=True):
         """Find documents matching the query - returns raw dictionaries for direct use"""
         if query is None:
             query = {}
 
         # if sorting is None:
+        #     sorting = ASCENDING
         #    sorting = [("_id", ASCENDING)]
-
-        for doc in self._collection.find(query).sort(sorting):
+        qresult = self._collection.find(query)
+        if sorting is not None:
+            qresult = qresult.sort(sorting)
+        for doc in qresult:
             # Remove all database-specific fields (starting with _)
-            doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
-            yield DocumentSnapshot(doc['_id'], doc, collection=self._collection)
+            # doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
+            if return_instance:
+                yield DocumentSnapshot(doc['_id'], doc, collection=self._collection)
+            else:
+                yield doc
     
     def find_one(self, query=None):
         """Find one document matching the query - returns raw dictionary for direct use"""
@@ -160,19 +165,12 @@ class CollectionReference:
 
 class FirestoreCompatibleClient:
     print("FirestoreCompatibleClient")
-    allowed_collections = [
-        "DataDictionary",
-        "OntologyAPI",
-        "Study",
-        "Table",
-        "Terminology",
-        "Coding",
-        "Mapping",
-        "Provenance"
-    ]
+    from locutus.model import resource_types, simple_types
+
+    allowed_collections = set(list(resource_types.keys()) + simple_types)
+
     def __init__(self, mongo_uri=None, missing_ok=False):
         # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
-        # pdb.set_trace()
         if mongo_uri is None:
             mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
         parsed = urlparse(mongo_uri)

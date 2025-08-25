@@ -27,13 +27,12 @@ class StorageBase:
     def collection(self, key):
         return self._collections[key]
 
+    """
 
 class JStoreCollection:
-    """
     TODO: Add aliases to persistence...but only if it makes sense to use them.
           FHIR doesn't do this, so it probably should be a more formal query
           rather than a way to short link using familiar names
-    """
 
     def __init__(self, cname, data=None):
         self.name = cname
@@ -145,3 +144,4 @@ class JStore(StorageBase):
     @classmethod
     def data_path(cls, pth):
         cls.file_path = Path(pth)
+    """
