@@ -1,8 +1,9 @@
 import pytest 
-from locutus.model.terminology import Terminology, Coding, CodingMapping
-from .test_terminology import sample_terminology, sample_terminology_with_editor
+from locutus.model.terminology import Terminology
+from locutus.model.coding import Coding, CodingMapping
+from .test_terminology import sample_terminology, sample_terminology_with_editor, ftd_concept_relationships
 
-# import pdb 
+import pdb 
 
 _all_terms = None
 @pytest.fixture
@@ -47,6 +48,7 @@ def test_get_preference(sample_terminology):
 
 def test_add_or_update_pref(sample_terminology):
     # Add a new preference
+    
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
     assert sample_terminology.get_preference("C1")["C1"]["api_preference"]  == {"ols": ["HP", "MONDO"]}
 
@@ -73,7 +75,7 @@ def test_get_preferred_terminology(sample_terminology, all_terminologies):
     sample_terminology.replace_preferred_terminology("unit-test", [{"preferred_terminology": term}])
     assert sample_terminology.get_preferred_terminology()["references"] == [{"reference": f"Terminology/{term}"}]
 
-def test_replace_preferred_terminology(sample_terminology, all_terminologies):
+def test_replace_preferred_terminology(sample_terminology, ftd_concept_relationships, all_terminologies):
     term1 = all_terminologies[1].id
     term2 = all_terminologies[0].id
     assert sample_terminology.get_preferred_terminology()["references"] == []

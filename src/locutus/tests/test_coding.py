@@ -63,10 +63,10 @@ class TestCoding:
         assert coding_one.description == "A Very Fine Description for the glorious term, 'code1'"
     
     def test_delete(self, coding_one):
-        assert coding_one.valid == None 
+        assert coding_one.valid == True 
         coding_one.delete(hard_delete=False)
 
-        coding = Coding.get(terminology_id=coding_one.terminology_id, code=coding_one.code)
+        coding = Coding.get(terminology_id=coding_one.terminology_id, code=coding_one.code, valid_only=False)
         assert coding.valid == False 
         coding = Coding(terminology_id="term1", code="SNOMED", system="SNOMED CT")
         coding.save()
@@ -141,21 +141,159 @@ class TestCoding:
         )
         assert coding.code == ".."
 
+    def test_coding_search_with_problem_chars(self):
+        c1 = Coding(
+            terminology_id="term1",
+            code=".",
+            display="The Dot",
+            system="Robot"
+        )
+        c1.save()
+
+        c2 = Coding(
+            terminology_id="term1",
+            code="..",
+            display="The Dots",
+            system="Robot"
+        )
+        c2.save()
+
+        c3 = Coding(
+            terminology_id="term1",
+            code=".term",
+            display="The Dots",
+            system="Robot"
+        )
+        c3.save()
+
+        c4 = Coding(
+            terminology_id="term1",
+            code="..term",
+            display="The Dots",
+            system="Robot"
+        )
+        c4.save()
+
+        c5 = Coding(
+            terminology_id="term1",
+            code="/",
+            display="The Slash",
+            system="Robot"
+        )
+        c5.save()
+
+        c6 = Coding(
+            terminology_id="term1",
+            code="/slash",
+            display="The Slash",
+            system="Robot"
+        )
+        c6.save()
+
+        c7 = Coding(
+            terminology_id="term1",
+            code="slash/",
+            display="The Slash",
+            system="Robot"
+        )
+        c7.save()
+
+        c8 = Coding(
+            terminology_id="term1",
+            code="#",
+            display="The Slash",
+            system="Robot"
+        )
+        c8.save()
+
+        c9 = Coding(
+            terminology_id="term1",
+            code="#hash",
+            display="The Slash",
+            system="Robot"
+        )
+        c9.save()
+
+        c10 = Coding(
+            terminology_id="term1",
+            code="ha#sh",
+            display="The Slash",
+            system="Robot"
+        )
+        c10.save()
+
+        c11 = Coding(
+            terminology_id="term1",
+            code="hash#",
+            display="The Slash",
+            system="Robot"
+        )
+        c11.save()
+        c = Coding.get(terminology_id="term1", code=".")
+        assert c is not None 
+        assert c.code == "."
+
+        c = Coding.get(terminology_id="term1", code="..")
+        assert c is not None 
+        assert c.code == ".."
+
+        c = Coding.get(terminology_id="term1", code=".term")
+        assert c is not None 
+        assert c.code == ".term"
+
+        c = Coding.get(terminology_id="term1", code="..term")
+        assert c is not None 
+        assert c.code == "..term"
+
+        c = Coding.get(terminology_id="term1", code="/")
+        assert c is not None 
+        assert c.code == "/"
+
+        c = Coding.get(terminology_id="term1", code="/slash")
+        assert c is not None 
+        assert c.code == "/slash"
+
+        c = Coding.get(terminology_id="term1", code="slash/")
+        assert c is not None 
+        assert c.code == "slash/"
+
+        c = Coding.get(terminology_id="term1", code="#")
+        assert c is not None 
+        assert c.code == "#"
+
+        c = Coding.get(terminology_id="term1", code="#hash")
+        assert c is not None 
+        assert c.code == "#hash"
+
+        c = Coding.get(terminology_id="term1", code="ha#sh")
+        assert c is not None 
+        assert c.code == "ha#sh"
+
+        c = Coding.get(terminology_id="term1", code="hash#")
+        assert c is not None 
+        assert c.code == "hash#"
+
+        codes = Coding.get(terminology_id="term1")
+        assert len(codes) == 11
+        for x in codes:
+            x.delete()
+
     def test_code_index(self):
-        assert get_code_index(".") == "<FTD-DOT>"
+        # We no longer need to worry about these special encodings
+        assert get_code_index(".") == "."    #"<FTD-DOT>"
         assert get_code_index(".something") == ".something"
         assert get_code_index("some.thing") == "some.thing"
         assert get_code_index("something.") == "something."
                 
-        assert get_code_index("..") == "<FTD-DOT-DOT>"
+        assert get_code_index("..") == ".."  # "<FTD-DOT-DOT>"
         assert get_code_index("..something") == "..something"
         assert get_code_index("some..thing") == "some..thing"
         assert get_code_index("something..") == "something.."
 
-        assert get_code_index("#") == "<FTD-HASH>"
-        assert get_code_index("#something") == "<FTD-HASH>something"
-        assert get_code_index("some#thing") == "some<FTD-HASH>thing"
-        assert get_code_index("something#") == "something<FTD-HASH>"
+        assert get_code_index("#") == "#"    # "<FTD-HASH>"
+        assert get_code_index("#something") == "#something" #"<FTD-HASH>something"
+        assert get_code_index("some#thing") == "some#thing" #"some<FTD-HASH>thing"
+        assert get_code_index("something#") == "something#" #"something<FTD-HASH>"
 
     def test_coding_with_hashes(self):
         coding = Coding(
@@ -250,10 +388,10 @@ class TestCoding:
     def test_coding_optional_fields_none(self):
         """Tests that optional fields correctly handle None values."""
         coding = Coding(terminology_id="term1", code="TestCode", system="TestSystem", display=None, description=None)
-        assert coding.display is None
-        assert coding.description is None
-        assert coding.to_dict()["display"] is None
-        assert coding.to_dict()["description"] is None
+        assert coding.display is ""
+        assert coding.description is ""
+        assert coding.to_dict()["display"] is ""
+        assert "description" not in coding.to_dict()
 
     def test_coding_optional_fields_empty_string(self):
         """Tests that optional fields handle empty string values (and strip them)."""
