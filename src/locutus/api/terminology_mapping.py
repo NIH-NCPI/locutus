@@ -8,9 +8,11 @@ from locutus import (
 )
 from locutus.model.terminology import (
     Terminology as Term,
-    Coding,
-    CodingMapping,
     MappingUserInputModel,
+)
+from locutus.model.coding import (
+    Coding, 
+    CodingMapping
 )
 from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.model.terminology_mapping import MappingRelationshipModel

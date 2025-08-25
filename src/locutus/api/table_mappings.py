@@ -2,7 +2,8 @@ from flask_restful import Resource
 from flask import request
 from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.model.table import Table
-from locutus.model.terminology import Terminology, Coding, CodingMapping, MappingUserInputModel
+from locutus.model.terminology import Terminology, MappingUserInputModel
+from locutus.model.coding import Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
 from locutus.model.exceptions import *
