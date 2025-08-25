@@ -1,4 +1,5 @@
-from locutus import persistence
+import locutus  # import persistence
+import locutus.model.terminology 
 from locutus.model.validation import validate_enums
 from locutus import logger
 import requests
@@ -30,17 +31,15 @@ class ResourceSingletonBase:
         if (resource_name, is_collection) not in cls._instances:
             instance = super(ResourceSingletonBase, cls).__new__(cls)
             cls._instances[(resource_name, is_collection)] = instance
-            instance.db = persistence()  # Initialize database client
+            instance.db = locutus.persistence()  # Initialize database client
             if is_collection:
                 # Cache the entire collection
                 instance.termref = instance.db.collection(resource_name).stream()
                 instance._cached_resource = [doc.to_dict() for doc in instance.termref]
             else:
                 # Cache a single document
-                instance.termref = (
-                    instance.db.collection("Terminology").document(resource_name).get()
-                )
-                instance._cached_resource = instance.termref.to_dict()
+                instance._cached_resource = locutus.model.terminology.Terminology.get(resource_name, return_instance=False)
+
         return cls._instances[(resource_name, is_collection)]
 
     def get_cached_resource(self):
