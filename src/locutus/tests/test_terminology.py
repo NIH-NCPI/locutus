@@ -207,6 +207,30 @@ def test_rename_code(sample_terminology):
     assert prov['old_value'] == "display: Code Two,description: Description for C2"
     assert prov['new_value'] == "display: C2 New Display,description: Updated description for C2"
 
+def test_rename_code_with_mappings(ftd_concept_relationships, sample_terminology):
+    # Setup some dummy mappings for testing the stub
+    mapping_c1_editorA = CodingMapping(code="MAP_C1_A", display="Map C1 A", system="http://map.com/A", mapping_relationship='equivalent', rank=1)
+    mapping_c1_editorB = CodingMapping(code="MAP_C1_B", display="Map C1 B", system="http://map.com/B", mapping_relationship='equivalent', rank=2)
+    mapping_c2_editorA = CodingMapping(code="MAP_C2_A", display="Map C2 A", system="http://map.com/A", mapping_relationship='equivalent', rank=3)
+    sample_terminology.set_mapping("C1", [mapping_c1_editorA, mapping_c1_editorB], "editorA")
+    sample_terminology.set_mapping("C2", [mapping_c2_editorA], "editorA")
+
+    c1_mappings = sample_terminology.mappings("C1")["C1"]
+    assert len(c1_mappings) == 2
+    assert any(m.code == "MAP_C1_A" for m in c1_mappings)
+    assert any(m.code == "MAP_C1_B" for m in c1_mappings)
+
+    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
+    assert sample_terminology.has_code("C1_NEW")
+    assert not sample_terminology.has_code("C1")
+
+    c1_mappings2 = sample_terminology.mappings("C1_NEW")["C1_NEW"]
+
+    assert c1_mappings == c1_mappings2
+
+
+
+
 def test_rename_code_provenance_code_and_display(sample_terminology):
     sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
 
