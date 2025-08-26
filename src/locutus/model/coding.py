@@ -67,13 +67,11 @@ class CodingMapping(BasicCoding):
         valid=None,
         rank=None,
         mapping_relationship=None,
-        user_input=None,
         ftd_code=None
     ):
         super().__init__(code=code, display=display, system=system, description=description)
         self.rank = rank
         self.valid = valid
-        self.user_input = user_input
         self.ftd_code = code # Default to given code, updated if necessary. 
 
         FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
@@ -90,7 +88,7 @@ class CodingMapping(BasicCoding):
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
-        user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
+        # user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
         ftd_code = fields.Str( 
             required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
         )
@@ -120,9 +118,12 @@ class CodingMapping(BasicCoding):
         else:
             obj["mapping_relationship"] = ""
 
+        """
         # Returns the user_input for a mapping if requested
         if self.user_input is not None:
             obj["user_input"] = self.user_input
+        
+        """
 
         return obj
 
@@ -177,7 +178,10 @@ class Coding(Simple, BasicCoding):
         self.rank = rank
         self.valid = valid
 
-        self.mappings = mappings
+        self.mappings = []
+        for mp in mappings:
+            mapping = CodingMapping(**mp)
+            self.mappings.append(mapping)
 
         self.api_preferences = api_preferences
 
@@ -273,6 +277,51 @@ class Coding(Simple, BasicCoding):
         else:
             t = Simple.delete(self, hard_delete=hard_delete)
         return t
+
+    def set_mapping_relationship(self, mapped_code, mapping_relationship, editor=None):
+        # Validation of mapping_relationship
+        ftd_terminology = FTDConceptMapTerminology()
+        ftd_terminology.validate_codes_against(
+            mapping_relationship, additional_enums=[""]
+        )
+
+        for mapping in self.mappings:
+            if mapping['code'] == mapped_code:
+                mapping.mapping_relationship = mapping_relationship 
+                self.save()
+
+                # Brenda was creating a complex index for the code/mapping
+                # target = generate_mapping_index(code, mapped_code)
+                Provenance.add_mapping_provenance(
+                    temrinology_id=self.terminology_id,
+                    target_coding=self.code, 
+                    editor=editor,
+                    action=Provenance.ChangeType.EditMapping,
+                    new_value=mapping_relationship
+                )
+                return True 
+        raise ValueError(
+            f"Mapping '{self.code}' | '{mapped_code}' not found in document '{id}'."
+        )
+
+    def set_mappings(self, codings):
+        # dict representation return for the response
+        mapped_codes = []
+
+        # reset mappings to empty array
+        self.mappings = []
+
+        # Validation of mapping_relationship
+        ftd_terminology = FTDConceptMapTerminology()  
+
+        for mapping in codings:
+            mapping.valid = True 
+            ftd_terminology.validate_codes_against(mapping.mapping_relationship, additional_enums=[''])
+            mapped_codes.append(mapping.code)
+            self.mappings.append(mapping)
+
+        return mapped_codes 
+            
 
     def delete_mappings(self):
         codes = []
