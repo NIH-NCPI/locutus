@@ -69,6 +69,9 @@ def test_terminology_rename(client):
                                 "editor": "unit-test",
                                 "display": {
                                     "C2": "second code"
+                                },
+                                "description": {
+                                    "C2": "second desc"
                                 }
                             }, 
                             headers={"Content-Type": "application/json"})  
@@ -77,10 +80,9 @@ def test_terminology_rename(client):
 
     term = Terminology.get("ontology-two")
     assert term.codes[1].display == "second code"
+    assert term.codes[1].description == "second desc"
 
     term.delete(hard_delete=True)
-
-
 
 def test_terminology_delete(client):
     term_body={
