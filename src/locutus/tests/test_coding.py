@@ -1,7 +1,8 @@
 
 # test_coding.py
 import pytest
-from locutus.model.coding import Coding 
+from locutus.model.coding import Coding, CodingMapping 
+from locutus.model.user_input import MappingConversation, MappingVote
 from locutus import get_code_index
 
 import pdb
@@ -119,6 +120,45 @@ class TestCoding:
         assert code.system == coding_one.system 
         assert code.terminology_id == coding_one.terminology_id 
         assert code.description == coding_one.description
+
+    def test_set_mappings(self, coding_one):
+        mappings = [
+            CodingMapping(code="MAP_C1_A", display="Map C1 A", system="http://map.com/A", mapping_relationship='equivalent'),
+            CodingMapping(code="MAP_C1_B", display="Map C1 B", system="http://map.com/B", mapping_relationship='equivalent'),
+        ]
+
+        mapped_codes = coding_one.set_mappings(mappings)
+        assert mapped_codes == ["MAP_C1_A", "MAP_C1_B"]
+        coding_one.save()
+
+        db_copy = Coding.get(
+                terminology_id=coding_one.terminology_id,
+                code=coding_one.code)
+        assert len(db_copy.mappings) == 2
+
+        assert db_copy.mappings[0].code == "MAP_C1_A" 
+        assert db_copy.mappings[0].mapping_relationship == 'equivalent' 
+        assert db_copy.mappings[1].code == "MAP_C1_B"
+        assert db_copy.mappings[1].mapping_relationship == 'equivalent'
+
+        # Test that setting it again overwrites the previous pair
+        coding_one.set_mappings([mappings[1]])
+        coding_one.save()
+        db_copy = Coding.get(
+                terminology_id=coding_one.terminology_id,
+                code=coding_one.code)
+        assert len(db_copy.mappings) == 1
+        assert db_copy.mappings[0].code == "MAP_C1_B"
+        assert db_copy.mappings[0].mapping_relationship == 'equivalent'
+
+        # Test that we can delete the mapping
+        mapped_codes = coding_one.delete_mappings()
+        assert mapped_codes[0]['code'] == "MAP_C1_B"
+        db_copy = Coding.get(
+                terminology_id=coding_one.terminology_id,
+                code=coding_one.code)
+        assert len(db_copy.mappings) == 0
+
 
     def test_coding_with_dots(self):
         """Tests successful initialization with all fields."""

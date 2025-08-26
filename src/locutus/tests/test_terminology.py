@@ -356,6 +356,7 @@ def test_delete_singular_mapping_provenance(sample_terminology):
     assert len(prov) == 2
     assert prov[-1]['action'] == "Soft Delete Mapping"
     old_value = prov[-1]['old_value']
+    
     assert len(old_value['codes']) == 2
     assert old_value['codes'][0]['code'] == "MAP1"
     assert old_value['codes'][0]['display'] == "Map One"
@@ -391,6 +392,7 @@ def test_delete_all_mapping_provenance(sample_terminology):
     assert prov[-1]['action'] == "Soft Delete Mapping"
 
     old_value = prov[-1]['old_value']
+    
     assert len(old_value['codes']) == 2
     assert old_value['codes'][0]['code'] == "MAP1"
     assert old_value['codes'][0]['display'] == "Map One"
