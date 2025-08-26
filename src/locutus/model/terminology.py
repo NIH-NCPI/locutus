@@ -135,15 +135,8 @@ class Terminology(Serializable):
         raise ValueError(f"Terminology.find_match() requires both a url and name.")
 
     def delete(self, hard_delete=True):
-        if not hard_delete:
-            self.valid =False 
-            self.save()
-            t = self.to_dict()
-        else:
-            dref = locutus.persistence().collection(self._collection_type).document(self._id)
-            t = dref.get().to_dict()
+        t = super().delete(hard_delete=hard_delete)
 
-            time_of_delete = dref.delete()
         # Delete all provenance
         for prov in locutus.model.provenance.Provenance.find({"terminology_id": self.id}):
             prov.delete(hard_delete=hard_delete)

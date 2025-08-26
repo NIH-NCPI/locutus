@@ -271,10 +271,7 @@ class Coding(Simple, BasicCoding):
             self.save()
             t = self.to_dict()
         else:
-            dref = locutus.persistence().collection("Coding").document(self._id)
-            t = dref.get().to_dict()
-
-            time_of_delete = dref.delete()
+            t = Simple.delete(self, hard_delete=hard_delete)
         return t
 
     def delete_mappings(self):

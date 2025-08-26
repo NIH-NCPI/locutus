@@ -56,7 +56,6 @@ class GlobalID(Simple):
             id_matches = self.__class__.find(resource_type=self.resource_type, key=self.key)
             if id_matches is not None and len(id_matches) > 0:
                 self._id = id_matches[0]['_id']
-
         self._id = locutus.persistence().collection(self.__class__.__name__).document(self._id).set(self.dump())
 
     def dump(self):
