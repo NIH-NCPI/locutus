@@ -47,6 +47,13 @@ class Serializable:
 
         return items
 
+    @classmethod 
+    def pull(cls, resource_type, id, return_instance=True):
+        """Works like get except that it uses resource_type to select the right class"""
+        resource_class = cls._factory_workers[resource_type.lower()]
+
+        return resource_class.get(id=id, return_instance=return_instance)
+
     @classmethod
     def get(cls, id=None, return_instance=True):
         """Pull instance from the database and (default) instantiate"""
@@ -126,3 +133,16 @@ class Serializable:
         if "resource_type" in d:
             del d["resource_type"]
         return cls._factory_workers[data["resource_type"].lower()](**d)
+
+    def delete(self, hard_delete=True):
+        if not hard_delete:
+            self.valid = False 
+            self.save()
+            t = self.to_dict()
+        else:
+            dref = locutus.persistence().collection(self._collection_type).document(self._id)
+            t = dref.get().to_dict()
+
+            time_of_delete = dref.delete()
+
+        return t
