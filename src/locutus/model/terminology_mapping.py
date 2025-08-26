@@ -22,51 +22,15 @@ class MappingRelationshipModel:
 
         code_index = get_code_index(code)
 
+        # Mappings have been moved into the Coding:
+        coding = Coding.get(terminology_id=id,
+            code=code)
+        
         try:
-            mappingref = (
-                persistence()
-                .collection("Terminology")
-                .document(id)
-                .collection("mappings")
-                .document(code_index)
-                .get()
-            )
-
-            if not mappingref.exists:
-                raise ValueError(f"Mapping '{code_index}' does not exist in document '{id}'.")
-
-            mapping_data = mappingref.to_dict()
-            mappings = mapping_data.get("codes", [])
-
-            # Find the entry for the mapped_code and update the mapping relationship
-            updated = False
-
-            # Ensure codes/mappings are not placeholders at this point.
-            code = normalize_ftd_placeholders(code)
-            mapped_code = normalize_ftd_placeholders(mapped_code)
-
-            for entry in mappings:
-                if entry.get("code") == mapped_code:
-                    entry["mapping_relationship"] = mapping_relationship
-                    updated = True
-                    break
-
-            if not updated:
-                raise ValueError(
-                    f"Mapping '{code}' | '{mapped_code}' not found in document '{id}'."
-                )
-
-            mappingref.reference.update({"codes": mappings})
-
-            # Add provenance
-            target = generate_mapping_index(code, mapped_code)
-            term = Terminology(id)
-            term.add_provenance(
-                change_type=Terminology.ChangeType.EditMapping,
-                editor=editor,
-                target=target,
-                new_value=mapping_relationship
-            )
+            coding.set_mapping_relationship(
+                mapped_code=mapped_code, 
+                mapping_relationship=mapping_relationship, 
+                editor=editor)
 
         except Exception as e:
             print(f"An error occurred while setting the mapping relationship: {str(e)}")
