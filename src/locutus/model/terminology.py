@@ -20,6 +20,7 @@ from datetime import datetime
 import time
 from locutus import logger
 
+from locutus.model.user_input import MappingConversation, MappingVote
 from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
 from locutus.model.onto_api_preference import OntoApiPreference
 import locutus.model.provenance
@@ -137,6 +138,20 @@ class Terminology(Serializable):
     def delete(self, hard_delete=True):
         t = super().delete(hard_delete=hard_delete)
 
+        # User Input
+        for cnv in MappingConversation.get(
+            terminology_id=self.id,
+            return_instance=True
+            ):
+            cnv.delete(hard_delete=hard_delete)
+        
+        for vote in MappingVote.get(
+            terminology_id=self.id,
+            return_instance=True
+            ):
+            vote.delete(hard_delete=hard_delete)
+
+
         # Delete all provenance
         for prov in locutus.model.provenance.Provenance.find({"terminology_id": self.id}):
             prov.delete(hard_delete=hard_delete)
@@ -151,38 +166,7 @@ class Terminology(Serializable):
         for coding in all_codings:
             coding.delete(hard_delete=hard_delete)
 
-        return t
 
-    @classmethod
-    def _delete(cls, id):
-        """This is being moved to other places and will no longer be necessary here. 
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("mappings")
-        )
-        delete_collection(mapref)
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("provenance")
-        )
-        delete_collection(mapref)
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("onto_api_preference")
-        )
-        delete_collection(mapref)
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("preferred_terminology")
-        )
-        delete_collection(mapref)
-        mapref = (
-            persistence().collection("Terminology").document(id).collection("user_input")
-        )
-        delete_collection(mapref)
-        """
-
-
-        dref = locutus.persistence().collection("Terminology").document(id)
-        t = dref.get().to_dict()
-
-        time_of_delete = dref.delete()
         return t
 
     def keys(self):
@@ -619,36 +603,18 @@ class Terminology(Serializable):
         # Ensure code is not a placeholder at this point.
         code = locutus.normalize_ftd_placeholders(code)
 
-        doc = {"code": code, "codes": []}
-
-        # Validation of mapping_relationship
-        ftd_terminology = FTDConceptMapTerminology()  
         new_mappings = []
 
         coding = self.get_coding(code)
         old_mappings = ",".join([x.code for x in coding.mappings])
-        # Reset the mappings and rebuild them below
-        coding.mappings = []
-        for mapping in codings:
-            coding.mappings.append(mapping)
-            coding_dict = mapping.to_dict()
 
-            ftd_terminology.validate_codes_against(coding_dict["mapping_relationship"], additional_enums=[""])
-
-            # Add 'valid' explicitly to the mapping document
-            coding_dict['valid'] = True
-
-            doc["codes"].append(coding_dict)
-            new_mappings.append(coding_dict["code"])
-
-            for coding_obj in self.codes:
-                if coding_obj.code == mapping.code:
-                    coding_obj.valid = True
+        
+        new_mappings = coding.set_mappings(codings)
         coding.save()
 
-
-
+        # Should we move the provenance inside the coding? Probably, but later EST -- 2025-08-26
         change_type = locutus.model.provenance.Provenance.ChangeType.AddMapping
+
         if old_mappings != "":
             # This is not super helpful, but at least we get some detail about which mappings were removed
             change_type = locutus.model.provenance.Provenance.ChangeType.EditMapping
