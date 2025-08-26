@@ -111,6 +111,11 @@ class Serializable:
     def keys(self):
         return None
 
+    def global_id(self):
+        gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
+        return gid 
+
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._factory_workers[cls.__name__.lower()] = cls

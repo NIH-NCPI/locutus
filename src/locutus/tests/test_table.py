@@ -40,7 +40,12 @@ def basic_table(sample_terminology):
     )
     table.save()
     yield table 
-    Terminology.get(table.terminology.reference_id()).delete(hard_delete=True)
+    table.global_id().delete()
+
+    t = Terminology.get(table.terminology.reference_id())
+    t.global_id().delete()
+    t.delete(hard_delete=True)
+
     table.delete(hard_delete=True)
 
 def test_table_basics(sample_terminology):
@@ -99,6 +104,7 @@ def test_table_basics(sample_terminology):
     t = Table.get(table.id)
     assert t.id == table.id 
 
+    t.global_id().delete()
     t.delete(hard_delete=True)
     t = Table.get(table.id)
 
@@ -108,6 +114,7 @@ def test_table_basics(sample_terminology):
     # We are currently not deleting shadow terminologies, since they may have not
     # been created specifically for the table
     assert t is not None 
+    t.global_id().delete()
     t.delete(hard_delete=True)
     t = Terminology.get(shadow_id)
     assert t is None
