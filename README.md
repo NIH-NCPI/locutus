@@ -516,8 +516,8 @@ Renames code(s) with new names.
 
 This PATCH method does not conform to the standard guidelines which permit
 updates to any property within the resource. Instead it is intended solely
-for renaming codes inside a terminology. The body of the call will include will
-be an object with one or two keys, "code" and "display" (a valid rename must
+for renaming codes inside a terminology. The body of the call will be an object 
+with one to three keys, "code", "display" or "description" (a valid rename must
 have one of the two). Each of those keys will point to an object whose keys
 match a term within the current terminology. Those key's values represent the
 new value after the change.
