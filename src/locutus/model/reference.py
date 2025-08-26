@@ -43,10 +43,7 @@ class Reference(Serializable):
         than a single block."""
         if self._reference is None:
             resource_type, id = self.reference.split("/")
-            resource_raw = (
-                locutus.persistence().collection(resource_type).document(id).get().to_dict()
-            )
-            self._reference = Serializable.build_object(resource_raw)
+            self._reference = Serializable.pull(resource_type, id)
 
         return self._reference
 
