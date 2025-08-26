@@ -48,7 +48,6 @@ def sample_terminology():
         Coding(terminology_id="ontology-one", code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
         Coding(terminology_id="ontology-one", code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
     ]
-
     t = Terminology(
         id="ontology-one",
         name="Ontology One",
@@ -59,10 +58,8 @@ def sample_terminology():
 
     t.save()
     yield t
-    # Delete the global ID
-    gid = GlobalID(resource_type="Terminology", 
-                    key=":".join(t.keys()))
-    gid.delete()
+    # no global ID to delete
+
 
     t.delete(hard_delete=True)
 
@@ -84,12 +81,6 @@ def sample_terminology_with_editor():
     )
     t.save()
     yield t
-
-    # Delete the global ID
-    gid = GlobalID(resource_type="Terminology", 
-                    key="|".join(t.keys()))
-    gid.delete()
-
 
     t.delete(hard_delete=True)
 
@@ -116,6 +107,7 @@ def test_terminology_id(sample_terminology):
     )
 
     assert term.id[0:3] == "tm-"
+    term.global_id().delete()
     term.delete()
 
 def test_terminology_init(sample_terminology):
