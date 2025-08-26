@@ -25,6 +25,62 @@ def test_terminology_get(client, ftd_concept_relationships, sample_terminology):
     assert term['name'] == "Ontology One"
     assert len(term['codes']) == 2
 
+def test_terminology_rename(client):
+    term_body={
+        "id": "ontology-two",
+        "name": "Ontology Two",
+        "url": "http://example.com/ont1",
+        "description": "A sample oncology terminology",
+        "codes": [
+            {
+                "code": "C1",
+                "display": "Code One",
+                "description": "Description for C1"
+            },
+            {
+                "code": "C2",
+                "display": "Code Two",
+                "description": "'Description for C2"
+            }
+        ],
+        "editor": "test-user"
+    }
+
+    response = client.post("/api/Terminology", 
+                            json=term_body, 
+                            headers={"Content-Type": "application/json"})
+    assert response.status_code == 201
+
+    response = client.patch(f"/api/Terminology/ontology-two/rename",
+                            json={
+                                "editor": "unit-test",
+                                "code": {
+                                    "C1": "Code01"
+                                }
+                            }, 
+                            headers={"Content-Type": "application/json"})
+    assert response.status_code == 201
+
+    term = Terminology.get("ontology-two")
+    assert term.codes[0].code == "Code01"
+
+    response = client.patch(f"/api/Terminology/ontology-two/rename",
+                            json={
+                                "editor": "unit-test",
+                                "display": {
+                                    "C2": "second code"
+                                }
+                            }, 
+                            headers={"Content-Type": "application/json"})  
+
+    assert response.status_code == 201
+
+    term = Terminology.get("ontology-two")
+    assert term.codes[1].display == "second code"
+
+    term.delete(hard_delete=True)
+
+
 
 def test_terminology_delete(client):
     term_body={
