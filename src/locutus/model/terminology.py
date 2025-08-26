@@ -228,7 +228,7 @@ class Terminology(Serializable):
             raise locutus.model.exceptions.InvalidValueError(code, "too many codes already exist in the database")
         if type(coding) is Coding:
             if coding.valid:
-                raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding.to_dict())
+                raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding)
             coding.valid=True
             coding.save()
             new_coding=coding
