@@ -61,6 +61,7 @@ class Table(Serializable):
     def __init__(
         self,
         id=None,
+        _id=None,
         code="",
         name=None,
         url=None,
@@ -72,7 +73,7 @@ class Table(Serializable):
         editor=None,
     ):
 
-        super().__init__(id=id, collection_type="Table", resource_type="Table")
+        super().__init__(id=id, _id=_id, collection_type="Table", resource_type="Table")
 
         if locutus.strip_none(code) == "":
             code = locutus.strip_none(name)

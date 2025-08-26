@@ -93,6 +93,7 @@ class Variable:
         # print(cls._factory_workers)
         vardata = deepcopy(data)
         del vardata["data_type"]
+        
         try:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
         except:
@@ -138,19 +139,8 @@ class EnumerationVariable(Variable):
         return mappings
 
     def get_terminology(self):
-
-        terminology = (
-            locutus.persistence()
-            .collection("Terminology")
-            .document(self.enumerations.reference_id())
-            .get()
-            .to_dict()
-        )
-
-        t = Term(**terminology)
-
-        return t
-
+        return Terminology.get(self.enumerations.reference_id(), return_instance=True)
+        
     class _Schema(Schema):
         name = fields.Str(required=True)
         code = fields.Str()
