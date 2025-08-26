@@ -385,35 +385,7 @@ class Terminology(Serializable):
             )
             # coding.save()
             
-            """
-            code = locutus.normalize_ftd_placeholders(code)
 
-            code_index = locutus.get_code_index(code)
-
-            tmref = (
-                locutus.persistence()
-                .collection("Terminology")
-                .document(self.id)
-                .collection("mappings")
-                .document(code_index)
-            )
-
-            mapping = tmref.get().to_dict()
-            time_of_delete = 0
-            if mapping is not None:
-                # Iterate over the codes in the mapping and toggle 'valid' to False
-                for codingmapping in mapping["codes"]:
-                    codingmapping["valid"] = False
-
-                # Save the updated mapping with the 'valid' field set to False
-                tmref.set(mapping)
-
-                self.add_provenance(
-                    change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
-                    target=code,
-                    old_value=mapping,
-                    editor=editor,
-                ) """
             if len(old_values['codes']) == 0:
                 logger.debug(f"Soft deleting mappings for code: {code}, Terminology: {self.name} but there were no mappings.")
 
@@ -432,34 +404,6 @@ class Terminology(Serializable):
                     editor=editor,
                 )
 
-                # coding.save()
-                """
-            mapref = (
-                locutus.persistence()
-                .collection("Terminology")
-                .document(self.id)
-                .collection("mappings")
-            )
-
-            for mapping_doc in mapref.stream():
-                mapping = mapping_doc.to_dict()
-                mapping_code_id = mapping["code"]
-                code_index = locutus.get_code_index(mapping_code_id)
-
-                for coding in mapping["codes"]:
-                    if "valid" in coding:
-                        coding["valid"] = False
-
-            
-                self.add_provenance(
-                    change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
-                    target=mapping_code_id,
-                    old_value=mapping,
-                    editor=editor,
-                )
-                # Save the updated mapping
-                # mapref.document(code_index).set(mapping)
-                """
 
             self.add_provenance(
                 change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteAllMappings,
@@ -482,40 +426,6 @@ class Terminology(Serializable):
             for code in self.codes:
                 codes[code.code] = code.mappings
         return codes
-        """
-        if code is None:
-            for mapping in (
-                locutus.persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("mappings")
-                .stream()
-            ):
-                mapping = mapping.to_dict()
-
-                code_id = mapping["code"]
-                codes[code_id] = Terminology.build_code_list(mapping)
-
-        else:
-            code_index = locutus.get_code_index(code)
-
-            mapping = (
-                locutus.persistence()
-                .collection(self.resource_type)
-                .document(self.id)
-                .collection("mappings")
-                .document(code_index)
-                .get()
-                .to_dict()
-            )
-            if mapping is not None:
-                code_id = mapping["code"]
-                codes[code_id] = Terminology.build_code_list(mapping)
-            else:
-                codes[code] = []
-
-        return codes
-        """
 
     def get_coding(self, code):
         for item in self.codes:
@@ -697,32 +607,7 @@ class Terminology(Serializable):
 
         logger.debug(message)
         return message
-        """
-        try:
-            # Define the collection reference
-            collection_ref = locutus.persistence().collection(self.resource_type) \
-                .document(self.id).collection("onto_api_preference")
 
-            code_index = locutus.get_code_index(code)
-
-            doc_ref = collection_ref.document(code_index)
-            doc_snapshot = doc_ref.get()
-
-            if doc_snapshot.exists:
-                # Delete the document if it exists
-                doc_ref.delete()
-                message = f"Successfully deleted preferences for code '{code}'."
-            else:
-                message = f"No preferences found to delete for code '{code}'."
-
-        except Exception as e:
-            message = f"An error occurred while deleting preferences for code '{code}': {e}"
-            raise
-
-        print(message)
-
-        return message
-        """
 
     def get_preferred_terminology(self):
         """
@@ -747,23 +632,7 @@ class Terminology(Serializable):
         return {
             "references": self.preferred_terminologies
         }
-        """
-        try:
-            doc_ref = locutus.persistence().collection(self.resource_type).document(self.id) \
-                .collection("preferred_terminology").document("self")
 
-            doc_snapshot = doc_ref.get()
-            if doc_snapshot.exists:
-                preferred_terms = doc_snapshot.to_dict().get('references', [])
-                return {"references": preferred_terms}
-            else:
-                # Return an empty list for references if no preferred terminology exists
-                return {"references": []}
-
-        except Exception as e:
-            print(f"An error occurred while retrieving preferred terminology: {e}")
-            raise
-        """
     def replace_preferred_terminology(self, editor, preferred_terminology):
         """
         Creates or replaces a document in the 'preferred_terminology' sub-collection
@@ -791,30 +660,6 @@ class Terminology(Serializable):
             editor=editor,
         )
 
-        """
-        try:
-            # Reference to the sub-collection document named "self"
-            doc_ref = locutus.persistence().collection(self.resource_type).document(self.id) \
-                .collection("preferred_terminology").document("self")
-            
-            # Create a list of references based on the provided preferred terminologies
-            references = [{"reference": f"Terminology/{item['preferred_terminology']}"} for item in preferred_terminology]
-
-            # Update the document with new combined data
-            doc_ref.set({"references": references})
-
-            self.add_provenance(
-            locutus.model.provenance.Provenance.ChangeType.ReplacePrefTerm,
-            target="self",
-            new_value=references,
-            editor=editor,
-            )
-
-        except Exception as e:
-            message = f"An error occurred while adding preferred terminology: {e}"
-            logger.error(message)
-            raise
-        """
 
     def remove_preferred_terminology(self, editor=None):
         if len(self.preferred_terminologies) > 0:
@@ -834,31 +679,6 @@ class Terminology(Serializable):
         logger.debug(message)
         return message 
 
-        """
-        try:
-            # Define the collection reference
-            collection_ref = locutus.persistence().collection(self.resource_type) \
-                .document(self.id).collection("preferred_terminology")
-
-            doc_ref = collection_ref.document("self")
-            doc_snapshot = doc_ref.get()
-
-            if doc_snapshot.exists:
-                # Delete the document if it exists
-                doc_ref.delete()
-                message = f"Successfully deleted preferences for '{self.id}'."
-            else:
-                message = f"No preferences found to delete for '{self.id}'."
-
-        except Exception as e:
-            message = f"An error occurred while deleting preferences for '{self.id}': {e}"
-            logger.error(message)
-            raise
-
-        logger.debug(message)
-
-        return message
-        """
     class _Schema(Schema):
         id = fields.Str()
         name = fields.Str(required=True)
@@ -888,58 +708,29 @@ class MappingUserInputModel:
 
         mapped_code = locutus.normalize_ftd_placeholders(mapped_code)
 
-        document_id = generate_mapping_index(code, mapped_code)
-        doc_ref = (
-            locutus.persistence()
-            .collection("Terminology")
-            .document(id)
-            .collection("user_input")
-            .document(document_id)
-        )
-
-        comments_count = MappingUserInputModel.get_mapping_conversations_counts(doc_ref)
-        votes_count = MappingUserInputModel.get_mapping_votes_counts(doc_ref)
-        users_vote = MappingUserInputModel.get_users_mapping_vote(doc_ref, user_id)
+        conversation = MappingConversation.get(terminology_id=id,
+            source_code=code,
+            mapped_code=code,
+            return_instance=False)
+        votes = MappingVote.get(terminology_id=id,
+            source_code=code,
+            mapped_code=code,
+            return_instance=False)
 
         return {
-            "comments_count": comments_count,
-            "votes_count": votes_count,
-            "users_vote": users_vote,
+            "comments_count": len(conversation.mapping_conversations),
+            "votes_count": MappingUserInputModel.get_mapping_votes_counts(votes.mapping_votes),
+            "users_vote": votes.mapping_votes.get(user_id) or ""
         }
 
-    def get_mapping_conversations_counts(doc_ref):
-        """Counts the number of mapping_conversation records for a given mapping"""
-        document = doc_ref.get()
-        if document.exists:
-            data = document.to_dict()
-            conversations = data.get("mapping_conversations", [])
-            return len(conversations)
-        return 0
-
-    def get_mapping_votes_counts(doc_ref):
+    def get_mapping_votes_counts(mapping_votes):
         """Counts up and down votes for a given mapping"""
-        document = doc_ref.get()
-        if document.exists:
-            data = document.to_dict()
-            mapping_votes = data.get("mapping_votes", {})
-            return {
-                "up": sum(
-                    1 for vote in mapping_votes.values() if vote.get("vote") == "up"
-                ),
-                "down": sum(
-                    1 for vote in mapping_votes.values() if vote.get("vote") == "down"
-                ),
-            }
-        return {"up": 0, "down": 0}
+        return {
+            "up": sum(
+                1 for vote in mapping_votes.values() if vote.get("vote") == "up"
+            ),
+            "down": sum(
+                1 for vote in mapping_votes.values() if vote.get("vote") == "down"
+            ),
+        }
 
-    def get_users_mapping_vote(doc_ref, user_id):
-        """Retrieves the current user's vote for a given mapping. If the user_id
-        is not found(no vote exists for the user, or user_id is unknown/None) an
-        empty string is returned."""
-        document = doc_ref.get()
-        if document.exists:
-            data = document.to_dict()
-            mapping_votes = data.get("mapping_votes", {})
-            user_vote = mapping_votes.get(user_id, {}).get("vote")
-            return user_vote if user_vote else ""
-        return ""

@@ -84,47 +84,7 @@ class UserInput:
                         "message": "No user input for this mapping."}
             existing_data['code'] = existing_data['source_code']
             return existing_data 
-            """
-            document_id = generate_mapping_index(code, mapped_code)
-            doc_ref = locutus.persistence().collection(resource_type).document(id) \
-                .collection(collection_type).document(document_id)
 
-            doc_snapshot = doc_ref.get()
-
-            # Ensure codes/mappings are not placeholders at this point.
-            code = locutus.normalize_ftd_placeholders(code)
-            mapped_code = locutus.normalize_ftd_placeholders(mapped_code)
-
-            if doc_snapshot.exists:
-                existing_data = doc_snapshot.to_dict()
-            else:
-                return {resource_type: id,
-                        "code": code,
-                        "mapped_code": mapped_code,
-                        "message": "No user input for this mapping."}
-
-            # Use the type to instantiate the corresponding UserInput subclass
-            user_input_instance = cls.get_input_class(type)
-
-            # Retrieve the specific input data using the type
-            input_data = existing_data.get(type)
-
-            # If input_data is not found, return the appropriate default format
-            if input_data is None:
-                input_data = user_input_instance.return_format if user_input_instance.return_format != list else []
-
-            # Serialize the data using the appropriate schema
-            schema = user_input_instance._Schema()
-            serialized_data = schema.dump({type: input_data})
-
-            # Return the extracted and serialized data in a standardized format
-            return {
-                resource_type: id,
-                "code": code,
-                "mapped_code": mapped_code,
-                type: serialized_data[type]
-            }
-            """
 
         except Exception as e:
             return (f"An error occurred while retrieving user input for {id} {resource_type} - {code}/{mapped_code}: {e}"), 500

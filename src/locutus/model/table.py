@@ -1,15 +1,7 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
 import locutus 
-"""
-from locutus import (
-    persistence,
-    strip_none,
-    FTD_PLACEHOLDERS,
-    normalize_ftd_placeholders,
-    get_code_index
-)
-"""
+
 from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
@@ -207,18 +199,13 @@ class Table(Serializable):
                         editor=editor,
                     )
                     if original_varname != new_varname:
-                        term_doc = (
-                            locutus.persistence()
-                            .collection(terminology.resource_type)
-                            .document(terminology.id)
-                            .collection("provenance")
-                        )
-                        original_code_index = locutus.get_code_index(original_code)
-                        new_code_index = locutus.get_code_index(var.code)
-                        prov = term_doc.document(original_code_index).get().to_dict()
-                        prov["target"] = var.code
-                        term_doc.document(new_code_index).set(prov)
-                        term_doc.document(original_code_index).delete()
+                        for prov in Provenance.mapping_provenance(
+                            terminology_id=self.id,
+                            target_coding=original_varname,
+                            return_instance=True
+                        ):
+                            prov.target_coding = new_varname
+                            prov.save()
                 return True
         return False
 
