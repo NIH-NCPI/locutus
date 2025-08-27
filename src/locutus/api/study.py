@@ -4,11 +4,13 @@ from locutus import persistence
 from locutus.model.study import Study as mStudyTerm
 from locutus.api import default_headers
 
+from bson import json_util 
+import json
 
 class Studies(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("Study").stream()],
+            json.loads(json_util.dumps(mStudyTerm.get(return_instance=False))),
             200,
             default_headers,
         )
@@ -34,31 +36,25 @@ class Studies(Resource):
 
         study = mStudyTerm(**sty)
         study.save()
-        return study.dump(), 201, default_headers
+        return json.loads(json_util.dumps(study.dump())), 201, default_headers
 
     def delete_dd_references(self, id):
         affected_ids = 0
-        for resource in persistence().collection("Study").stream():
-            resource = resource.to_dict()
-
-            if "resource_type" in resource:
-                del resource["resource_type"]
-            obj = mStudyTerm(**resource)
-
-            matched_references = obj.remove_dd(id)
+        
+        for study in mStudyTerm.get(return_instance=True):
+            matched_references = study.remove_dd(id)
 
             if matched_references > 0:
-                obj.save()
-
-                affected_ids += 1
+                study.save()
+                affected_ids += matched_references 
 
         return affected_ids
 
 
 class Study(Resource):
     def get(self, id):
-        t = persistence().collection("Study").document(id).get()
-        return t.to_dict(), 200, default_headers
+        study = mStudyTerm.get(id)
+        return json.loads(json_util.dumps(study.dump())), 200, default_headers
 
     def put(self, id):
         sty = request.get_json()
@@ -70,16 +66,14 @@ class Study(Resource):
 
         study = mStudyTerm(**sty)
         study.save()
-        return study.dump(), 201, default_headers
+        return json.loads(json_util.dumps(study.dump())), 201, default_headers
 
     def delete(self, id):
-        dref = persistence().collection("Study").document(id)
-        t = dref.get().to_dict()
-        time_of_delete = dref.delete()
-        # if t is not None:
-        #    persistence().save()
+        study = mStudyTerm.get(id)
+        t = study.dump()
+        study.delete()
 
-        return t, 200, default_headers
+        return json.loads(json_util.dumps(t)), 200, default_headers
 
 
 class StudyEdit(Resource):
@@ -93,4 +87,4 @@ class StudyEdit(Resource):
                 default_headers,
             )
         study.save()
-        return study.dump(), 200, default_headers
+        return json.loads(json_util.dumps(study.dump())), 200, default_headers
