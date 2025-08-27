@@ -54,6 +54,12 @@ class Studies(Resource):
 class Study(Resource):
     def get(self, id):
         study = mStudyTerm.get(id)
+        if study is None:
+            return (
+                f"There is no Study, {id}.",
+                404,
+                default_headers,
+            )
         return json.loads(json_util.dumps(study.dump())), 200, default_headers
 
     def put(self, id):
