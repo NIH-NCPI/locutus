@@ -17,7 +17,8 @@ def test_terminology_get(client, ftd_concept_relationships, sample_terminology):
     assert term['id'] == "ftd-concept-map-relationship"
     assert len(term['codes']) == 3
     assert term['codes'][0]['code'] == "equivalent"
-    assert term['codes'][1]['display'] == "The source concept is narrower in meaning than the target concept."
+    assert term['codes'][1]['display'] == 'Source Is Narrower Than Target' 
+    assert term['codes'][1]['description'] == "The source concept is narrower in meaning than the target concept."
     assert term['codes'][2]['system'] == "http://hl7.org/fhir/concept-map-relationship"
 
     term = client.get("/api/Terminology/ontology-one").json
