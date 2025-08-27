@@ -8,6 +8,8 @@ from locutus.api.datadictionary import DataDictionaries
 from locutus.model.exceptions import *
 from copy import deepcopy
 
+from bson import json_util 
+import json
 
 class TableRenameCode(Resource):
     def patch(self, id):
@@ -63,7 +65,7 @@ class TableRenameCode(Resource):
                     default_headers,
                 )
 
-        return table.dump(), 201, default_headers
+        return json.loads(json_util.dumps(table.dump())), 201, default_headers
 
 
 class TableEdit(Resource):
@@ -85,7 +87,7 @@ class TableEdit(Resource):
             return e.to_dict(), e.status_code, default_headers
 
         table.save()
-        return table.dump(), 201, default_headers
+        return json.loads(json_util.dumps(table.dump())), 201, default_headers
 
     def delete(self, id, code):
         """Delete a Table Variable"""
@@ -104,7 +106,7 @@ class TableEdit(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return table.dump(), 200, default_headers
+        return json.loads(json_util.dumps(table.dump())), 200, default_headers
 
 
 class Tables(Resource):
@@ -114,8 +116,9 @@ class Tables(Resource):
         Technically, this will probably not get so big as to be a problem
         but it's technically not wise to pull these into a single response.
         We should plan on paginating this at some point."""
+
         return (
-            [x.to_dict() for x in persistence().collection("Table").stream()],
+            json.loads(json_util.dumps(mTable.get(return_instance = False))),
             200,
             default_headers,
         )
@@ -133,13 +136,13 @@ class Tables(Resource):
 
         t = mTable(**tbl)
         t.save()
-        return t.dump(), 201, default_headers
+        return json.loads(json_util.dumps(t.dump())), 201, default_headers
 
 
 class Table(Resource):
 
     def get(self, id):
-        return mTable.get(id, return_instance=False)
+        return json.loads(json_util.dumps(mTable.get(id, return_instance=False)))
 
     def put(self, id):
         tbl = request.get_json()
@@ -158,7 +161,7 @@ class Table(Resource):
 
         t = mTable(**tbl)
         t.save()
-        return t.dump(), 200, default_headers
+        return json.loads(json_util.dumps(t.dump())), 200, default_headers
 
     def delete(self, id):
         body = request.get_json()
@@ -189,7 +192,7 @@ class Table(Resource):
         # if t is not None:
         #    persistence().save()
 
-        return t, 200, default_headers
+        return json.loads(json_util.dumps(t)), 200, default_headers
 
 
 class HarmonyCSV(Resource):
@@ -200,4 +203,4 @@ class HarmonyCSV(Resource):
             harmony = t.as_harmony()
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
-        return harmony, 200, default_headers
+        return json.loads(json_util.dumps(harmony)), 200, default_headers
