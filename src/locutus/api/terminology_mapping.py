@@ -20,6 +20,8 @@ from locutus.model.exceptions import *
 from locutus.sessions import SessionManager
 from flask_cors import cross_origin
 from locutus.api import default_headers, get_editor
+from bson import json_util 
+import json
 
 
 class TerminologyMapping(Resource):
@@ -40,11 +42,7 @@ class TerminologyMapping(Resource):
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
 
-            term = persistence().collection("Terminology").document(id).get().to_dict()
-            if "resource_type" in term:
-                del term["resource_type"]
-
-            t = Term(**term)
+            t = Term.get(id)
 
             mappings = t.mappings(code)
             response = {"code": code, "mappings": []}
@@ -60,7 +58,7 @@ class TerminologyMapping(Resource):
                 if codingmapping.valid != False:
                     response["mappings"].append(codingmapping.to_dict())
 
-            return (response, 200, default_headers)
+            return (json.loads(json_util.dumps(response)), 200, default_headers)
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -80,7 +78,7 @@ class TerminologyMapping(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id, code):
@@ -103,13 +101,7 @@ class TerminologyMapping(Resource):
 
             codingmapping = [CodingMapping(**x) for x in mappings]
 
-            tref = persistence().collection("Terminology").document(id)
-
-            term = tref.get().to_dict()
-            if "resource_type" in term:
-                del term["resource_type"]
-
-            t = Term(**term)
+            t = Term.get(id)
 
             # Raise error if the code is not in the terminology
             if not t.has_code(code):
@@ -121,7 +113,7 @@ class TerminologyMapping(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return (response, 201, default_headers)
+        return (json.loads(json_util.dumps(response)), 201, default_headers)
 
 
 class MappingRelationship(Resource):
@@ -152,4 +144,4 @@ class MappingRelationship(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
