@@ -167,7 +167,7 @@ class FirestoreCompatibleClient:
     print("FirestoreCompatibleClient")
     from locutus.model import resource_types, simple_types
 
-    allowed_collections = set(list(resource_types.keys()) + simple_types)
+    allowed_collections = set(list(resource_types.keys()) + simple_types + ["OngologyAPI"])
 
     def __init__(self, mongo_uri=None, missing_ok=False):
         # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
