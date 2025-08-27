@@ -212,8 +212,6 @@ def create_app(config_filename=None):
     @app.errorhandler(404)
     @cross_origin(allow_headers=["Content-Type"])
     def not_found(e):
-        import pdb
-        pdb.set_trace()
         return (
             render_template(
                 "error_404.html",
@@ -226,5 +224,4 @@ def create_app(config_filename=None):
 
 if __name__ == "__main__":
     app = create_app()
-    pdb.set_trace()
     app.run(debug=True, host="0.0.0.0")
