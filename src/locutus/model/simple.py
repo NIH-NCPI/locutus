@@ -15,6 +15,8 @@ class Simple:
     def __init__(self, _id=None, id=None, collection_type=None, resource_type=None):
         self.id = id 
         self._id = _id
+        if type(self._id) is dict:
+            self._id = ObjectId(self._id['$oid'])
         if id is None and _id is not None:
             self.id = str(_id)
         elif id is not None and _id is None:

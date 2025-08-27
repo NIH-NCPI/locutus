@@ -21,6 +21,8 @@ class Serializable:
         # we are requiring an ID is present for all Serializable. _id will be created
         # when the data hits the db if it is None
         self._id = _id 
+        if type(self._id) is dict:
+            self._id = self._id['$oid']
 
         # This is used to identify the persistence source
         self._collection_type = collection_type
