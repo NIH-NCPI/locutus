@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.api import default_headers, get_editor, delete_collection
 from locutus.model.exceptions import *

@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology, Coding
 from locutus.api.terminology_mappings import TerminologyMappings

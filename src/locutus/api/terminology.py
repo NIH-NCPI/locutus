@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.terminology import Coding, Terminology as Term
 from locutus.model.exceptions import *
 from flask_cors import cross_origin

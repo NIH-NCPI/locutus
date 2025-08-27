@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology
 from locutus.api import default_headers, get_editor
@@ -179,20 +178,16 @@ class Table(Resource):
                 editor=editor,
             )
 
-            dref = persistence().collection("Table").document(id)
-
             # Delete any references to the table from any data-dictionaries:
             DataDictionaries().delete_table_references(id)
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        t = dref.get().to_dict()
-        time_of_delete = dref.delete()
-        # if t is not None:
-        #    persistence().save()
+        table_content = t.dump()
+        t.delete()
 
-        return json.loads(json_util.dumps(t)), 200, default_headers
+        return json.loads(json_util.dumps(table_content)), 200, default_headers
 
 
 class HarmonyCSV(Resource):

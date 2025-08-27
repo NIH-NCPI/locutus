@@ -1,7 +1,6 @@
 from flask_restful import Resource
 from flask import request
 from locutus import (
-    persistence,
     get_code_index,
     FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,

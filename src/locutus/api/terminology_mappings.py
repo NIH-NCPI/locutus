@@ -1,6 +1,6 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
+from locutus import FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.model.terminology import Terminology as Term, MappingUserInputModel
 from locutus.model.exceptions import *
 from flask_cors import cross_origin
@@ -25,8 +25,6 @@ class TerminologyMappings(Resource):
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
             term = Term.get(id)
-            # termref = persistence().collection("Terminology").document(id)
-            # term = termref.get().to_dict()
 
             if term is not None:
 

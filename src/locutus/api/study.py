@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.study import Study as mStudyTerm
 from locutus.api import default_headers
 

@@ -1,6 +1,5 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology as Term
 from locutus.model.provenance import Provenance
