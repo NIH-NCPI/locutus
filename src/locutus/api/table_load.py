@@ -3,11 +3,14 @@ from flask import request
 from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology as Term
+from locutus.model.provenance import Provenance
 from locutus.api import default_headers, get_editor
 from locutus.model.variable import Variable, InvalidVariableDefinition
 
 import rich
 
+from bson import json_util 
+import json
 
 # Eventually, these should either live in the dataset or in a top level table
 # so that the user can edit them. But, for now, we'll just maintain a static
@@ -80,9 +83,9 @@ class TableLoader(Resource):
         tbl.variables = []
 
         if len(csvContents) < 1:
-            change_type = Term.ChangeType.CreateTable
+            change_type = Provenance.ChangeType.CreateTable
         else:
-            change_type = Term.ChangeType.AddVariables
+            change_type = Provenance.ChangeType.AddVariables
 
         try:
             for varData in csvContents:
@@ -157,7 +160,7 @@ class TableLoader(Resource):
                 target="self",
                 editor=editor,
             )
-            return tbl.dump(), 201, default_headers
+            return json.loads(json_util.dumps(tbl.dump())), 201, default_headers
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
