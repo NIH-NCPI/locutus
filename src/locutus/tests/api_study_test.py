@@ -6,6 +6,9 @@ from locutus.model.study import Study
 from locutus.model import GlobalID
 
 
+def test_study_none(client):
+    response = client.get("/api/Study/not-there")
+    assert response.status_code == 404
 
 def test_study_get(client, sample_terminology, basic_study):
     response = client.get("/api/Study")
