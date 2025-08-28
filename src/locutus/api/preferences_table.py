@@ -12,7 +12,9 @@ class TableOntologyAPISearchPreferences(Resource):
         t = mTable.get(id)
 
         try:
-            pref = t.get_preference(code=code)
+            pref = {
+                "self": t.get_preference(code=code)
+            }
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
