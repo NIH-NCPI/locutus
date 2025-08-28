@@ -103,7 +103,7 @@ class OntologyAPI(Serializable):
             # processed_data = cls.get(api_id, return_instance=False)
             if processed_data is None:
                 return None
-            return [processed_data]
+            return processed_data
         else:
             processed_data = cls.get(return_instance=False)
             return processed_data

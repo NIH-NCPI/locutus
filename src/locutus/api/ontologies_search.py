@@ -19,7 +19,6 @@ class OntologyAPIs(Resource):
             list: A dictionary representing a specific API if `api_id` is provided, 
             or a list of dictionaries representing all APIs if `api_id` is None.
         """
-
         if api_id is None:
             result = OntologyAPI.get_api_ontologies()
             return json.loads(json_util.dumps(result))

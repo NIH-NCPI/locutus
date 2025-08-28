@@ -557,7 +557,7 @@ class Terminology(Serializable):
 
     def get_preference(self, code=None):
         prefs = {}
-        if code is not None:
+        if code is not None and code != "self":
             coding = self.get_coding(code)
             if coding:
                 cp = coding.get_api_preferences()
@@ -573,7 +573,7 @@ class Terminology(Serializable):
         return prefs
 
     def add_or_update_pref(self, api_preference, code=None):
-        if code is None:
+        if code is None or code == "self":
             self.remove_api_preferences()
             for api in api_preference:
                 self.add_api_preferences(api, api_preference[api])

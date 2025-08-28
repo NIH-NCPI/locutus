@@ -15,6 +15,10 @@ class OntologyAPISearchPreferences(Resource):
         t = Term.get(id)
 
         pref = t.get_preference(code=code)
+        if "self" not in pref:
+            pref = {
+                "self": pref
+            }
 
         # get the prefs from the table if none exist for the terminology
         if table_id and not any(pref.values()):
@@ -23,7 +27,7 @@ class OntologyAPISearchPreferences(Resource):
                 pref = tb.get_preference(code=code)
             except KeyError as e:
                 return {"message_to_user": str(e)}, 400, default_headers
-                
+        
         return ({
             "self": pref
         }, 200, default_headers)

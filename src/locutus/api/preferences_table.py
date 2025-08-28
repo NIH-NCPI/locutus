@@ -12,13 +12,16 @@ class TableOntologyAPISearchPreferences(Resource):
         t = mTable.get(id)
 
         try:
-            pref = {
-                "self": t.get_preference(code=code)
-            }
+            prefs = t.get_preference(code=code)
+
+            if "self" not in prefs:
+                prefs = {
+                    "self": prefs
+                }
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
-        return json.loads(json_util.dumps(pref)), 200, default_headers
+        return json.loads(json_util.dumps(prefs)), 200, default_headers
 
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Table or code."""
