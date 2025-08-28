@@ -7,10 +7,10 @@ from flask import request
 from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
+from locutus.model.provenance import Provenance
 from locutus.model.exceptions import *
 
 from locutus.api import default_headers
-
 
 import rich
 
@@ -185,14 +185,14 @@ class Table(Serializable):
                 if new_values:
                     terminology = self.terminology.dereference()
                     terminology.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm,
+                        change_type=Provenance.ChangeType.EditTerm,
                         target=original_code,
                         old_value=old_values,
                         new_value=new_values,
                         editor=editor,
                     )
                     terminology.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm,
+                        change_type=Provenance.ChangeType.EditTerm,
                         target="self",
                         old_value=old_values,
                         new_value=new_values,
