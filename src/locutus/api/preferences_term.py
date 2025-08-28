@@ -23,8 +23,10 @@ class OntologyAPISearchPreferences(Resource):
                 pref = tb.get_preference(code=code)
             except KeyError as e:
                 return {"message_to_user": str(e)}, 400, default_headers
-
-        return (pref, 200, default_headers)
+                
+        return ({
+            "self": pref
+        }, 200, default_headers)
 
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
