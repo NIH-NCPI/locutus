@@ -66,15 +66,18 @@ class CodingMapping(BasicCoding):
         description="",
         valid=None,
         rank=None,
-        mapping_relationship=None,
+        mapping_relationship='',
+        user_input=None,
         ftd_code=None
     ):
         super().__init__(code=code, display=display, system=system, description=description)
         self.rank = rank
         self.valid = valid
+        self.user_input = user_input
         self.ftd_code = code # Default to given code, updated if necessary. 
 
-        FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
+        if mapping_relationship is not None:
+            FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
         self.mapping_relationship = mapping_relationship
 
     class _Schema(Schema):
@@ -88,7 +91,7 @@ class CodingMapping(BasicCoding):
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
-        # user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
+        user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
         ftd_code = fields.Str( 
             required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
         )
@@ -118,13 +121,10 @@ class CodingMapping(BasicCoding):
         else:
             obj["mapping_relationship"] = ""
 
-        """
         # Returns the user_input for a mapping if requested
         if self.user_input is not None:
             obj["user_input"] = self.user_input
         
-        """
-
         return obj
 
 
