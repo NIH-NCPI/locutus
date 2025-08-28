@@ -86,9 +86,6 @@ class DataDictionaryTable(Resource):
     def delete(self, id, table_id):
         d = DD.get(id)
 
-        # We'll realize the data-dictionary and delete the id from there
-        d = DD(**ddref)
-
         refs_removed = d.remove_table(table_id)
         if refs_removed > 0:
             d.save()
