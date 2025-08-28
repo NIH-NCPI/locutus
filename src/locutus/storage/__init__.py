@@ -14,10 +14,10 @@ import json
 from os import getenv, environ
 
 db_type = getenv("LOCUTUS_DB_TYPE", "firestore").lower()
-if db_type == "mongodb":
-    from locutus.storage.mongo import persistence
-else:
-    from locutus.storage.firestore import persistence 
+# if db_type == "mongodb":
+from locutus.storage.mongo import persistence
+# else:
+#    from locutus.storage.firestore import persistence 
 
 class StorageBase:
     def __init__(self, project_id):
