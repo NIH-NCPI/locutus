@@ -261,8 +261,6 @@ class MappingConversation(Simple, UserInput):
 
 
     def add_input(self, input, editor=None):
-        import pdb 
-        pdb.set_trace()
         input_data=self.build_user_input(input, editor)
         self.mapping_conversations.append(input_data)
 
