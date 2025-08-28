@@ -32,7 +32,7 @@ def validate_enums(codes, enums, additional_enums=None):
     elif isinstance(codes, str):
         code_list = [codes]
     else:
-        raise TypeError("Codes must be a dict, list, or string.")
+        raise TypeError(f"Codes, {codes}, must be a dict, list, or string.")
 
     # Validate each code
     invalid_codes = [code for code in code_list if code not in valid_enums]
