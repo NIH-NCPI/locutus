@@ -261,6 +261,8 @@ class MappingConversation(Simple, UserInput):
 
 
     def add_input(self, input, editor=None):
+        import pdb 
+        pdb.set_trace()
         input_data=self.build_user_input(input, editor)
         self.mapping_conversations.append(input_data)
 
@@ -282,6 +284,10 @@ class MappingConversation(Simple, UserInput):
 
         except ValueError as e:
             print(f"Error: {e}")
+
+
+        if type(note) is dict:
+            note = note['note']
 
         date = SessionManager.create_current_datetime()
 
@@ -382,7 +388,7 @@ class MappingVote(Simple, UserInput):
         UserInput.__init__(self, return_format=list, input_type="note", update_policy="append")
         self.mapping_votes = mapping_votes
 
-    def build_user_input(self, vote, editor=None):
+    def build_user_input(self, user_input, editor=None):
         """
         Structures vote response body to format expected by the update function.
 
@@ -395,7 +401,10 @@ class MappingVote(Simple, UserInput):
             print(f"Error: {e}")
 
         date = SessionManager.create_current_datetime()
+        vote = user_input  
 
+        if type(vote) is dict:
+            vote = vote['vote']
         return {
                 "user_id": user_id,
                 "vote": vote,
@@ -418,7 +427,10 @@ class MappingVote(Simple, UserInput):
 
     def add_input(self, input, editor=None):
         input_data=self.build_user_input(input, editor)
-        self.mapping_votes[input_data['user_id']] = input_data
+        self.mapping_votes[input_data['user_id']] = {
+                "vote": input_data["vote"],
+                "date": input_data["date"]
+            }
 
     def get_input(self):
         return self.mapping_votes

@@ -15,6 +15,7 @@ class TableMappings(Resource):
     def get_mappings(cls, id):
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
+
         try:
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
@@ -147,8 +148,8 @@ class TableMapping(Resource):
                 raise LackingUserID(editor)
 
             mappings = request.get_json()["mappings"]
-            codingmapping = [CodingMapping(**x) for x in mappings]
 
+            codingmapping = [CodingMapping(**x) for x in mappings]
             table = Table.get(id)
             term = table.terminology.dereference()
 

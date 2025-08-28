@@ -109,6 +109,7 @@ class Terminology(Serializable):
                     code['terminology_id'] = self.id
                     code['system'] = self.url
                     code = Coding(**code)
+
                 # print(code)
                 code.system = self.url
                 code.save()
@@ -710,17 +711,30 @@ class MappingUserInputModel:
 
         conversation = MappingConversation.get(terminology_id=id,
             source_code=code,
-            mapped_code=code,
+            mapped_code=mapped_code,
             return_instance=False)
         votes = MappingVote.get(terminology_id=id,
             source_code=code,
-            mapped_code=code,
+            mapped_code=mapped_code,
             return_instance=False)
 
+        comment_count = 0
+        if conversation != []:
+            comment_count = len(conversation['mapping_conversations'])
+
+        vote_count = {
+            "up": 0,
+            "down": 0
+        }
+        user_vote = ""
+        if votes != []:
+            vote_count = MappingUserInputModel.get_mapping_votes_counts(votes['mapping_votes'])
+            user_vote = votes['mapping_votes'].get(user_id)
+
         return {
-            "comments_count": len(conversation.mapping_conversations),
-            "votes_count": MappingUserInputModel.get_mapping_votes_counts(votes.mapping_votes),
-            "users_vote": votes.mapping_votes.get(user_id) or ""
+            "comments_count": comment_count,
+            "votes_count": vote_count,
+            "users_vote": user_vote
         }
 
     def get_mapping_votes_counts(mapping_votes):
