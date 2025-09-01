@@ -145,7 +145,14 @@ class UserInput:
         user_input.delete(hard_delete=hard_delete)
 
     @classmethod
-    def create_or_replace_user_input(cls, resource_type, collection_type, id, code, mapped_code, type, input_value, editor):
+    def create_or_replace_user_input(cls, resource_type, collection_type, 
+                                    id, 
+                                    code, 
+                                    mapped_code, 
+                                    type, 
+                                    input_value, 
+                                    editor,
+                                    timestamp=None):
         """
         Creates or replaces a document in the 'user_input' sub-collection data
         for a user.
@@ -164,7 +171,7 @@ class UserInput:
                                                         mapped_code=mapped_code)
 
             # Build and format user_input as necessary
-            input_data = user_input_instance.add_input(input_value, editor=editor)
+            input_data = user_input_instance.add_input(input_value, editor=editor, timestamp=timestamp)
 
             user_input_instance.save()
 
@@ -260,14 +267,14 @@ class MappingConversation(Simple, UserInput):
         self.mapping_conversations = mapping_conversations
 
 
-    def add_input(self, input, editor=None):
-        input_data=self.build_user_input(input, editor)
+    def add_input(self, input, editor=None, timestamp=None):
+        input_data=self.build_user_input(input, editor, timestamp)
         self.mapping_conversations.append(input_data)
 
     def get_input(self):
         return self.mapping_conversations
 
-    def build_user_input(self, note, editor=None):
+    def build_user_input(self, note, editor=None, timestamp=None):
         """
         Structures conversation response body to format expected by the 
         update function.
@@ -287,7 +294,10 @@ class MappingConversation(Simple, UserInput):
         if type(note) is dict:
             note = note['note']
 
-        date = SessionManager.create_current_datetime()
+        if timestamp:
+            date = timestamp
+        else:
+            date = SessionManager.create_current_datetime()
 
         return {
             "user_id": user_id,
@@ -386,7 +396,7 @@ class MappingVote(Simple, UserInput):
         UserInput.__init__(self, return_format=list, input_type="note", update_policy="append")
         self.mapping_votes = mapping_votes
 
-    def build_user_input(self, user_input, editor=None):
+    def build_user_input(self, user_input, editor=None, timestamp=None):
         """
         Structures vote response body to format expected by the update function.
 
@@ -398,7 +408,10 @@ class MappingVote(Simple, UserInput):
         except ValueError as e:
             print(f"Error: {e}")
 
-        date = SessionManager.create_current_datetime()
+        if timestamp is not None:
+            date =timestamp 
+        else:
+            date = SessionManager.create_current_datetime()
         vote = user_input  
 
         if type(vote) is dict:
@@ -423,8 +436,8 @@ class MappingVote(Simple, UserInput):
                                     "date": vote["date"]} for vote in mapping_votes
     }
 
-    def add_input(self, input, editor=None):
-        input_data=self.build_user_input(input, editor)
+    def add_input(self, input, editor=None, timestamp=None):
+        input_data=self.build_user_input(input, editor, timestamp)
         self.mapping_votes[input_data['user_id']] = {
                 "vote": input_data["vote"],
                 "date": input_data["date"]
