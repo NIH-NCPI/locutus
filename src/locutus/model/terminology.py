@@ -470,7 +470,7 @@ class Terminology(Serializable):
     def add_provenance(
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
-        if target is None:
+        if target is None or target == 'self':
             p = locutus.model.provenance.Provenance.add_terminology_provenance(
                 terminology_id=self.id, 
                 action=change_type,
@@ -517,6 +517,8 @@ class Terminology(Serializable):
         new_mappings = []
 
         coding = self.get_coding(code)
+        if coding is None:
+            raise locutus.model.exceptions.CodeNotPresent(code, self.id)
         old_mappings = ",".join([x.code for x in coding.mappings])
 
         
