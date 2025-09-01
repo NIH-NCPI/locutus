@@ -315,6 +315,9 @@ class Coding(Simple, BasicCoding):
         ftd_terminology = FTDConceptMapTerminology()  
 
         for mapping in codings:
+            if type(mapping) is dict:
+                mapping = CodingMapping(**mapping)
+
             mapping.valid = True 
             ftd_terminology.validate_codes_against(mapping.mapping_relationship, additional_enums=[''])
             mapped_codes.append(mapping.code)
