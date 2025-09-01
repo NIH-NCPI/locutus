@@ -188,6 +188,7 @@ class FirestoreCompatibleClient:
                 raise ValueError(f"The specified database, {db_name}, isn't present in the database. Available DBs include: {', '.join(self.client.list_database_names())}")            
             logger.error(f"Database, {db_name}, not currently found.")
         self.db = self.client[db_name]
+        self.db_name = db_name
         self.collection_list = self.db.list_collection_names()
         logger.info(f"List of database collections in the connected DB: \n{', '.join(self.collection_list)}")
 
