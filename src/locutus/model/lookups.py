@@ -38,7 +38,10 @@ class ResourceSingletonBase:
                 instance._cached_resource = [doc.to_dict() for doc in instance.termref]
             else:
                 # Cache a single document
-                instance._cached_resource = locutus.model.terminology.Terminology.get(resource_name, return_instance=False)
+                instance._cached_resource = locutus.model.terminology.Terminology.get(resource_name, return_instance=True)
+
+                if instance._cached_resource is not None:
+                    instance._cached_resource = instance._cached_resource.realize_as_dict()
 
         return cls._instances[(resource_name, is_collection)]
 
@@ -64,9 +67,11 @@ class FTDConceptMapTerminology(ResourceSingletonBase):
     def validate_codes_against(self, codes, additional_enums=None):
         """Validates the provided codes against the terminology."""
         terminology_data = self.get_cached_resource()
+
         terminology_codes = [
             entry["code"] for entry in terminology_data["codes"] if "code" in entry
         ]
+
         validate_enums(codes, terminology_codes, additional_enums=additional_enums)
 
 

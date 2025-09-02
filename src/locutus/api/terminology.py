@@ -23,7 +23,8 @@ class TerminologyEdit(Resource):
             t.add_code(
                 code=code, display=display, description=description, editor=editor
             )
-            return json.loads(json_util.dumps(t.dump())), 201, default_headers
+
+            return json.loads(json_util.dumps(t.realize_as_dict())), 201, default_headers
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -42,7 +43,7 @@ class TerminologyEdit(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return json.loads(json_util.dumps(t.dump())), 200, default_headers
+        return json.loads(json_util.dumps(t.realize_as_dict())), 200, default_headers
 
 
 class TerminologyRenameCode(Resource):
@@ -57,6 +58,7 @@ class TerminologyRenameCode(Resource):
             description_updates = body.get("description")
 
             t = Term.get(id)
+
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
@@ -112,13 +114,15 @@ class TerminologyRenameCode(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-        return json.loads(json_util.dumps(t.dump())), 201, default_headers
+        return json.loads(json_util.dumps(t.realize_as_dict())), 201, default_headers
 
 
 class Terminologies(Resource):
     def get(self):
+        terminologies = [t.realize_as_dict() for t in Term.get(return_instance=True)]
+
         return (
-            json.loads(json_util.dumps(Term.get(return_instance=False))),
+            json.loads(json_util.dumps(terminologies)),
             200,
             default_headers,
         )
@@ -140,15 +144,15 @@ class Terminologies(Resource):
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        return t.dump(), 201, default_headers
+        return json.loads(json_util.dumps(t.realize_as_dict())), 201, default_headers
 
 
 class Terminology(Resource):
     def get(self, id):
-        response = Term.get(id, return_instance=False)
+        response = Term.get(id, return_instance=True)
 
         if response is not None:
-            return json.loads(json_util.dumps(response)), 200, default_headers
+            return json.loads(json_util.dumps(response.realize_as_dict())), 200, default_headers
         
         return (response, 404, default_headers)
 
@@ -161,7 +165,7 @@ class Terminology(Resource):
             del term["resource_type"]
         t = Term(**term)
         t.save()
-        return t.dump(), 200, default_headers
+        return json.loads(json_util.dumps(t.realize_as_dict())), 200, default_headers
 
     # @cross_origin()
     def delete(self, id):

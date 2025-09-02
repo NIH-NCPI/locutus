@@ -89,17 +89,17 @@ def test_table_basics(sample_terminology):
     assert table.variables[2].description == "Enumeration Variable Description"
     enums = table.variables[2].get_terminology()
     assert len(enums.codes) == 2
-    assert enums.codes[0].code == "C1"
-    assert enums.codes[0].display == "Code One"
-    assert enums.codes[0].system == "http://example.com/ont1"
-    assert enums.codes[0].description == "Description for C1"
-    assert enums.codes[1].code == "C2"
+    assert enums.codes[0].dereference().code == "C1"
+    assert enums.codes[0].dereference().display == "Code One"
+    assert enums.codes[0].dereference().system == "http://example.com/ont1"
+    assert enums.codes[0].dereference().description == "Description for C1"
+    assert enums.codes[1].dereference().code == "C2"
 
     shadow = table.terminology.dereference()
     shadow_id = shadow.id 
 
     assert len(shadow.codes) == 3
-    assert shadow.codes[2].code == "enum_var"
+    assert shadow.codes[2].dereference().code == "enum_var"
     
     t = Table.get(table.id)
     assert t.id == table.id 

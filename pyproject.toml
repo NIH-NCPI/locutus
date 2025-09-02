@@ -38,3 +38,8 @@ where = ["src"]  # list of folders that contain the packages (["."] by default)
 
 #[project.scripts]
 #asdf = "locutus.module:function"
+
+[tool.pytest.ini_options]
+env = [
+    "MONGO_URI=mongodb://localhost:27017/test",
+]

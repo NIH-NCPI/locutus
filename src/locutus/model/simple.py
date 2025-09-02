@@ -24,6 +24,11 @@ class Simple:
         self._collection_type = collection_type 
         self.resource_type = resource_type 
 
+    @classmethod 
+    def pull(cls, resource_type, id, return_instance=True):
+        resource_class = cls._factory_workers[resource_type.lower()]
+        return resource_class.get(_id=id, return_instance=return_instance)
+
     @classmethod
     def find(cls, params, sorting=None, return_instance=True):
         """Pull instance from the database and (default) instantiate"""

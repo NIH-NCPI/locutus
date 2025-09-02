@@ -29,6 +29,7 @@ from locutus.sessions import SessionManager
 
 from locutus.model.coding import Coding, BasicCoding
 from locutus.model.reference import Reference
+from locutus.model.simple_reference import SimpleReference
 
 import pdb
 
@@ -105,15 +106,26 @@ class Terminology(Serializable):
         # clear that it is a bad idea.
         if codes is not None:
             for code in codes:
+                ref = None 
                 if type(code) is dict:
-                    code['terminology_id'] = self.id
-                    code['system'] = self.url
-                    code = Coding(**code)
+                    if "reference" in code:
+                        ref = SimpleReference(reference=code['reference'])
+                    else:
+                        code['terminology_id'] = self.id
+                        code['system'] = self.url
+                        if self.url is None:
+                            logger.debug(f"Attempting to assign "" as system from the following Terminology: ")
+                            logger.debug(f"Terminology Name: {self.name}\tTerminology ID: {self.id}")
+                            code['system'] = "-"
 
-                # print(code)
-                code.system = self.url
-                code.save()
-                self.codes.append(code)
+                        code = Coding(**code)
+                if ref is None:                
+                    # print(code)
+                    code.system = self.url
+                    code.save()
+                    ref = SimpleReference(f"Coding/{code.id}")
+
+                self.codes.append(ref)
 
                 if editor:
                     self.add_provenance(
@@ -137,7 +149,8 @@ class Terminology(Serializable):
         raise ValueError(f"Terminology.find_match() requires both a url and name.")
 
     def delete(self, hard_delete=True):
-        t = super().delete(hard_delete=hard_delete)
+        t = self.realize_as_dict()
+        super().delete(hard_delete=hard_delete)
 
         # User Input
         for cnv in MappingConversation.get(
@@ -225,7 +238,7 @@ class Terminology(Serializable):
 
         new_coding.save()
 
-        self.codes.append(new_coding)
+        self.codes.append(SimpleReference(f"Coding/{new_coding.id}"))
         self.save()
 
         if editor:
@@ -248,7 +261,7 @@ class Terminology(Serializable):
         # Ensure codes are not placeholders at this point.
         code = locutus.normalize_ftd_placeholders(code)
 
-        coding = self.get_coding(code)
+        coding = self.get_coding(code, return_instance=False)
         
         if coding is not None:
             # We might want to actually call self.delete_mappings(code=code)
@@ -256,7 +269,10 @@ class Terminology(Serializable):
             # However, that wasn't what we were doing, so leaving things as 
             # they were for now
             # EST - 2025-08-18
-            coding.valid = False
+            cinstance = coding.dereference()
+            cinstance.valid = False
+            cinstance.save()
+            
             self.codes.remove(coding)
             self.save()
             self.add_provenance(
@@ -281,7 +297,8 @@ class Terminology(Serializable):
         old_values = []
         new_values = []
 
-        for code in self.codes:
+        for coderef in self.codes:
+            code = coderef.dereference()
             if code.code == original_code:
 
                 # It's not unreasonable we have only been asked to update the
@@ -312,6 +329,8 @@ class Terminology(Serializable):
                 old_values = ",".join(old_values)
                 new_values = ",".join(new_values)
 
+
+                code.save()
                 self.save()
                 if new_values:
                     self.add_provenance(
@@ -356,7 +375,7 @@ class Terminology(Serializable):
         # Ensure codes are not placeholders at this point.
         code = locutus.normalize_ftd_placeholders(code)
 
-        return any(entry.code == code for entry in self.codes)
+        return any(entry.dereference().code == code for entry in self.codes)
 
     def delete_mappings(self, editor, code=None):
         """
@@ -393,13 +412,13 @@ class Terminology(Serializable):
         else:
             for coding in self.codes:
                 old_values = {
-                    "code": coding.code,
-                    "codes": coding.delete_mappings()
+                    "code": coding.dereference().code,
+                    "codes": coding.dereference().delete_mappings()
                 }
 
                 self.add_provenance(
                     change_type=locutus.model.provenance.Provenance.ChangeType.SoftDeleteMapping,
-                    target=coding.code,
+                    target=coding.dereference().code,
                     old_value=old_values,
                     new_value="deleted",
                     editor=editor,
@@ -424,20 +443,25 @@ class Terminology(Serializable):
             else:
                 codes[code] = coding.mappings
         else:
-            for code in self.codes:
+            for coderef in self.codes:
+                code = coderef.dereference()
                 codes[code.code] = code.mappings
         return codes
 
-    def get_coding(self, code):
+    def get_coding(self, code, return_instance=True, as_reference=False):
         for item in self.codes:
-            if item.code == code:
-                return item 
+            coding = item.dereference()
+            if coding.code == code:
+                if return_instance:
+                    return coding
+                return item
+
         return None 
 
     def get_provenance(self, code=None):
         prov = {}
 
-        if code is None:
+        if code is None or code == 'self':
             # This isn't really relevant any more, but the FE does use it so we will keep it 
             prov['self'] = {}
             prov['self']['target'] = "self"
@@ -687,7 +711,8 @@ class Terminology(Serializable):
         name = fields.Str(required=True)
         url = fields.URL(required=True)
         description = fields.Str()
-        codes = fields.List(fields.Nested(Coding._Schema))
+        # codes = fields.List(fields.Nested(Coding._Schema))
+        codes = fields.List(fields.Nested(SimpleReference._Schema))
         resource_type = fields.Str()
         api_preferences = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
         preferred_terminologies = fields.List(fields.Nested(Reference._Schema))
@@ -695,6 +720,16 @@ class Terminology(Serializable):
         @post_load
         def build_terminology(self, data, **kwargs):
             return Terminology(**data)
+
+    def realize_as_dict(self):
+        this_term = self.dump()
+        this_term['codes'] = []
+
+        for ref in self.codes:
+            this_term['codes'].append(ref.dereference().dump())
+    
+        return this_term
+        
 
 
 class MappingUserInputModel:

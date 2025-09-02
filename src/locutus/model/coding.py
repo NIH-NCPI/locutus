@@ -8,6 +8,7 @@ from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
 from bson import ObjectId
 from collections import defaultdict 
 
+from locutus import logger
 import pdb
 
 import locutus 
@@ -148,6 +149,8 @@ class Coding(Simple, BasicCoding):
         if not isinstance(code, str) or not code.strip():
             raise ValueError("Code is a required string and cannot be empty.")
         if not isinstance(system, str) or not system.strip():
+            logger.error(f"Coding instantiated without a system")
+            logger.error(f"{terminology_id}/{_id}:{code} - {system} ")
             raise ValueError("System is a required string and cannot be empty.")
 
 

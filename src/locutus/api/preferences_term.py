@@ -13,12 +13,7 @@ class OntologyAPISearchPreferences(Resource):
         table_id = request.args.get("table_id", default=None)
 
         t = Term.get(id)
-
         pref = t.get_preference(code=code)
-        if "self" not in pref:
-            pref = {
-                "self": pref
-            }
 
         # get the prefs from the table if none exist for the terminology
         if table_id and not any(pref.values()):
@@ -28,9 +23,12 @@ class OntologyAPISearchPreferences(Resource):
             except KeyError as e:
                 return {"message_to_user": str(e)}, 400, default_headers
         
-        return ({
-            "self": pref
-        }, 200, default_headers)
+        if "self" not in pref:
+            pref = {
+                "self": pref
+            }
+
+        return (pref, 200, default_headers)
 
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
