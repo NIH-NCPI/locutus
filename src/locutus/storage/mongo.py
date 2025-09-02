@@ -170,13 +170,14 @@ class FirestoreCompatibleClient:
     allowed_collections = set(list(resource_types.keys()) + simple_types + ["OntologyAPI"])
 
     def __init__(self, mongo_uri=None, missing_ok=False):
-        # Prefer FIRESTORE_MONGO_URI, fallback to MONGO_URI
         if mongo_uri is None:
-            mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
+            # mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
+            mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
         parsed = urlparse(mongo_uri)
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
         logger.info(f"Mongo DB Interface")
         logger.info(f"Connecting to Mongo URI: {mongo_uri}")
+        print(f"Mongo DB URI: {mongo_uri}")
         logger.info(f"Database name parsed: '{db_name}'")
         if not db_name:
             raise ValueError("Database name must be specified in the Mongo URI path!")
