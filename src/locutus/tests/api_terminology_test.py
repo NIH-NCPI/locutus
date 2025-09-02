@@ -62,8 +62,9 @@ def test_terminology_rename(client):
                             headers={"Content-Type": "application/json"})
     assert response.status_code == 201
 
-    term = Terminology.get("ontology-two")
-    assert term.codes[0].code == "Code01"
+
+    term = Terminology.get("ontology-two").realize_as_dict()
+    assert term['codes'][0]['code'] == "Code01"
 
     response = client.patch(f"/api/Terminology/ontology-two/rename",
                             json={
@@ -80,8 +81,8 @@ def test_terminology_rename(client):
     assert response.status_code == 201
 
     term = Terminology.get("ontology-two")
-    assert term.codes[1].display == "second code"
-    assert term.codes[1].description == "second desc"
+    assert term.codes[1].dereference().display == "second code"
+    assert term.codes[1].dereference().description == "second desc"
 
     term.delete(hard_delete=True)
 
@@ -153,11 +154,13 @@ def test_terminology_put(client):
     assert response.status_code == 200
 
     term = response.json
+
     assert term['id'] == "ontology-three"
     term_id = term['id']
     assert len(term['codes']) == 2
 
     get_term = client.get(f"/api/Terminology/{term_id}")
+    term = get_term.json
     assert len(term['codes']) == 2
     assert term['codes'][0]['code'] == "C1"
     assert term['codes'][1]['display'] == "Code Two"

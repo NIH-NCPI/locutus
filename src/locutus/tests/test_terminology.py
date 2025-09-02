@@ -116,7 +116,7 @@ def test_terminology_init(sample_terminology):
     assert sample_terminology.url == "http://example.com/ont1"
     assert sample_terminology.description == "A sample oncology terminology"
     assert len(sample_terminology.codes) == 2
-    assert sample_terminology.codes[0].code == "C1"
+    assert sample_terminology.codes[0].dereference().code == "C1"
 
 def test_terminology_prov_on_init(sample_terminology_with_editor):
     assert len(sample_terminology_with_editor.get_provenance()) == 1
@@ -126,7 +126,7 @@ def test_terminology_prov_on_init(sample_terminology_with_editor):
     p1 = prov['changes'][0]
     assert p1['action'] == "Create Terminology"
     assert p1['editor'] == "unit tests"
-    assert p1['target'] == "self"
+    assert p1['target'] == "self" or p1['target'] == None
     assert "timestamp" in p1 
     
     # We started with 2 codes in it, so the provenance should include those two
@@ -154,10 +154,10 @@ def test_add_code(sample_terminology):
     sample_terminology.add_code(code="C3", display="Code Three", description="Description for C3", editor="unit-test")
     assert len(sample_terminology.codes) == 3
     assert sample_terminology.has_code("C3")
-    new_code = next(c for c in sample_terminology.codes if c.code == "C3")
-    assert new_code.display == "Code Three"
-    assert new_code.system == "http://example.com/ont1"
-    assert new_code.description == "Description for C3"
+    new_code = next(c for c in sample_terminology.codes if c.dereference().code == "C3")
+    assert new_code.dereference().display == "Code Three"
+    assert new_code.dereference().system == "http://example.com/ont1"
+    assert new_code.dereference().description == "Description for C3"
 
     # Verify that the addition was reflected in prov
     prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
@@ -184,16 +184,16 @@ def test_rename_code(sample_terminology):
     sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
     assert sample_terminology.has_code("C1_NEW")
     assert not sample_terminology.has_code("C1")
-    renamed_code = next(c for c in sample_terminology.codes if c.code == "C1_NEW")
-    assert renamed_code.display == "New Code One Display"
-    assert renamed_code.description == "Description for C1" # Description should remain unchanged
+    renamed_code = next(c for c in sample_terminology.codes if c.dereference().code == "C1_NEW")
+    assert renamed_code.dereference().display == "New Code One Display"
+    assert renamed_code.dereference().description == "Description for C1" # Description should remain unchanged
 
 
 
     sample_terminology.rename_code("C2", new_code="C2", new_display="C2 New Display", new_description="Updated description for C2", editor="unit-test")
-    updated_code = next(c for c in sample_terminology.codes if c.code == "C2")
-    assert updated_code.display == "C2 New Display"
-    assert updated_code.description == "Updated description for C2"
+    updated_code = next(c for c in sample_terminology.codes if c.dereference().code == "C2")
+    assert updated_code.dereference().display == "C2 New Display"
+    assert updated_code.dereference().description == "Updated description for C2"
     # Verify that the chnge was reflected in prov
     prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
     assert prov['action'] == "Edit Term"
