@@ -6,6 +6,8 @@ from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
 from locutus.api import default_headers
 
+from bson import json_util 
+import json
 
 class TableProvenance(Resource):
     def get(self, id):
@@ -15,7 +17,7 @@ class TableProvenance(Resource):
         prov = term.get_provenance(code="self")
 
         response = {"table": {"Reference": f"Table/{table.id}"}, "provenance": prov}
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
 
 
 class TableVarProvenance(Resource):
@@ -28,7 +30,7 @@ class TableVarProvenance(Resource):
         prov = term.get_provenance(code=code)
         response = {"table": {"Reference": f"Table/{table.id}"}, "provenance": prov}
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
 
 
 class TerminologyProvenance(Resource):
@@ -41,7 +43,7 @@ class TerminologyProvenance(Resource):
             "provenance": prov,
         }
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
 
 
 class TerminologyCodeProvenance(Resource):
@@ -53,4 +55,4 @@ class TerminologyCodeProvenance(Resource):
             "provenance": prov,
         }
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)

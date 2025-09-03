@@ -91,10 +91,6 @@ class TablePreferredTerminology(Resource):
         t = mTable.get(id)
 
         pref = t.get_preferred_terminology()
-        if "self" not in pref:
-            pref = {
-                "self": pref
-            }
 
         return (json.loads(json_util.dumps(pref)), 200, default_headers)
 
