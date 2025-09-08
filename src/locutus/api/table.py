@@ -1,6 +1,7 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.table import Table as mTable
+from locutus.model.provenance import Provenance 
 from locutus.model.terminology import Terminology
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
@@ -172,7 +173,7 @@ class Table(Resource):
             # This is a bit "out of band"
             t = mTable.get(id)
             t.terminology.dereference().add_provenance(
-                change_type=Terminology.ChangeType.RemoveTable,
+                change_type=Provenance.ChangeType.RemoveTable,
                 target="self",
                 old_value=f"Table Name: {t.name}",
                 editor=editor,
