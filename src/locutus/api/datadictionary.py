@@ -78,7 +78,7 @@ class DataDictionary(Resource):
         dd.delete()
 
 
-        return json.loads(json_util.dumps(d.dump())), 200, default_headers
+        return json.loads(json_util.dumps(d)), 200, default_headers
 
 
 class DataDictionaryTable(Resource):
