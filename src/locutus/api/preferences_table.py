@@ -13,11 +13,12 @@ class TableOntologyAPISearchPreferences(Resource):
 
         try:
             prefs = t.get_preference(code=code)
-        
-            if "self" not in prefs:
-                prefs = {
-                    "self": prefs
-                }
+            
+            if code is None:
+                if "self" not in prefs:
+                    prefs = {
+                        "self": prefs
+                    }
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 

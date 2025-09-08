@@ -23,10 +23,11 @@ class OntologyAPISearchPreferences(Resource):
             except KeyError as e:
                 return {"message_to_user": str(e)}, 400, default_headers
         
-        if "self" not in pref:
-            pref = {
-                "self": pref
-            }
+        if code is None:
+            if "self" not in pref:
+                pref = {
+                    "self": pref
+                }
 
         return (pref, 200, default_headers)
 
