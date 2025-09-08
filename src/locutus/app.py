@@ -131,7 +131,7 @@ def create_app(config_filename=None):
     # GET/PUT user_input sub-collection associated with a Terminology/code/input type
     api.add_resource(
         TerminologyUserInput,
-        "/api/Terminology/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:type>",
+        "/api/Terminology/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:input_type>",
     )
 
     # Terminology/<id>/<code> PUT or DELETE depending on add or remove individual
@@ -171,7 +171,7 @@ def create_app(config_filename=None):
         TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
     )
     api.add_resource(
-        TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:type>"
+        TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:input_type>"
     )
 
     # POST

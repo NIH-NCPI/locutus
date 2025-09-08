@@ -58,7 +58,7 @@ class TerminologyUserInput(Resource, UserInput):
         
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
             
-    def put(self, id, code, mapped_code, type):
+    def put(self, id, code, mapped_code, input_type):
         """
         Update the user input 
 
@@ -68,7 +68,7 @@ class TerminologyUserInput(Resource, UserInput):
         Args:
             id (str): Defines the terminology of interest.
             code (str): Defines the target document (mapping).
-            type (str): The type of input to update (e.g., "mapping_votes").
+            input_type (str): The type of input to update (e.g., "mapping_votes").
 
         Request Body:
         Editor is not required if using sessions
@@ -88,13 +88,12 @@ class TerminologyUserInput(Resource, UserInput):
             if not t.has_code(code): 
                 raise CodeNotPresent(code, id)
 
-            result = UserInput.create_or_replace_user_input(self,
-                                                            self.resource_type,
+            result = UserInput.create_or_replace_user_input(self.resource_type,
                                                             self.collection_type,
                                                             id,
                                                             code,
-                                                            mapped_code,
-                                                            type=type,
+                                                            mapped_code=mapped_code,
+                                                            type=input_type,
                                                             input_value=body,
                                                             editor=editor)
             
@@ -103,8 +102,8 @@ class TerminologyUserInput(Resource, UserInput):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
         
-        response = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        id, code, mapped_code, type)
+        response = UserInput.get_user_input(self.resource_type, self.collection_type,
+                                        id, code, mapped_code, input_type)
 
         return (json.loads(json_util.dumps(response)), 200, default_headers)
     
@@ -160,7 +159,7 @@ class TableUserInput(Resource, UserInput):
         
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
             
-    def put(self, id, code, mapped_code, type):
+    def put(self, id, code, mapped_code, input_type):
         """
         Update the user input 
 
@@ -170,7 +169,7 @@ class TableUserInput(Resource, UserInput):
         Args:
             id (str): Defines the terminology of interest.
             code (str): Defines the target document (mapping).
-            type (str): The type of input to update (e.g., "mapping_votes").
+            input_type (str): The type of input to update (e.g., "mapping_votes").
 
         Request Body:
         Editor is not required if using sessions
@@ -199,8 +198,8 @@ class TableUserInput(Resource, UserInput):
                                                             term.id,
                                                             code,
                                                             mapped_code,
-                                                            type,
-                                                            body,
+                                                            type=input_type,
+                                                            input_value=body,
                                                             editor=editor)
             
             if isinstance(result, tuple):
@@ -209,7 +208,7 @@ class TableUserInput(Resource, UserInput):
             return e.to_dict(), e.status_code, default_headers
         
         response = UserInput.get_user_input(self.resource_type, self.collection_type,
-                                        term.id, code, mapped_code, type)
+                                        term.id, code, mapped_code, input_type)
 
         return (json.loads(json_util.dumps(response)), 200, default_headers)
         
