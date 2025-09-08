@@ -2,7 +2,7 @@
 FROM python:3.13-alpine
 
 #WORKDIR .
-ENV FLASK_APP=src/app.py
+ENV FLASK_APP=src/locutus/app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 #ENV PORT=8080
 COPY src  ./src
