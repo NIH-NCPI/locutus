@@ -213,13 +213,12 @@ def create_app(config_filename=None):
     @cross_origin(allow_headers=["Content-Type"])
     def not_found(e):
         return (
-            render_template(
-                "error_404.html",
-                image=url_for("static", filename="does_not_compute.jpg"),
-                error=e,
-            ),
+            {
+                "message": str(e),
+            },
             404,
         )
+
     return app
 
 if __name__ == "__main__":
