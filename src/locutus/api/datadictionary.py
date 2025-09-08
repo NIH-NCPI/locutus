@@ -77,7 +77,6 @@ class DataDictionary(Resource):
         Studies().delete_dd_references(id)
         dd.delete()
 
-
         return json.loads(json_util.dumps(d)), 200, default_headers
 
 
