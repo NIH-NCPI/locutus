@@ -44,6 +44,7 @@ def test_get_preference(sample_terminology):
     # Set a preference
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
     assert sample_terminology.get_preference("C1")["C1"]["api_preference"] == {"ols": ["HP", "MONDO"]}
+    assert "self" not in sample_terminology.get_preference("C1")
 
     # Test for a code without preference
     assert "C99" not in sample_terminology.get_preference("C99")
