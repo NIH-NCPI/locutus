@@ -580,11 +580,13 @@ class Terminology(Serializable):
 
     def remove_api_preferences(self):
         self.api_preferences = {}
+        self.save()
 
     def get_preference(self, code=None):
-        prefs = {
-            "self":self.get_api_preferences()
-        }
+        prefs = {}
+        
+        term_prefs = self.get_api_preferences()
+    
 
         if code is not None and code != "self":
             coding = self.get_coding(code)
@@ -594,10 +596,8 @@ class Terminology(Serializable):
                     prefs[code] = cp
             
         # For terminology preferences
-        else:        
-            cp = self.get_api_preferences()
-            if cp['api_preference']:
-                prefs['self'] = cp
+        if prefs == {}:        
+            prefs['self'] = term_prefs
 
         return prefs
 
@@ -616,7 +616,7 @@ class Terminology(Serializable):
                 coding.save()
 
     def remove_pref(self, code=None):
-        if code is None:
+        if code is None or code == "self":
             if len(self.api_preferences) > 0:
                 message = f"Successfully deleted preferences for Terminology '{self.name}'."
             else:

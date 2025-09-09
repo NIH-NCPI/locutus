@@ -255,6 +255,7 @@ class Coding(Simple, BasicCoding):
 
     def remove_api_preferences(self):
         self.api_preferences = {}
+        self.save()
 
     def to_dict(self, show_valid=False):
         obj = BasicCoding.to_dict(self)
