@@ -582,14 +582,17 @@ class Terminology(Serializable):
         self.api_preferences = {}
 
     def get_preference(self, code=None):
-        prefs = {}
+        prefs = {
+            "self":self.get_api_preferences()
+        }
+
         if code is not None and code != "self":
             coding = self.get_coding(code)
             if coding:
                 cp = coding.get_api_preferences()
-                if cp["api_preference"]:
+                if cp["api_preference"] != {}:
                     prefs[code] = cp
-
+            
         # For terminology preferences
         else:        
             cp = self.get_api_preferences()

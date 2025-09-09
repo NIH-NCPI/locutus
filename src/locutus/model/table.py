@@ -320,7 +320,7 @@ class Table(Serializable):
             pref = self.terminology.dereference().get_preference(code=code)
 
             # If code exists as a key and is empty get the Table preferences.
-            if code in pref and not pref[code]:
+            if code in pref and not pref[code]["api_preference"]:
                 table_pref = self.terminology.dereference().get_preference(code="self")
                 return table_pref if table_pref else {}
 

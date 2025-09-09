@@ -187,6 +187,8 @@ class Coding(Simple, BasicCoding):
             self.mappings.append(mapping)
 
         self.api_preferences = api_preferences
+        if self.api_preferences is None:
+            self.api_preferences = {}
 
         """
         if api_preferences is None:

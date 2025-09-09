@@ -24,7 +24,8 @@ def test_get_preference_terminology(sample_terminology):
 
     # Test for a code without preference
     assert "C99" not in sample_terminology.get_preference("C99")
-
+    assert "self" in sample_terminology.get_preference("C99")
+    assert sample_terminology.get_preference("C99")['self']['api_preference']  == {"ols": ["HP", "MONDO"]}
 
 def test_add_or_update_pref_terminology(sample_terminology):
     # Add a new preference
@@ -38,7 +39,8 @@ def test_add_or_update_pref_terminology(sample_terminology):
 def test_get_preference(sample_terminology):
     # Test with no preference set
     assert "C1" not in sample_terminology.get_preference("C1")
-
+    assert "self" in sample_terminology.get_preference("C1")
+    
     # Set a preference
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
     assert sample_terminology.get_preference("C1")["C1"]["api_preference"] == {"ols": ["HP", "MONDO"]}
@@ -59,11 +61,11 @@ def test_add_or_update_pref(sample_terminology):
     
 def test_remove_pref(sample_terminology):
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
-    assert sample_terminology.get_preference("C1")["C1"]["api_preference"] is not None
+    assert sample_terminology.get_preference("C1")["C1"]["api_preference"] != {}
 
     sample_terminology.remove_pref("C1")
     assert "C1" not in sample_terminology.get_preference("C1")
-
+    
     # Test removing a non-existent preference
     sample_terminology.remove_pref("C99")
     assert "C99" not in sample_terminology.get_preference("C99")
