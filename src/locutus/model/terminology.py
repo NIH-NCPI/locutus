@@ -31,6 +31,8 @@ from locutus.model.coding import Coding, BasicCoding
 from locutus.model.reference import Reference
 from locutus.model.simple_reference import SimpleReference
 
+# from rich import print
+
 import pdb
 
 """
@@ -544,7 +546,6 @@ class Terminology(Serializable):
         if coding is None:
             raise locutus.model.exceptions.CodeNotPresent(code, self.id)
         old_mappings = ",".join([x.code for x in coding.mappings])
-
         
         new_mappings = coding.set_mappings(codings)
         coding.save()
@@ -770,6 +771,8 @@ class MappingUserInputModel:
         if votes != []:
             vote_count = MappingUserInputModel.get_mapping_votes_counts(votes['mapping_votes'])
             user_vote = votes['mapping_votes'].get(user_id)
+            if user_vote is not None:
+                user_vote = user_vote['vote']
 
         return {
             "comments_count": comment_count,

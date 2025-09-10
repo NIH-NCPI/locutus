@@ -2,10 +2,11 @@ from copy import deepcopy
 
 import locutus #import persistence
 from pymongo import ASCENDING
-
+from rich import print
 from bson import ObjectId
 # from . import get_id
 
+import inspect
 
 class Simple:
     """Similar in some ways to serializables but these will be only retrievable by searches not by usable IDs"""
@@ -70,6 +71,11 @@ class Simple:
         # commit the data to persistent storage
         self._id = locutus.persistence().collection(self.resource_type).document(self._id).set(self.dump())
         self.id = str(self._id)
+        if self.resource_type == "Coding":
+            print(f"\n\n\n{self.resource_type}:{self._id} (from: {inspect.stack()[1]})")
+            print(f"{self.id} Save")
+            print(self.dump())
+            print("--------------------------")
 
     def dump(self):
         return self.__class__._get_schema().dump(self)
