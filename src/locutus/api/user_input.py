@@ -123,7 +123,7 @@ class TableUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
-    def get(self, id, code, mapped_code, type):
+    def get(self, id, code, mapped_code, input_type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -155,7 +155,7 @@ class TableUserInput(Resource, UserInput):
         term = table.terminology.dereference()
 
         user_input = UserInput.get_user_input(self.resource_type, self.collection_type,
-                                        term.id, code, mapped_code, type)
+                                        term.id, code, mapped_code, input_type)
         
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
             
