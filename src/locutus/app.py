@@ -60,10 +60,20 @@ from locutus.api.user_prefs import UserPrefOntoFilters
 from locutus.model.lookups import FTDOntologyLookup
 
 def create_app(config_filename=None):
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='static', static_url_path='')
     app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
+
     CORS(app)
     api = Api(app)
+
+    @app.route('/')
+    def serve_react_app():
+        return send_from_directory(app.static_folder, 'index.html')
+
+    @app.route('/<path:path>')
+    def serve_static(path):
+        return send_from_directory(app.static_folder, path)
+
 
     # Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
     FTDOntologyLookup.fetch_and_store_csv()
