@@ -145,10 +145,10 @@ class Terminology(Serializable):
         # clear that it is a bad idea.
         if codes is not None:
             for code in codes:
+                code.system = self.url
                 if type(code) is dict:
                     code = Coding(**code)
                 # print(code)
-                code.system = self.url
                 self.codes.append(code)
 
                 if editor:
