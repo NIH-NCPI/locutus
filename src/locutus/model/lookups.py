@@ -186,12 +186,9 @@ class FTDOntologyLookup:
         """
         Get the system URL given a CURIE (e.g., 'LNC' → 'http://loinc.org').
         """
-        ftd_ontology_lookup_path = cls.abs_path
-        with open(ftd_ontology_lookup_path, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row.get("curie") == ori_system:
-                    return row.get("system")
+        for curie, system in ftd_ontology_lookup().items():
+            if curie == ori_system:
+                return system
         return ori_system
 
     @classmethod
@@ -199,12 +196,8 @@ class FTDOntologyLookup:
         """
         Get the CURIE given a system URL (e.g., 'http://loinc.org' → 'LNC').
         """
-        ftd_ontology_lookup_path = cls.abs_path
-        
-        with open(ftd_ontology_lookup_path, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row.get("system") == system_url:
-                    return row.get("curie")
+        for curie, system in ftd_ontology_lookup().items():
+            if system == system_url:
+                return curie
         
         return system_url
