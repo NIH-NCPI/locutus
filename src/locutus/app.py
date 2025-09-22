@@ -66,13 +66,6 @@ def create_app(config_filename=None):
     CORS(app)
     api = Api(app)
 
-    @app.route('/')
-    def serve_react_app():
-        return send_from_directory(app.static_folder, 'index.html')
-
-    @app.route('/<path:path>')
-    def serve_static(path):
-        return send_from_directory(app.static_folder, path)
 
 
     # Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
@@ -218,10 +211,21 @@ def create_app(config_filename=None):
         OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint="ontology_by_id"
     )
 
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_static(path):
+        if path.startswith("api/"):
+            return "404 Not Found", 404
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
+
 
     @app.errorhandler(404)
     @cross_origin(allow_headers=["Content-Type"])
     def not_found(e):
+        if e.get_response().status == '404 NOT FOUND':
+            return send_from_directory(app.static_folder, 'index.html')
+
         return (
             {
                 "message": str(e),
