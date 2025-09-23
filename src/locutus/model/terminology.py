@@ -191,14 +191,9 @@ class Terminology(Serializable):
     def build_code_dict(self):
         codings = {}
 
-        available_codings = locutus.model.coding.Coding.get(
-                                terminology_id=self.id,
-                                return_instance=True,
-                                valid_only=True)
-        if type(available_codings) is Coding:
-            available_codings = [available_codings]
-        for code in available_codings:
-            codings[code.code] = code
+        for cref in self.codes:
+            coding = cref.dereference()
+            codings[coding.code] = coding 
 
         return codings
 
