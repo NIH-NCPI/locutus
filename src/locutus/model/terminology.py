@@ -98,7 +98,7 @@ class Terminology(Serializable):
         # point, but we'll trust knuth for the time being and fix it when it is
         # clear that it is a bad idea.
         if codes is not None:
-            for code in codes:
+            for code in codes:              
                 ref = None 
                 if type(code) is dict:
                     if "reference" in code:
@@ -745,8 +745,6 @@ class Terminology(Serializable):
             this_term['codes'].append(ref.dereference().dump())
     
         return this_term
-        
-
 
 class MappingUserInputModel:
     def generate_mapping_user_input(id, code, mapped_code, user_id):
