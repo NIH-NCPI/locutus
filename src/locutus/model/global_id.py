@@ -3,6 +3,7 @@ from pymongo import ASCENDING
 from marshmallow import Schema, fields, post_load
 from nanoid import generate
 from .simple import Simple
+
 """
 {
     resource_type: XXXXXXXXX,   # Terminology, DataDictionary, etc
