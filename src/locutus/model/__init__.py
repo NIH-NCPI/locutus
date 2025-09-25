@@ -4,7 +4,6 @@ from copy import deepcopy
 
 from pymongo import ASCENDING
 from marshmallow import Schema, fields, post_load
-# from .serializable import Serializable 
 
 from .global_id import GlobalID
 from .simple import Simple
