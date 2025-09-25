@@ -5,8 +5,6 @@ import locutus
 import locutus.model.global_id
 from pymongo import ASCENDING
 
-# from . import get_id
-
 import pdb
 
 class Serializable:
