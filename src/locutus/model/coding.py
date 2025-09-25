@@ -3,7 +3,6 @@ from .simple import Simple
 from marshmallow import Schema, fields, post_load
 from pymongo import ASCENDING
 from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
-# from locutus.model.onto_api_preference import OntoApiPreference
 
 from bson import ObjectId
 from collections import defaultdict 
@@ -12,10 +11,6 @@ from locutus import logger
 import pdb
 
 import locutus 
-"""import (
-    normalize_ftd_placeholders,
-    persistence
-)"""
 
 class BasicCoding:
     def __init__(self, code, display, system, description=""):

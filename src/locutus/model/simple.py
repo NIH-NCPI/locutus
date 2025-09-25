@@ -4,9 +4,6 @@ import locutus #import persistence
 from pymongo import ASCENDING
 
 from bson import ObjectId
-# from . import get_id
-
-# import inspect
 
 class Simple:
     """Similar in some ways to serializables but these will be only retrievable by searches not by usable IDs"""

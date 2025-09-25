@@ -3,15 +3,6 @@ from marshmallow import Schema, fields, post_load
 
 import locutus 
 
-"""
-from locutus import (
-    persistence,
-    PROVENANCE_TIMESTAMP_FORMAT,
-    get_code_index,
-    FTD_PLACEHOLDERS,
-    normalize_ftd_placeholders,
-    format_ftd_code
-)"""
 from locutus.api import delete_collection, generate_paired_string, generate_mapping_index
 import locutus.model.exceptions
 import locutus.model.lookups 

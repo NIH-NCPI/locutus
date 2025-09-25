@@ -1,6 +1,6 @@
 from flask import session
 from flask_session import Session
-import locutus # import logger, get_code_index
+import locutus
 
 
 class APIError(Exception):
