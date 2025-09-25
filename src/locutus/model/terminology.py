@@ -199,33 +199,56 @@ class Terminology(Serializable):
         return codes
     """
 
-    def add_code(self, code, display, description=None, editor=None):
+    def add_code(self, code, display, description=None, terminology_id=None, editor=None, exists_ok=True):
+        coding = None 
+        new_to_codes = True 
+        if type(code) is str:
+            # If it is already in codes, we can just return
+            coding = self.get_coding(code)
 
-        coding = locutus.model.coding.Coding.get(
-                    terminology_id=self.id,
-                    code=code)
+            if coding is not None:
+                new_to_codes = False 
+            else:
+                # If it's not in codes, but it is in the database...
+                coding = locutus.model.coding.Coding.get(
+                            terminology_id=self.id,
+                            code=code)
 
-        if type(coding) is list and len(coding) != 0:
-            # This definitely should not return more than one coding
-            raise locutus.model.exceptions.InvalidValueError(code, "too many codes already exist in the database")
-        if type(coding) is Coding:
-            if coding.valid:
-                raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding)
-            coding.valid=True
-            coding.save()
-            new_coding=coding
-        else:
-            new_coding = Coding(terminology_id=self.id,
-                                code=code, 
-                                display=display, 
-                                description=description,
-                                system=self.url, 
-                                editor=editor,
-                                rank=len(self.codes)
-                                )
-        for cc in self.codes:
-            if cc == code:
-                raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, cc)
+                if coding == []:
+                    coding = None 
+
+                if type(coding) is list and len(coding) != 0:
+                    # This definitely should not return more than one coding
+                    raise locutus.model.exceptions.InvalidValueError(code, "too many codes already exist in the database")
+
+            # Finally, the code is not really new, so all we are doing is updating valid status
+            if coding is not None:
+                if coding.valid is False:
+                    self.add_provenance(
+                        locutus.model.provenance.Provenance.ChangeType.EditTerm, 
+                        editor=editor,
+                        target="self",
+                        new_value="valid=True",
+                        old_value="valid=False"
+                    )
+                    coding.valid = True 
+                    coding.save()
+                elif not exists_ok:
+                    raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding.dump())
+                
+                if new_to_codes:
+                    self.codes.append(SimpleReference(f"Coding/{coding.id}"))
+                    self.save()                    
+                return 
+
+        new_coding = Coding(terminology_id=self.id,
+                            code=code, 
+                            display=display, 
+                            description=description,
+                            system=self.url, 
+                            editor=editor,
+                            rank=len(self.codes)
+                            )
 
         new_coding.save()
 
