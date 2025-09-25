@@ -176,7 +176,6 @@ class Provenance(Simple):
         new_value = fields.Str()
         old_value = DictOrStringField() 
         timestamp = fields.Str()
-        # timestamp = fields.DateTime(format=PROVENANCE_TIMESTAMP_FORMAT)
         valid = fields.Bool()
 
         target = fields.Str()

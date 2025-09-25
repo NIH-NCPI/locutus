@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-import locutus #import persistence
+import locutus
 from pymongo import ASCENDING
 
 from bson import ObjectId
@@ -68,6 +68,9 @@ class Simple:
         # commit the data to persistent storage
         self._id = locutus.persistence().collection(self.resource_type).document(self._id).set(self.dump())
         self.id = str(self._id)
+
+        # EST - 2025-05-25 -- Leaving this here as an example to profile tricky bugs
+        # especially for situations where you have asynchronous calls
         # if self.resource_type == "Coding":
         #     print(f"\n\n\n{self.resource_type}:{self._id} (from: {inspect.stack()[1]})")
         #     print(f"{self.id} Save")

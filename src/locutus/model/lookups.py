@@ -1,4 +1,4 @@
-import locutus  # import persistence
+import locutus
 import locutus.model.terminology 
 from locutus.model.validation import validate_enums
 from locutus import logger

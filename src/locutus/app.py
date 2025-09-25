@@ -3,12 +3,6 @@ from flask import Flask, request, render_template, url_for, send_from_directory
 from flask_cors import CORS, cross_origin
 from flask_restful import Resource, Api
 
-
-# from locutus import init_base_storage
-
-# Once we are inside docker, the path will probably be a bit more complex
-# init_base_storage("test")
-
 from locutus.api.terminology import (
     Terminology,
     Terminologies,

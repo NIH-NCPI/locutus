@@ -1,8 +1,6 @@
 import locutus
 from pymongo import ASCENDING
 from marshmallow import Schema, fields, post_load
-#from locutus.model import resource_types, simple_types
-#from locutus.model.serializable import Serializable
 from nanoid import generate
 from .simple import Simple
 """
@@ -18,7 +16,7 @@ from .simple import Simple
 class GlobalID(Simple):
     _schema = None
     global resource_types
-    # allowed_resource_types = set(resource_types)
+    
     def __init__(self, resource_type, key, domain="", id=None, object_id=None, _id=None):
         if not isinstance(resource_type, str) or not resource_type.strip():
             raise ValueError("resource_type is required for all Global IDs.")

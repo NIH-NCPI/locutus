@@ -1,6 +1,6 @@
 from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
-import locutus # import persistence
+import locutus
 
 
 """

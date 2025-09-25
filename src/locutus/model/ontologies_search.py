@@ -100,7 +100,6 @@ class OntologyAPI(Serializable):
         """
         if api_id:
             processed_data = cls.find(params={"api_id": api_id}, return_instance=False)
-            # processed_data = cls.get(api_id, return_instance=False)
             if processed_data is None:
                 return None
             return processed_data

@@ -1,6 +1,6 @@
 from .simple import Simple
 from marshmallow import Schema, fields, post_load
-import locutus # import persistence
+import locutus
 
 
 """
