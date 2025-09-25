@@ -1,1 +1,2 @@
-git+https://github.com/NIH-NCPI/search-dragon.git#egg=search_dragon
+pytest 
+pytest-ordering
