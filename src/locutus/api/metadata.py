@@ -6,5 +6,7 @@ class Version(Resource):
     def get(self):
         """Retrieve the VERSION environment variable. The version is set at
         deployment. """
-        version = os.getenv('VERSION', __version__)
+
+        version = os.getenv('VERSION') or __version__
+
         return {'version': version}
