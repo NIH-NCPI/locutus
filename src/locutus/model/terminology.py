@@ -92,9 +92,6 @@ class Terminology(Serializable):
                 new_value="Instantiation"
             )
 
-        # This probably doesn't make sense, stashing the system in at this
-        # point, but we'll trust knuth for the time being and fix it when it is
-        # clear that it is a bad idea.
         if codes is not None:
             for code in codes:              
                 ref = None 
