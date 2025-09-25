@@ -22,8 +22,6 @@ from locutus.model.coding import Coding, BasicCoding
 from locutus.model.reference import Reference
 from locutus.model.simple_reference import SimpleReference
 
-# from rich import print
-
 import pdb
 
 """
@@ -113,7 +111,6 @@ class Terminology(Serializable):
 
                         code = Coding(**code)
                 if ref is None:                
-                    # print(code)
                     code.system = self.url
                     code.save()
                     ref = SimpleReference(f"Coding/{code.id}")

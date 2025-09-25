@@ -231,7 +231,6 @@ class Coding(Simple, BasicCoding):
         valid = fields.Bool()
         rank = fields.Integer()
         mappings = fields.List(fields.Nested(CodingMapping._Schema))
-        # api_preferences = fields.Nested(OntoApiPreference._Schema)
         api_preferences = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
         @post_load
         def build_coding(self, data, **kwargs):
@@ -246,7 +245,6 @@ class Coding(Simple, BasicCoding):
     def add_api_preferences(self, api, preferences):
         if len(preferences) > 0:
             self.api_preferences[api] = preferences
-            #self.api_preferences.set_preference(api, preferences)
 
     def remove_api_preferences(self):
         self.api_preferences = {}
@@ -291,8 +289,6 @@ class Coding(Simple, BasicCoding):
                 mapping.mapping_relationship = mapping_relationship 
                 self.save()
 
-                # Brenda was creating a complex index for the code/mapping
-                # target = generate_mapping_index(code, mapped_code)
                 Provenance.add_mapping_provenance(
                     temrinology_id=self.terminology_id,
                     target_coding=self.code, 
