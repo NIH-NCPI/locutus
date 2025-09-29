@@ -122,9 +122,6 @@ class CollectionReference:
         if query is None:
             query = {}
 
-        # if sorting is None:
-        #     sorting = ASCENDING
-        #    sorting = [("_id", ASCENDING)]
         qresult = self._collection.find(query)
         if sorting is not None:
             qresult = qresult.sort(sorting)
