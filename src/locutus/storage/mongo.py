@@ -129,8 +129,6 @@ class CollectionReference:
         if sorting is not None:
             qresult = qresult.sort(sorting)
         for doc in qresult:
-            # Remove all database-specific fields (starting with _)
-            # doc = {k: v for k, v in doc.items()} # if not k.startswith('_')}
             if return_instance:
                 yield DocumentSnapshot(doc['_id'], doc, collection=self._collection)
             else:
@@ -171,8 +169,8 @@ class FirestoreCompatibleClient:
 
     def __init__(self, mongo_uri=None, missing_ok=False):
         if mongo_uri is None:
-            # mongo_uri = os.getenv("FIRESTORE_MONGO_URI") or os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
             mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
+
         parsed = urlparse(mongo_uri)
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
         logger.info(f"Mongo DB Interface")

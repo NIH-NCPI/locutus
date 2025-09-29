@@ -2,9 +2,8 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 from locutus.model.terminology import Terminology
 from locutus.model.reference import Reference
-import locutus #import persistence
+import locutus 
 from locutus.model.terminology import Terminology as Term
-# from locutus import strip_none
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus

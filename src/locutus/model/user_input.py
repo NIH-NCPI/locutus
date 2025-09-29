@@ -8,7 +8,6 @@ Current Use:
 
 """
 from marshmallow import Schema, fields, post_load
-# from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
 import locutus
 from locutus.api import generate_mapping_index, get_editor
 from locutus.sessions import SessionManager

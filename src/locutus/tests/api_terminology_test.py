@@ -165,7 +165,6 @@ def test_terminology_put(client):
     assert term['codes'][0]['code'] == "C1"
     assert term['codes'][1]['display'] == "Code Two"
 
-    # response = client.delete(f"/api/Terminology/{term_id}")
     term = Terminology.get(term_id)
     term.delete(hard_delete=True)
 
@@ -229,7 +228,6 @@ def test_terminology_add_and_delete_code(client):
     coding = Coding.get(new_coding_id)
     coding.delete()    
 
-    # response = client.delete(f"/api/Terminology/{term_id}")
     term = Terminology.get(term_id)
     term.delete(hard_delete=True)
 
@@ -267,7 +265,6 @@ def test_terminology_post(client):
     assert term['codes'][0]['code'] == "C1"
     assert term['codes'][1]['display'] == "Code Two"
 
-    # response = client.delete(f"/api/Terminology/{term_id}")
     term = Terminology.get(term_id)
     term.delete(hard_delete=True)
 

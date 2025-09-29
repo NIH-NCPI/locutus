@@ -3,7 +3,6 @@ import pytest
 from locutus.model.coding import Coding, CodingMapping 
 from locutus.model.terminology import Terminology
 from locutus.model.user_input import UserInput, MappingConversation, MappingVote
-# from .test_terminology import sample_terminology, sample_terminology_with_editor
 
 import pdb
 
