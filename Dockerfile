@@ -19,7 +19,7 @@ COPY requirements.txt .
 # file then uninstall it as it is no longer necessary 
 RUN apk del git
 
-ENV FLASK_RUN_PORT=8080
+# ENV FLASK_RUN_PORT=8080
 # Cloud Run expects 8080, need to figure out how to change that
 EXPOSE 8080 
 CMD ["flask", "run"] 
