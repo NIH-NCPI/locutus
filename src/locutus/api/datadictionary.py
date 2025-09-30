@@ -1,17 +1,18 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.datadictionary import DataDictionary as DD
 from locutus.api.study import Studies
 from locutus.api import default_headers
 
 from flask_cors import cross_origin
 
+from bson import json_util 
+import json
 
 class DataDictionaries(Resource):
     def get(self):
         return (
-            [x.to_dict() for x in persistence().collection("DataDictionary").stream()],
+            json.loads(json_util.dumps(DD.get(return_instance=False))),
             200,
             default_headers,
         )
@@ -28,20 +29,14 @@ class DataDictionaries(Resource):
     def post(self):
         dd = request.get_json()
         d = self.save_dd(dd)
-        return d.dump(), 201, default_headers
+        return json.loads(json_util.dumps(d.dump())), 201, default_headers
 
     def delete_table_references(self, table_id):
         # Does this need to be batched. I'm assuming we'll end up using a
         # different database before we get enough of these to matter
 
         affected_dds = 0
-        for dd in persistence().collection("DataDictionary").stream():
-            dd = dd.to_dict()
-
-            if "resource_type" in dd:
-                del dd["resource_type"]
-            d = DD(**dd)
-
+        for d in DD.get(return_instance=True):
             matched_references = d.remove_table(table_id)
 
             if matched_references > 0:
@@ -55,8 +50,11 @@ class DataDictionaries(Resource):
 class DataDictionary(Resource):
 
     def get(self, id):
-        t = persistence().collection("DataDictionary").document(id).get()
-        return t.to_dict()
+        t = DD.get(id, return_instance=False)
+        if t is not None:
+            return json.loads(json_util.dumps(t)), 200, default_headers
+        else:
+            return f"No DataDictionary with id, {id}, was found", 404, default_headers
 
     @cross_origin(allow_headers=["Content-Type"])
     def put(self, id):
@@ -69,33 +67,23 @@ class DataDictionary(Resource):
 
         d = DD(**dd)
         d.save()
-        return d.dump(), 201, default_headers
+        return json.loads(json_util.dumps(d.dump())), 201, default_headers
 
     def delete(self, id):
-        dref = persistence().collection("DataDictionary").document(id)
-        t = dref.get().to_dict()
-        print(f"{id} : {t}")
+        dd = DD.get(id)
+        d = dd.dump()
 
         # Delete any references to the data dictionary from any studies:
         Studies().delete_dd_references(id)
+        dd.delete()
 
-        time_of_delete = dref.delete()
-
-        # if t is not None:
-        #    persistence().save()
-
-        return t, 200, default_headers
+        return json.loads(json_util.dumps(d)), 200, default_headers
 
 
 class DataDictionaryTable(Resource):
     @cross_origin()
     def delete(self, id, table_id):
-        ddref = persistence().collection("DataDictionary").document(id).get().to_dict()
-
-        if "resource_type" in ddref:
-            del ddref["resource_type"]
-        # We'll realize the data-dictionary and delete the id from there
-        d = DD(**ddref)
+        d = DD.get(id)
 
         refs_removed = d.remove_table(table_id)
         if refs_removed > 0:
@@ -103,4 +91,4 @@ class DataDictionaryTable(Resource):
 
         dd = d.dump()
 
-        return dd, 200, default_headers
+        return json.loads(json_util.dumps(dd)), 200, default_headers

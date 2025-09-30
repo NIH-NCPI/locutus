@@ -4,6 +4,8 @@ from locutus import logger
 from locutus.api import default_headers
 from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 from locutus.model.exceptions import *
+from bson import json_util 
+import json
 
 
 class OntologyAPIs(Resource):
@@ -19,12 +21,12 @@ class OntologyAPIs(Resource):
         """
         if api_id is None:
             result = OntologyAPI.get_api_ontologies()
-            return result
+            return json.loads(json_util.dumps(result))
         else:
             result = OntologyAPI.get_api_ontologies(api_id)
             if not result:
                 return {"error": "Ontology API not found"}, 404
-            return result, 200
+            return json.loads(json_util.dumps(result)), 200
 
 class OntologyAPISearch(Resource):
     """

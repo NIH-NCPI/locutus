@@ -1,4 +1,3 @@
-from locutus import persistence
 from locutus.model.exceptions import *
 
 
@@ -25,7 +24,6 @@ def validate_enums(codes, enums, additional_enums=None):
     if additional_enums:
         valid_enums += list(additional_enums)
 
-
     # Normalize codes
     if isinstance(codes, dict):  # Assuming Coding or CodingMapping object
         code_list = [entry.get("code") for entry in codes.values()]
@@ -34,7 +32,7 @@ def validate_enums(codes, enums, additional_enums=None):
     elif isinstance(codes, str):
         code_list = [codes]
     else:
-        raise TypeError("Codes must be a dict, list, or string.")
+        raise TypeError(f"Codes, {codes}, must be a dict, list, or string.")
 
     # Validate each code
     invalid_codes = [code for code in code_list if code not in valid_enums]

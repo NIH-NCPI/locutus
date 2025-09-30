@@ -1,9 +1,10 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence
 from locutus.model.table import Table as mTable
 from locutus.api import default_headers, get_editor, delete_collection
 from locutus.model.exceptions import *
+from bson import json_util 
+import json
 
 
 class TableOntologyAPISearchPreferences(Resource):
@@ -11,11 +12,17 @@ class TableOntologyAPISearchPreferences(Resource):
         t = mTable.get(id)
 
         try:
-            pref = t.get_preference(code=code)
+            prefs = t.get_preference(code=code)
+            
+            if code is None:
+                if "self" not in prefs:
+                    prefs = {
+                        "self": prefs
+                    }
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
-        return pref, 200, default_headers
+        return json.loads(json_util.dumps(prefs)), 200, default_headers
 
     def post(self, id, code=None):
         """Create or add an `api_preference` for a specific Table or code."""
@@ -86,7 +93,7 @@ class TablePreferredTerminology(Resource):
 
         pref = t.get_preferred_terminology()
 
-        return (pref, 200, default_headers)
+        return (json.loads(json_util.dumps(pref)), 200, default_headers)
 
     def put(self, id):
         """

@@ -16,7 +16,7 @@ def delete_collection(coll):
         doc.delete()
 
 
-def    persistence():
+def persistence():
     global _db
 
     if _db is None:

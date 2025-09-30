@@ -2,10 +2,11 @@
 FROM python:3.13-alpine
 
 #WORKDIR .
-ENV FLASK_APP=src/app.py
+ENV FLASK_APP=src/locutus/app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 #ENV PORT=8080
 COPY src  ./src
+COPY .git ./.git
 COPY pyproject.toml . 
 COPY README.md .
 RUN apk update && \
@@ -18,6 +19,7 @@ COPY requirements.txt .
 # file then uninstall it as it is no longer necessary 
 RUN apk del git
 
+# ENV FLASK_RUN_PORT=8080
 # Cloud Run expects 8080, need to figure out how to change that
 EXPOSE 8080 
 CMD ["flask", "run"] 

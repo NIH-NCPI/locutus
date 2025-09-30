@@ -1,4 +1,4 @@
-from .serializable import Serializable
+from .simple import Simple
 from marshmallow import Schema, fields, post_load
 import locutus
 
@@ -8,7 +8,7 @@ The reference just represents a placeholder for an entity from another table
 """
 
 
-class Reference(Serializable):
+class SimpleReference(Simple):
     """A FHIR-like reference entity-for our needs, the reference should be to
     a local url."""
 
@@ -29,7 +29,7 @@ class Reference(Serializable):
 
         @post_load
         def build_reference(self, data, **kwargs):
-            return Reference(**data)
+            return SimpleReference(**data)
 
     def reset_cache(self, instance=None):
         """I imagine this would normally be default, but if you happen to know
@@ -43,7 +43,7 @@ class Reference(Serializable):
         than a single block."""
         if self._reference is None:
             resource_type, id = self.reference.split("/")
-            self._reference = Serializable.pull(resource_type, id)
+            self._reference = Simple.pull(resource_type, id)
 
         return self._reference
 

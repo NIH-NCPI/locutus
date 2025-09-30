@@ -1,11 +1,9 @@
 # For now, we'll use my dumb JSON persistence storage
 # from locutus.storage import JStore
-from locutus.storage.firestore import persistence
 from search_dragon import logger as getlogger
 import logging
 from os import getenv 
-
-_persistence = None
+import traceback
 
 PROVENANCE_TIMESTAMP_FORMAT = "%Y-%m-%d %I:%M:%S%p"
 
@@ -68,7 +66,9 @@ def get_code_index(code):
       code_index(str): 
       Examples: `given0x2Fcode' or <FTD-DOT-DOT>`
     """
-
+    global logger
+    logger.warning(f"get_code_index call: \n{''.join(traceback.format_stack()[-2])}")
+    return code
     # Ensure any codes with designated placeholders have them in place at indexing.
     if code in REVERSE_FTD_PLACEHOLDERS:
         code = REVERSE_FTD_PLACEHOLDERS[code] 
@@ -114,3 +114,4 @@ def init_base_storage(filepath="db"):
 
     return _persistence
 """
+from .storage import persistence

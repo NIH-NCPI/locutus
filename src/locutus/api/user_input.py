@@ -3,9 +3,11 @@ from flask import request
 from locutus.model.terminology import Terminology as Term
 from locutus.model.table import Table
 from locutus.model.exceptions import *
-from locutus.api import default_headers
+from locutus.api import default_headers, get_editor
 from locutus.sessions import SessionManager
 from locutus.model.user_input import UserInput
+from bson import json_util 
+import json
 
 class TerminologyUserInput(Resource, UserInput):
     """
@@ -22,7 +24,7 @@ class TerminologyUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
-    def get(self, id, code, mapped_code, type):
+    def get(self, id, code, mapped_code, input_type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -50,12 +52,13 @@ class TerminologyUserInput(Resource, UserInput):
             ]
         }
         """
-        user_input = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        id, code, mapped_code, type)
+
+        user_input = UserInput.get_user_input(self.resource_type, self.collection_type,
+                                        id, code, mapped_code, input_type)
         
-        return (user_input, 200, default_headers)
+        return (json.loads(json_util.dumps(user_input)), 200, default_headers)
             
-    def put(self, id, code, mapped_code, type):
+    def put(self, id, code, mapped_code, input_type):
         """
         Update the user input 
 
@@ -65,7 +68,7 @@ class TerminologyUserInput(Resource, UserInput):
         Args:
             id (str): Defines the terminology of interest.
             code (str): Defines the target document (mapping).
-            type (str): The type of input to update (e.g., "mapping_votes").
+            input_type (str): The type of input to update (e.g., "mapping_votes").
 
         Request Body:
         Editor is not required if using sessions
@@ -75,31 +78,34 @@ class TerminologyUserInput(Resource, UserInput):
         }
         """
         body = request.get_json()
+        editor = get_editor(body=body, editor=None)
 
+        if editor is None:
+            raise LackingUserID(editor)
         # Raise error if the code is not in the terminology
         t = Term.get(id)
         try:
             if not t.has_code(code): 
                 raise CodeNotPresent(code, id)
 
-            result = UserInput.create_or_replace_user_input(self,
-                                                            self.resource_type,
+            result = UserInput.create_or_replace_user_input(self.resource_type,
                                                             self.collection_type,
                                                             id,
                                                             code,
-                                                            mapped_code,
-                                                            type,
-                                                            body)
+                                                            mapped_code=mapped_code,
+                                                            type=input_type,
+                                                            input_value=body,
+                                                            editor=editor)
             
             if isinstance(result, tuple):
                 return result
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
         
-        response = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        id, code, mapped_code, type)
+        response = UserInput.get_user_input(self.resource_type, self.collection_type,
+                                        id, code, mapped_code, input_type)
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
     
 class TableUserInput(Resource, UserInput):
     """
@@ -117,7 +123,7 @@ class TableUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
     
-    def get(self, id, code, mapped_code, type):
+    def get(self, id, code, mapped_code, input_type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -147,13 +153,13 @@ class TableUserInput(Resource, UserInput):
         """
         table = Table.get(id)
         term = table.terminology.dereference()
-        user_input = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        term.id, code, mapped_code, type)
 
+        user_input = UserInput.get_user_input(self.resource_type, self.collection_type,
+                                        term.id, code, mapped_code, input_type)
         
-        return (user_input, 200, default_headers)
+        return (json.loads(json_util.dumps(user_input)), 200, default_headers)
             
-    def put(self, id, code, mapped_code, type):
+    def put(self, id, code, mapped_code, input_type):
         """
         Update the user input 
 
@@ -163,7 +169,7 @@ class TableUserInput(Resource, UserInput):
         Args:
             id (str): Defines the terminology of interest.
             code (str): Defines the target document (mapping).
-            type (str): The type of input to update (e.g., "mapping_votes").
+            input_type (str): The type of input to update (e.g., "mapping_votes").
 
         Request Body:
         Editor is not required if using sessions
@@ -174,6 +180,10 @@ class TableUserInput(Resource, UserInput):
         """
         body = request.get_json()
 
+        editor = get_editor(body=body, editor=None)
+        if editor is None:
+            raise LackingUserID(editor)
+
         # Raise error if the code is not in the terminology
         table = Table.get(id)
         term = table.terminology.dereference()
@@ -182,22 +192,23 @@ class TableUserInput(Resource, UserInput):
             if not term.has_code(code): 
                 raise CodeNotPresent(code, id)
 
-            result = UserInput.create_or_replace_user_input(self,
+            result = UserInput.create_or_replace_user_input(
                                                             self.resource_type,
                                                             self.collection_type,
                                                             term.id,
                                                             code,
                                                             mapped_code,
-                                                            type,
-                                                            body)
+                                                            type=input_type,
+                                                            input_value=body,
+                                                            editor=editor)
             
             if isinstance(result, tuple):
                 return result
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
         
-        response = UserInput.get_user_input(self, self.resource_type, self.collection_type,
-                                        term.id, code, mapped_code, type)
+        response = UserInput.get_user_input(self.resource_type, self.collection_type,
+                                        term.id, code, mapped_code, input_type)
 
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
         
