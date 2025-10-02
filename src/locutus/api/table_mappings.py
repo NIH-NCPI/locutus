@@ -1,8 +1,9 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
+from locutus import FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.model.table import Table
-from locutus.model.terminology import Terminology, Coding, CodingMapping, MappingUserInputModel
+from locutus.model.terminology import Terminology, MappingUserInputModel
+from locutus.model.coding import Coding, CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
 from locutus.model.exceptions import *
@@ -14,6 +15,7 @@ class TableMappings(Resource):
     def get_mappings(cls, id):
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
+
         try:
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
@@ -146,8 +148,8 @@ class TableMapping(Resource):
                 raise LackingUserID(editor)
 
             mappings = request.get_json()["mappings"]
-            codingmapping = [CodingMapping(**x) for x in mappings]
 
+            codingmapping = [CodingMapping(**x) for x in mappings]
             table = Table.get(id)
             term = table.terminology.dereference()
 

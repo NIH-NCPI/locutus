@@ -1,9 +1,10 @@
 [build-system]
-requires = ["setuptools"] #, "setuptools-scm"]
+requires = ["setuptools>=61.0", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
-#[tool.setuptools_scm]
-#version_file = "locutus/_version.py"
+[tool.setuptools-git-versioning]
+enabled = true
+
 
 [project]
 name = "locutus"
@@ -13,6 +14,7 @@ authors = [
 description = "Research terminology management system."
 readme = "README.md"
 requires-python = ">=3.13"
+dynamic = ["version"]
 keywords = ["Vocabulary", "Research Data", "Borg"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -26,10 +28,13 @@ dependencies = ["marshmallow",
                 "PyYAML",
                 "rich",
                 "search-dragon@git+https://github.com/NIH-NCPI/search-dragon.git",
-                "firebase-admin"
+                "firebase-admin",
+                "pymongo"
                 ]
 
-dynamic = ["version"]
+[tool.setuptools_scm]
+version_file = "src/locutus/_version.py"
+
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
@@ -37,3 +42,8 @@ where = ["src"]  # list of folders that contain the packages (["."] by default)
 
 #[project.scripts]
 #asdf = "locutus.module:function"
+
+[tool.pytest.ini_options]
+env = [
+    "MONGO_URI=mongodb://localhost:27017/test",
+]

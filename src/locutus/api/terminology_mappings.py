@@ -1,11 +1,14 @@
 from flask_restful import Resource
 from flask import request
-from locutus import persistence, FTD_PLACEHOLDERS, normalize_ftd_placeholders
+from locutus import FTD_PLACEHOLDERS, normalize_ftd_placeholders
 from locutus.model.terminology import Terminology as Term, MappingUserInputModel
 from locutus.model.exceptions import *
 from flask_cors import cross_origin
 from locutus.api import default_headers, delete_collection, get_editor
 from locutus.sessions import SessionManager
+from bson import json_util 
+import json
+
 import pdb
 
 
@@ -21,23 +24,17 @@ class TerminologyMappings(Resource):
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
-
-            termref = persistence().collection("Terminology").document(id)
-            term = termref.get().to_dict()
+            term = Term.get(id)
 
             if term is not None:
-                if "resource_type" in term:
-                    del term["resource_type"]
-
-                t = Term(**term)
 
                 response = {
                     "terminology": {
-                        "Reference": f"Terminology/{t.id}",
+                        "Reference": f"Terminology/{term.id}",
                     },
                     "codes": [],
                 }
-                mappings = t.mappings()
+                mappings = term.mappings()
 
                 for code in mappings:
 
@@ -59,7 +56,7 @@ class TerminologyMappings(Resource):
 
                     response["codes"].append(mapping)
 
-            return response
+            return json.loads(json_util.dumps(response))
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -78,11 +75,11 @@ class TerminologyMappings(Resource):
             response = TerminologyMappings.get_mappings(id)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        return (response, 200, default_headers)
+        return (json.loads(json_util.dumps(response)), 200, default_headers)
 
     @classmethod
     def get(cls, id):
         response = cls.get_mappings(id)
         if response is not None:
-            return (response, 200, default_headers)
+            return (json.loads(json_util.dumps(response)), 200, default_headers)
         return (None, 404, default_headers)

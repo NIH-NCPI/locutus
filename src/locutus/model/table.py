@@ -1,21 +1,16 @@
 from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import (
-    persistence,
-    strip_none,
-    FTD_PLACEHOLDERS,
-    normalize_ftd_placeholders,
-    get_code_index
-)
+import locutus 
+
 from flask import request
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
+from locutus.model.provenance import Provenance
 from locutus.model.exceptions import *
 
 from locutus.api import default_headers
-
 
 import rich
 
@@ -58,6 +53,7 @@ class Table(Serializable):
     def __init__(
         self,
         id=None,
+        _id=None,
         code="",
         name=None,
         url=None,
@@ -69,10 +65,10 @@ class Table(Serializable):
         editor=None,
     ):
 
-        super().__init__(id=id, collection_type="Table", resource_type="Table")
+        super().__init__(id=id, _id=_id, collection_type="Table", resource_type="Table")
 
-        if strip_none(code) == "":
-            code = strip_none(name)
+        if locutus.strip_none(code) == "":
+            code = locutus.strip_none(name)
 
         self.id = id
         self.name = name
@@ -119,7 +115,7 @@ class Table(Serializable):
 
     def remove_variable(self, varname, editor):
         success = False
-        varname = normalize_ftd_placeholders(varname)
+        varname = locutus.normalize_ftd_placeholders(varname)
 
         for var in self.variables:
             if var.name == varname:
@@ -141,9 +137,9 @@ class Table(Serializable):
     def rename_var(self, original_varname, new_varname, new_description, editor):
         status = 200
         # Ensure codes are not placeholders at this point.
-        original_varname = normalize_ftd_placeholders(original_varname)
+        original_varname = locutus.normalize_ftd_placeholders(original_varname)
 
-        new_varname = normalize_ftd_placeholders(new_varname)
+        new_varname = locutus.normalize_ftd_placeholders(new_varname)
 
         print(
             f"Renaming Variable, {original_varname} to {new_varname} with new desc: {new_description}"
@@ -189,32 +185,27 @@ class Table(Serializable):
                 if new_values:
                     terminology = self.terminology.dereference()
                     terminology.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm,
+                        change_type=Provenance.ChangeType.EditTerm,
                         target=original_code,
                         old_value=old_values,
                         new_value=new_values,
                         editor=editor,
                     )
                     terminology.add_provenance(
-                        change_type=Terminology.ChangeType.EditTerm,
+                        change_type=Provenance.ChangeType.EditTerm,
                         target="self",
                         old_value=old_values,
                         new_value=new_values,
                         editor=editor,
                     )
                     if original_varname != new_varname:
-                        term_doc = (
-                            persistence()
-                            .collection(terminology.resource_type)
-                            .document(terminology.id)
-                            .collection("provenance")
-                        )
-                        original_code_index = get_code_index(original_code)
-                        new_code_index = get_code_index(var.code)
-                        prov = term_doc.document(original_code_index).get().to_dict()
-                        prov["target"] = var.code
-                        term_doc.document(new_code_index).set(prov)
-                        term_doc.document(original_code_index).delete()
+                        for prov in Provenance.mapping_provenance(
+                            terminology_id=self.id,
+                            target_coding=original_varname,
+                            return_instance=True
+                        ):
+                            prov.target_coding = new_varname
+                            prov.save()
                 return True
         return False
 
@@ -231,7 +222,7 @@ class Table(Serializable):
         v = variable
 
         # Ensure the name is not a ftd_placeholder
-        v["name"] = normalize_ftd_placeholders(v["name"])
+        v["name"] = locutus.normalize_ftd_placeholders(v["name"])
 
         if type(variable) is dict:
             # For now, let's insure that the enumerations terminology is there or
@@ -329,7 +320,7 @@ class Table(Serializable):
             pref = self.terminology.dereference().get_preference(code=code)
 
             # If code exists as a key and is empty get the Table preferences.
-            if code in pref and not pref[code]:
+            if code in pref and not pref[code]["api_preference"]:
                 table_pref = self.terminology.dereference().get_preference(code="self")
                 return table_pref if table_pref else {}
 

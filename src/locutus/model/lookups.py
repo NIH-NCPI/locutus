@@ -1,4 +1,5 @@
-from locutus import persistence
+import locutus
+import locutus.model.terminology 
 from locutus.model.validation import validate_enums
 from locutus import logger
 import requests
@@ -30,17 +31,18 @@ class ResourceSingletonBase:
         if (resource_name, is_collection) not in cls._instances:
             instance = super(ResourceSingletonBase, cls).__new__(cls)
             cls._instances[(resource_name, is_collection)] = instance
-            instance.db = persistence()  # Initialize database client
+            instance.db = locutus.persistence()  # Initialize database client
             if is_collection:
                 # Cache the entire collection
                 instance.termref = instance.db.collection(resource_name).stream()
                 instance._cached_resource = [doc.to_dict() for doc in instance.termref]
             else:
                 # Cache a single document
-                instance.termref = (
-                    instance.db.collection("Terminology").document(resource_name).get()
-                )
-                instance._cached_resource = instance.termref.to_dict()
+                instance._cached_resource = locutus.model.terminology.Terminology.get(resource_name, return_instance=True)
+
+                if instance._cached_resource is not None:
+                    instance._cached_resource = instance._cached_resource.realize_as_dict()
+
         return cls._instances[(resource_name, is_collection)]
 
     def get_cached_resource(self):
@@ -65,9 +67,11 @@ class FTDConceptMapTerminology(ResourceSingletonBase):
     def validate_codes_against(self, codes, additional_enums=None):
         """Validates the provided codes against the terminology."""
         terminology_data = self.get_cached_resource()
+
         terminology_codes = [
             entry["code"] for entry in terminology_data["codes"] if "code" in entry
         ]
+
         validate_enums(codes, terminology_codes, additional_enums=additional_enums)
 
 
@@ -164,8 +168,7 @@ class FTDOntologyLookup:
                 if system not in cls.reverse_lookup:
                     cls.reverse_lookup[system] = curie
 
-            logger.debug("Ontology data loaded into memory.")
-
+        logger.debug("Ontology data loaded into memory.")
 
     @classmethod
     def fetch_and_store_csv(cls):
@@ -183,12 +186,9 @@ class FTDOntologyLookup:
         """
         Get the system URL given a CURIE (e.g., 'LNC' → 'http://loinc.org').
         """
-        ftd_ontology_lookup_path = cls.abs_path
-        with open(ftd_ontology_lookup_path, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row.get("curie") == ori_system:
-                    return row.get("system")
+        for curie, system in ftd_ontology_lookup().items():
+            if curie == ori_system:
+                return system
         return ori_system
 
     @classmethod
@@ -196,12 +196,8 @@ class FTDOntologyLookup:
         """
         Get the CURIE given a system URL (e.g., 'http://loinc.org' → 'LNC').
         """
-        ftd_ontology_lookup_path = cls.abs_path
-        
-        with open(ftd_ontology_lookup_path, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row.get("system") == system_url:
-                    return row.get("curie")
+        for curie, system in ftd_ontology_lookup().items():
+            if system == system_url:
+                return curie
         
         return system_url

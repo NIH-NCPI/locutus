@@ -25,6 +25,32 @@ Finally, if you want to halt on the first error, simply using the -x flag.
 $ pytest -x src/locutus/tests/test_terminology.py
 ```
 
+# ## New! Log Level Environment Variable
+By default, the log level is warnings only, however, you can set it to any of the standard python log levels, INFO, DEBUG, etc using the environment variablele, LOCUTUS_LOGLEVEL
+
+## Unit tests
+For developers who wish to run tests, unit tests are written using the PyTest library. To run the tests, simply run the following commands from within the locutus repo directory. It is important that your system is set up with the necessary environment settings to connect to the database, etc. 
+
+
+```bash
+$ pytest
+```
+
+If you wish to run a particular test file, you can specify it on the command line: 
+```bash
+$ pytest src/locutus/tests/test_terminology.py
+```
+
+Finally, if you want to halt on the first error, simply using the -x flag. 
+```bash
+$ pytest -x src/locutus/tests/test_terminology.py
+```
+
+If you are testing with Mongo on your localhost: 
+```bash
+$ LOCUTUS_DB_TYPE=mongodb LOCUTUS_LOGLEVEL=DEBUG pytest
+```
+
 # API Functionality:
 
 ## Terminologies:
@@ -490,8 +516,8 @@ Renames code(s) with new names.
 
 This PATCH method does not conform to the standard guidelines which permit
 updates to any property within the resource. Instead it is intended solely
-for renaming codes inside a terminology. The body of the call will include will
-be an object with one or two keys, "code" and "display" (a valid rename must
+for renaming codes inside a terminology. The body of the call will be an object 
+with one to three keys, "code", "display" or "description" (a valid rename must
 have one of the two). Each of those keys will point to an object whose keys
 match a term within the current terminology. Those key's values represent the
 new value after the change.

@@ -1,8 +1,9 @@
 import pytest 
-from locutus.model.terminology import Terminology, Coding, CodingMapping
-from .test_terminology import sample_terminology, sample_terminology_with_editor
+from locutus.model.terminology import Terminology
+from locutus.model.coding import Coding, CodingMapping
+from .test_terminology import sample_terminology, sample_terminology_with_editor, ftd_concept_relationships
 
-# import pdb 
+import pdb 
 
 _all_terms = None
 @pytest.fixture
@@ -23,7 +24,8 @@ def test_get_preference_terminology(sample_terminology):
 
     # Test for a code without preference
     assert "C99" not in sample_terminology.get_preference("C99")
-
+    assert "self" in sample_terminology.get_preference("C99")
+    assert sample_terminology.get_preference("C99")['self']['api_preference']  == {"ols": ["HP", "MONDO"]}
 
 def test_add_or_update_pref_terminology(sample_terminology):
     # Add a new preference
@@ -37,16 +39,19 @@ def test_add_or_update_pref_terminology(sample_terminology):
 def test_get_preference(sample_terminology):
     # Test with no preference set
     assert "C1" not in sample_terminology.get_preference("C1")
-
+    assert "self" in sample_terminology.get_preference("C1")
+    
     # Set a preference
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
     assert sample_terminology.get_preference("C1")["C1"]["api_preference"] == {"ols": ["HP", "MONDO"]}
+    assert "self" not in sample_terminology.get_preference("C1")
 
     # Test for a code without preference
     assert "C99" not in sample_terminology.get_preference("C99")
 
 def test_add_or_update_pref(sample_terminology):
     # Add a new preference
+    
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
     assert sample_terminology.get_preference("C1")["C1"]["api_preference"]  == {"ols": ["HP", "MONDO"]}
 
@@ -57,11 +62,11 @@ def test_add_or_update_pref(sample_terminology):
     
 def test_remove_pref(sample_terminology):
     sample_terminology.add_or_update_pref({"ols": ["HP", "MONDO"]}, "C1")
-    assert sample_terminology.get_preference("C1")["C1"]["api_preference"] is not None
+    assert sample_terminology.get_preference("C1")["C1"]["api_preference"] != {}
 
     sample_terminology.remove_pref("C1")
     assert "C1" not in sample_terminology.get_preference("C1")
-
+    
     # Test removing a non-existent preference
     sample_terminology.remove_pref("C99")
     assert "C99" not in sample_terminology.get_preference("C99")
@@ -73,7 +78,7 @@ def test_get_preferred_terminology(sample_terminology, all_terminologies):
     sample_terminology.replace_preferred_terminology("unit-test", [{"preferred_terminology": term}])
     assert sample_terminology.get_preferred_terminology()["references"] == [{"reference": f"Terminology/{term}"}]
 
-def test_replace_preferred_terminology(sample_terminology, all_terminologies):
+def test_replace_preferred_terminology(sample_terminology, ftd_concept_relationships, all_terminologies):
     term1 = all_terminologies[1].id
     term2 = all_terminologies[0].id
     assert sample_terminology.get_preferred_terminology()["references"] == []

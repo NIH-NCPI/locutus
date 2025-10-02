@@ -43,6 +43,7 @@ class Study(Serializable):
     def __init__(
         self,
         id=None,
+        _id=None,
         name=None,
         description=None,
         identifier_prefix="",
@@ -51,7 +52,7 @@ class Study(Serializable):
         datadictionary=None,
         resource_type=None,
     ):
-        super().__init__(id=id, collection_type="Study", resource_type="Study")
+        super().__init__(id=id, _id=_id, collection_type="Study", resource_type="Study")
         self.name = name
         self.description = description
         self.identifier_prefix = identifier_prefix
