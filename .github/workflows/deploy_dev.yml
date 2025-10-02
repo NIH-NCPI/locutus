@@ -23,6 +23,8 @@ env:
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
   UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
+  MONGO_URI: ${{ secrets.MONGO_URI }}
+  PORT: 8080
 
 jobs:
   
@@ -83,4 +85,4 @@ jobs:
           service: '${{ env.SERVICE }}'
           region: '${{ env.REGION }}'
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ env.UMLS_API_KEY }}
+          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ env.UMLS_API_KEY }}, PORT=${{ env.PORT }}, MONGO_URI=${{ env.MONGO_URI }}
