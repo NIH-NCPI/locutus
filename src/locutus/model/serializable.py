@@ -79,9 +79,10 @@ class Serializable:
         return resource[0]
 
     def identify(self):
-        if self.id is None:
-            gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
+        if self._id is None:
+            gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()), id=self.id, _id=self._id)
             self.id = gid.id
+            self._id = gid._id
 
     def save(self):
         # commit the data to persistent storage
@@ -112,7 +113,7 @@ class Serializable:
         return None
 
     def global_id(self):
-        gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
+        gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()), reuse_id=True)
         return gid 
 
 
