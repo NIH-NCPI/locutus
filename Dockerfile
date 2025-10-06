@@ -21,5 +21,7 @@ RUN apk del git
 
 # ENV FLASK_RUN_PORT=8080
 # Cloud Run expects 8080, need to figure out how to change that
+ENV LISTEN_PORT 8080
+# Cloud Run expects 8080, need to figure out how to change that
 EXPOSE 8080 
-CMD ["flask", "run"] 
+CMD ["flask", "run", "--host=0.0.0", "--port=8080"] 
