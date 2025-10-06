@@ -3,7 +3,7 @@ import json
 from locutus.model.terminology import Terminology
 from locutus.model.global_id import GlobalID
 from locutus.model.coding import Coding, CodingMapping
-from locutus.model.exceptions import InvalidValueError
+from locutus.model.exceptions import InvalidValueError, IdAlreadyInUse
 
 import pdb
 from rich import print
@@ -49,6 +49,7 @@ def sample_terminology():
         Coding(terminology_id="ontology-one", code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
         Coding(terminology_id="ontology-one", code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
     ]
+   
     t = Terminology(
         id="ontology-one",
         name="Ontology One",
@@ -59,9 +60,8 @@ def sample_terminology():
 
     t.save()
     yield t
-    # no global ID to delete
-
-
+    # pdb.set_trace()
+    t.global_id().delete()
     t.delete(hard_delete=True)
 
 
@@ -82,7 +82,7 @@ def sample_terminology_with_editor():
     )
     t.save()
     yield t
-
+    t.global_id().delete()
     t.delete(hard_delete=True)
 
 
@@ -99,10 +99,17 @@ def test_terminology_get(sample_terminology):
 
 
 def test_terminology_id(sample_terminology):
-    # Normally we want these to have unique IDs, but for this we should just reuse the same one
+    # Make sure it excepts when you try to reuse an existing ID for a new 
+    # terminology
     assert sample_terminology.id == "ontology-one"
+    with pytest.raises(IdAlreadyInUse) as e_info:
+        term = Terminology(
+            name="Ontology One",
+            url="http://example.com/ont1",
+            description="A sample oncology terminology"
+        )
     term = Terminology(
-        name="Ontology One",
+        name="Ontology One v2",
         url="http://example.com/ont1",
         description="A sample oncology terminology"
     )

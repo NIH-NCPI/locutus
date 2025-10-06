@@ -29,6 +29,7 @@ def sample_terminology(scope='class'):
 
 
     yield t
+    t.global_id().delete()
     t.delete(hard_delete=True)
 
     

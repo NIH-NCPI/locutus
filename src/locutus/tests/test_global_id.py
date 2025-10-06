@@ -8,7 +8,7 @@ import pytest
 
 
 def test_global_id_persistence():
-    assert GlobalID.find("Terminology") is None
+    current_ids = list(GlobalID.find("Terminology"))
 
     gid1 = GlobalID(resource_type="Terminology", 
                     key="http//someplace.org:TerminologyOne")
@@ -23,13 +23,13 @@ def test_global_id_persistence():
 
     term_ids = GlobalID.find("Terminology")
     assert type(term_ids) is list
-    assert len(term_ids) == 2
+    assert len(term_ids) == 2 + len(current_ids)
 
     gid1.delete()
     gid2.delete()
 
 def test_common_domain_functionality():
-    assert GlobalID.find("Terminology") is None
+    current_ids = list(GlobalID.find("Terminology"))
 
     gid1 = GlobalID(resource_type="Terminology", 
                     key="http//someplace.org:TerminologyOne",
@@ -39,7 +39,7 @@ def test_common_domain_functionality():
 
     gid2 = GlobalID(resource_type="Terminology", 
                     key="http//someplace.org:TerminologyOne",
-                    domain="Domain 1")
+                    domain="Domain 1", reuse_id=True)
     gid2.save()
 
     assert gid1._id is not None 
@@ -48,7 +48,7 @@ def test_common_domain_functionality():
 
     # Test that the search only returns one for the correct domain
     term_ids = GlobalID.find("Terminology")
-    assert term_ids is None 
+    assert len(list(term_ids)) == len(current_ids)
 
     term_ids = GlobalID.find("Terminology",
                     domain="Domain 1")
@@ -58,7 +58,7 @@ def test_common_domain_functionality():
 
 
 def test_distinct_domain_functionality():
-    assert GlobalID.find("Terminology") is None
+    current_ids = list(GlobalID.find("Terminology"))
 
     gid1 = GlobalID(resource_type="Terminology", 
                     key="http//someplace.org:TerminologyOne",
@@ -79,7 +79,7 @@ def test_distinct_domain_functionality():
 
     # Test that the search only returns one for the correct domain
     term_ids = GlobalID.find("Terminology")
-    assert term_ids is None 
+    assert len(list(term_ids)) == len(current_ids)
 
     term_ids = GlobalID.find("Terminology",
                     domain="Domain 1")
