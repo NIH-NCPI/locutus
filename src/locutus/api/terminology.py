@@ -21,7 +21,7 @@ class TerminologyEdit(Resource):
 
             t = Term.get(id)
             t.add_code(
-                code=code, display=display, description=description, editor=editor
+                code=code, display=display, description=description, editor=editor, exists_ok=False
             )
 
             return json.loads(json_util.dumps(t.realize_as_dict())), 201, default_headers
