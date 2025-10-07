@@ -19,7 +19,9 @@ class GlobalID(Simple):
     _schema = None
     global resource_types
     
-    def __init__(self, resource_type, key, domain="", id=None, object_id=None, _id=None, reuse_id=False):
+    # EST 2025-10-07 - TODO reconcile CRIT data to have unique URLs so that we can turn 
+    # this reuse_id back on by default. However, there isn't time to finish that up. 
+    def __init__(self, resource_type, key, domain="", id=None, object_id=None, _id=None, reuse_id=True):
         if not isinstance(resource_type, str) or not resource_type.strip():
             raise ValueError("resource_type is required for all Global IDs.")
         if not isinstance(key, str) or not key.strip():
