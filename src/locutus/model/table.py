@@ -5,7 +5,7 @@ import locutus
 from flask import request
 
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
-from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
+from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter, basic_date
 
 from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
@@ -302,6 +302,10 @@ class Table(Serializable):
                 harmony_format=HarmonyFormat.Whistle,
                 harmony_output_format=HarmonyOutputFormat.JSON,
                 **kwargs):
+
+        if kwargs.get('version') is None:
+            kwargs['version'] = basic_date()
+
 
         if harmony_exporter is None:
             harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
