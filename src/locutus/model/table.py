@@ -293,7 +293,7 @@ class Table(Serializable):
                 for mc in mapped_codings:
                     harmony_row = self.build_harmony_row(coding, mc, harmony_exporter)
                     if harmony_row is not None:
-                        harmony_mappings.append(harmony_row)
+                        harmony_mappings += harmony_row
 
     def as_harmony(self, 
                 harmony_exporter=None,
