@@ -4,6 +4,9 @@ from marshmallow import Schema, fields, post_load
 from locutus.model.datadictionary import DataDictionary
 from locutus.model.reference import Reference
 
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
+
 
 """
 A Study represents a research study which will likely contain one or more
@@ -84,6 +87,21 @@ class Study(Serializable):
 
     def keys(self):
         return [self.title, self.url, self.name]
+
+    def as_harmony(self, 
+                harmony_exporter=None,
+                harmony_format=HarmonyFormat.Whistle,
+                harmony_output_format=HarmonyOutputFormat.JSON):
+
+        if harmony_exporter is None:
+            harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
+
+        total_mappings = []
+        for dd in self.datadictionary:
+            total_mappings += dd.dereference().as_harmony(harmony_exporter=harmony_exporter)
+        
+        return total_mappings
+
 
     class _Schema(Schema):
         id = fields.Str()
