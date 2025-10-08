@@ -70,14 +70,18 @@ class DataDictionary(Serializable):
     def as_harmony(self, 
                 harmony_exporter=None,
                 harmony_format=HarmonyFormat.Whistle,
-                harmony_output_format=HarmonyOutputFormat.JSON):
+                harmony_output_format=HarmonyOutputFormat.JSON,
+                **kwargs):
 
         if harmony_exporter is None:
             harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
 
         total_mappings = []
         for table in self.tables:
-            total_mappings += table.dereference().as_harmony(harmony_exporter=harmony_exporter)
+            total_mappings += table.dereference().as_harmony(harmony_exporter=harmony_exporter, 
+                dd_name=self.name,
+                dd_id=self.id,
+                **kwargs)
         
         return total_mappings
 

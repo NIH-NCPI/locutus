@@ -4,7 +4,7 @@ from marshmallow import Schema, fields, post_load
 from locutus.model.datadictionary import DataDictionary
 from locutus.model.reference import Reference
 
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
 
 
@@ -91,14 +91,22 @@ class Study(Serializable):
     def as_harmony(self, 
                 harmony_exporter=None,
                 harmony_format=HarmonyFormat.Whistle,
-                harmony_output_format=HarmonyOutputFormat.JSON):
+                harmony_output_format=HarmonyOutputFormat.JSON,
+                version=None):
+
+        if version is None:
+            version = basic_date()
 
         if harmony_exporter is None:
             harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
 
         total_mappings = []
         for dd in self.datadictionary:
-            total_mappings += dd.dereference().as_harmony(harmony_exporter=harmony_exporter)
+            total_mappings += dd.dereference().as_harmony(harmony_exporter=harmony_exporter,
+                study_title=self.title,
+                study_name=self.name,
+                study_id=self.id,
+                version=version)
         
         return total_mappings
 

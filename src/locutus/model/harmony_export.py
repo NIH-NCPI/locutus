@@ -7,8 +7,12 @@ column headers and format.
 
 """
 from enum import StrEnum 
+from datetime import datetime 
 
 import pdb
+
+
+FTD_DATE_FORMAT = "%Y-%m-%d"
 
 class HarmonyFormat(StrEnum):
     Whistle = "Whistle"
@@ -132,4 +136,7 @@ class FtdHarmony(HarmonyBase):
         super().__init__(output_format)
 
 
-        
+def basic_date(t=None):
+    if t is None:
+        t = datetime.now()
+    return t.strftime(FTD_DATE_FORMAT)

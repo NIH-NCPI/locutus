@@ -258,7 +258,7 @@ class Table(Serializable):
         except CodeAlreadyPresent as e:
             pass
 
-    def build_harmony_row(self, local_coding, mapped_coding, harmony_exporter):
+    def build_harmony_row(self, local_coding, mapped_coding, harmony_exporter, **kwargs):
         return harmony_exporter.add_row(
             source_text=local_coding.code,
             source_description=local_coding.display,
@@ -269,7 +269,8 @@ class Table(Serializable):
             mapped_code=mapped_coding.code,
             mapped_display=mapped_coding.display,
             mapped_system=mapped_coding.system,
-            comment=""
+            comment="",
+            **kwargs
         )
 
     def harmonize_mappings(self, 
@@ -277,7 +278,8 @@ class Table(Serializable):
                 mappings, 
                 harmony_mappings, 
                 var_name=None, 
-                harmony_exporter=None):
+                harmony_exporter=None,
+                **kwargs):
                   
         for code in mappings:
             if code not in codings:
@@ -291,14 +293,15 @@ class Table(Serializable):
                 mapped_codings = mappings[code]
 
                 for mc in mapped_codings:
-                    harmony_row = self.build_harmony_row(coding, mc, harmony_exporter)
+                    harmony_row = self.build_harmony_row(coding, mc, harmony_exporter, **kwargs)
                     if harmony_row is not None:
                         harmony_mappings += harmony_row
 
     def as_harmony(self, 
                 harmony_exporter=None,
                 harmony_format=HarmonyFormat.Whistle,
-                harmony_output_format=HarmonyOutputFormat.JSON):
+                harmony_output_format=HarmonyOutputFormat.JSON,
+                **kwargs):
 
         if harmony_exporter is None:
             harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
@@ -310,7 +313,7 @@ class Table(Serializable):
             shadow = self.terminology.dereference()
             table_mappings = shadow.mappings()
             table_codings = shadow.build_code_dict()
-            self.harmonize_mappings(codings=table_codings, mappings=table_mappings, harmony_mappings=harmony_mappings, harmony_exporter=harmony_exporter)
+            self.harmonize_mappings(codings=table_codings, mappings=table_mappings, harmony_mappings=harmony_mappings, harmony_exporter=harmony_exporter, **kwargs)
         for var in self.variables:
             if var.data_type == Variable.DataType.ENUMERATION:
                 term = var.get_terminology()
@@ -318,7 +321,7 @@ class Table(Serializable):
                 # Capture a dictionary with code=>coding
                 codings = term.build_code_dict()
                 mappings = var.get_mappings()
-                self.harmonize_mappings(codings=codings, mappings=mappings, harmony_mappings=harmony_mappings, var_name=var.name, harmony_exporter=harmony_exporter)
+                self.harmonize_mappings(codings=codings, mappings=mappings, harmony_mappings=harmony_mappings, var_name=var.name, harmony_exporter=harmony_exporter, **kwargs)
         return harmony_mappings
 
     def keys(self):
