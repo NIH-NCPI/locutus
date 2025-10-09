@@ -3,6 +3,7 @@ from flask import request
 from locutus.model.table import Table as mTable
 from locutus.model.provenance import Provenance 
 from locutus.model.terminology import Terminology
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat 
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
 from locutus.model.exceptions import *
@@ -191,12 +192,27 @@ class Table(Resource):
         return json.loads(json_util.dumps(table_content)), 200, default_headers
 
 
-class HarmonyCSV(Resource):
+class HarmonyTableCSV(Resource):
     def get(self, id):
+        data_format = request.args.get('format', 'Whistle')
+        file_format = request.args.get('file-format', 'JSON')
+
+        try:
+            if data_format:
+                data_format = HarmonyFormat(data_format)
+            if file_format:
+                file_format = HarmonyOutputFormat(file_format)
+        except ValueError as e:
+            return {"message_to_user": str(e)}, 400, default_headers
+
         t = mTable.get(id)
 
         try:
-            harmony = t.as_harmony()
+            print(f"Harmony Format: {data_format}")
+            print(f"Output Format: {file_format}")
+
+            harmony = t.as_harmony(harmony_format=data_format, harmony_output_format=file_format)
+
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
         return json.loads(json_util.dumps(harmony)), 200, default_headers

@@ -221,6 +221,12 @@ def test_terminology_add_and_delete_code(client):
 
     new_coding_id = term['codes'][2]['id']
 
+    response = client.put(f"/api/Terminology/ontology-three/code/{new_code['code']}",
+                            json=new_code, 
+                            headers={"Content-Type": "application/json"})
+    assert response.status_code == 400 
+    assert response.json['message'][0:31] == "The code(C3) is already present"
+
     response = client.delete(f"/api/Terminology/ontology-three/code/{new_code['code']}",
                             json={"editor": "unit-test"})
     assert response.status_code == 200 

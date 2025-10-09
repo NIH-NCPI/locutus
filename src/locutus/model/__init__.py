@@ -18,6 +18,7 @@ import pdb
 
 resource_types = dict([(str(item.__name__), item) for k, item in Serializable._factory_workers.items()])
 
+
 simple_types = [
     "GlobalID", 
     "Coding",
@@ -26,3 +27,4 @@ simple_types = [
     "MappingConversation",
     "MappingVote"
 ]
+

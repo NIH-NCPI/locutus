@@ -3,7 +3,7 @@ import json
 from locutus.model.terminology import Terminology
 from locutus.model.global_id import GlobalID
 from locutus.model.coding import Coding, CodingMapping
-from locutus.model.exceptions import InvalidValueError, IdAlreadyInUse
+from locutus.model.exceptions import InvalidValueError, CodeAlreadyPresent, IdAlreadyInUse
 
 import pdb
 from rich import print
@@ -158,7 +158,7 @@ def test_build_code_dict(sample_terminology):
     assert code_dict["C2"].code == "C2"
 
 def test_add_code(sample_terminology):
-    sample_terminology.add_code(code="C3", display="Code Three", description="Description for C3", editor="unit-test")
+    sample_terminology.add_code(code="C3", display="Code Three", description="Description for C3", editor="unit-test", exists_ok=False)
     assert len(sample_terminology.codes) == 3
     assert sample_terminology.has_code("C3")
     new_code = next(c for c in sample_terminology.codes if c.dereference().code == "C3")
@@ -170,6 +170,10 @@ def test_add_code(sample_terminology):
     prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
     assert prov['action'] == "Add Term"
     assert prov['new_value'] == "C3"
+
+    # Verify that we can't add the same code twice
+    with pytest.raises(CodeAlreadyPresent) as e_info:
+        sample_terminology.add_code(code="C3", display="Code Three", description="Description for C3", editor="unit-test", exists_ok=False)
 
 def test_remove_code(sample_terminology):
     sample_terminology.remove_code("C1", editor="unit-test")

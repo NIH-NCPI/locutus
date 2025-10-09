@@ -228,7 +228,7 @@ class Terminology(Serializable):
                     coding.valid = True 
                     coding.save()
                 elif not exists_ok:
-                    raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding.dump())
+                    raise locutus.model.exceptions.CodeAlreadyPresent(code, self.id, coding)
                 
                 if new_to_codes:
                     self.codes.append(SimpleReference(f"Coding/{coding.id}"))

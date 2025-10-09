@@ -18,7 +18,7 @@ from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.api.table import (
     Table,
     Tables,
-    HarmonyCSV,
+    HarmonyTableCSV,
     TableEdit,
     TableRenameCode,
 )
@@ -34,11 +34,12 @@ from locutus.api.provenance import (
     TerminologyProvenance,
     TerminologyCodeProvenance,
 )
-from locutus.api.study import Study, Studies, StudyEdit
+from locutus.api.study import Study, Studies, StudyEdit, StudyHarmony
 from locutus.api.datadictionary import (
     DataDictionary,
     DataDictionaries,
     DataDictionaryTable,
+    DataDictionaryHarmony
 )
 from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
 from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
@@ -52,6 +53,8 @@ from locutus.api.metadata import Version
 from locutus.api.user_prefs import UserPrefOntoFilters
 
 from locutus.model.lookups import FTDOntologyLookup
+
+from locutus.api.combined_harmony import CombinedHarmony
 
 def create_app(config_filename=None):
     app = Flask(__name__, static_folder='static', static_url_path='')
@@ -149,7 +152,11 @@ def create_app(config_filename=None):
     api.add_resource(TableMapping, "/api/Table/<string:id>/mapping/<path:code>")
     # GET/DELETE
     api.add_resource(TableMappings, "/api/Table/<string:id>/mapping")
-    api.add_resource(HarmonyCSV, "/api/Table/<string:id>/harmony")
+    api.add_resource(HarmonyTableCSV, "/api/Table/<string:id>/harmony")
+    api.add_resource(DataDictionaryHarmony, "/api/DataDictionary/<string:id>/harmony")
+    api.add_resource(StudyHarmony, "/api/Study/<string:id>/harmony")
+    api.add_resource(CombinedHarmony, "/api/harmony")
+
     # GET/POST/PUT/DELETE Ontology API preferences at Table level
     api.add_resource(
         TableOntologyAPISearchPreferences,
