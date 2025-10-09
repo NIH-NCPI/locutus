@@ -25,6 +25,22 @@ the specified data-dictionary.
 ### https://[APPURL]/api/Table/[id]/harmony
 This will create a single harmony file built from the specified table. 
 
+### https://[APPURL]/api/harmony?[params]
+This endpoint provides a single call to generate a harmony file based on any
+combination of studies, data dictionaries and tables. Users provide a comma
+separated list those as parameters to get the desired harmony content. 
+
+One or more of the following parameters is required: 
+* studies
+* datadictionaries 
+* tables 
+
+For requesting harmony from more than one of the same type, simply separate
+multiple IDs using a comma. For example, the following would return harmony
+for a single study along with content from two additional tables:
+
+> api/harmony?studies=st-12345&tables=tb-54321,tb-6543r21
+
 ## Harmony File Format
 The locutus version > v2.2.2 and higher support exporting **CSV** and **JSON**
 directly from the endpoints. 
