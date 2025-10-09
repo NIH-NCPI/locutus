@@ -16,8 +16,6 @@ class CombinedHarmony(Resource):
         dd_ids = request.args.get('datadictionaries', "")
         table_ids = request.args.get('tables', "")
 
-        import pdb 
-        pdb.set_trace()
         try:
             if data_format:
                 data_format = HarmonyFormat(data_format)
