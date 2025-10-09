@@ -11,6 +11,7 @@ class APIError(Exception):
         self.message = message
         self.details = details or {}
         self.status_code = status_code
+        locutus.logger.error(message)
         super().__init__(self.message)
 
     def to_dict(self):
@@ -18,6 +19,13 @@ class APIError(Exception):
             "error": self.__class__.__name__,
             "message": self.message
         }
+class IdAlreadyInUse(APIError):
+    def __init__(self, id, resource_type, global_id_key):
+        self.id = id 
+        self.resource_type = resource_type 
+        self.global_id_key = global_id_key 
+        message = f"Unable to create a new {resource_type} with id, {id}, as it is already in use (key={global_id_key})"
+        super().__init__(message, status_code=400)
 
 class CodeAlreadyPresent(APIError):
     def __init__(self, code, terminology_id, existing_coding):
@@ -25,7 +33,6 @@ class CodeAlreadyPresent(APIError):
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
         message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({self.existing_coding.display})."
-        locutus.logger.error(message)
         super().__init__(message, status_code=400)
 
 
@@ -36,7 +43,6 @@ class CodeNotPresent(APIError):
         code_index = locutus.get_code_index(code)
         # More info on code format(code vs code_index) can be found in get_code_index
         message = f"The code {self.code}, or possibly:{code_index}, is not present in the terminology({self.terminology_id})."
-        locutus.logger.error(message)
         super().__init__(message, status_code=404)
 
 class InvalidValueError(APIError):
@@ -47,7 +53,6 @@ class InvalidValueError(APIError):
         self.value = value
         self.valid_values = valid_values
         message = f"Value({self.value}) is not valid. The value should be one of:({self.valid_values})"
-        locutus.logger.error(message)
         super().__init__(message, status_code=400)
 
 class LackingUserID(APIError):
@@ -57,7 +62,6 @@ class LackingUserID(APIError):
     def __init__(self, editor):
         self.editor = editor
         message = f"This action requires an editor or session! Current editor or user_id: ({self.editor})"
-        locutus.logger.error(message)
         super().__init__(message, status_code=400)
 
 class LackingRequiredParameter(APIError):
@@ -67,5 +71,4 @@ class LackingRequiredParameter(APIError):
     def __init__(self, param):
         self.param = param
         message = f"This action requires the parameter: '{self.param}'"
-        locutus.logger.error(message)
         super().__init__(message, status_code=400)

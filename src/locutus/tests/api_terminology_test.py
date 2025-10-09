@@ -84,6 +84,7 @@ def test_terminology_rename(client):
     assert term.codes[1].dereference().display == "second code"
     assert term.codes[1].dereference().description == "second desc"
 
+    term.global_id().delete()
     term.delete(hard_delete=True)
 
 def test_terminology_delete(client):
@@ -123,14 +124,14 @@ def test_terminology_delete(client):
     assert response.status_code == 404
 
     gid = GlobalID(resource_type="Terminology", 
-                    key="http://example.com/ont1:Ontology Two")
+                    key="http://example.com/ont1:Ontology Two", reuse_id=True)
     gid.delete()
 
 def test_terminology_put(client):
     term_body={
         "id": "ontology-three",
         "name": "Ontology Three",
-        "url": "http://example.com/ont3",
+        "url": "http://example.com/onto3",
         "description": "A sample oncology terminology",
         "codes": [
             {
@@ -166,6 +167,7 @@ def test_terminology_put(client):
     assert term['codes'][1]['display'] == "Code Two"
 
     term = Terminology.get(term_id)
+    term.global_id().delete()
     term.delete(hard_delete=True)
 
 
@@ -235,12 +237,13 @@ def test_terminology_add_and_delete_code(client):
     coding.delete()    
 
     term = Terminology.get(term_id)
+    term.global_id().delete()
     term.delete(hard_delete=True)
 
 def test_terminology_post(client):
     term_body={
         "name": "Ontology Two",
-        "url": "http://example.com/ont1",
+        "url": "http://example.com/ontology123",
         "description": "A sample oncology terminology",
         "codes": [
             {
@@ -272,10 +275,8 @@ def test_terminology_post(client):
     assert term['codes'][1]['display'] == "Code Two"
 
     term = Terminology.get(term_id)
+    term.global_id().delete()
     term.delete(hard_delete=True)
 
-    gid = GlobalID(resource_type="Terminology", 
-                    key="http://example.com/ont1:Ontology Two")
-    gid.delete()
 
 

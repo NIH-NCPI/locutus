@@ -2,6 +2,7 @@ import locutus
 from pymongo import ASCENDING
 from marshmallow import Schema, fields, post_load
 from nanoid import generate
+from locutus.model.exceptions import IdAlreadyInUse
 from .simple import Simple
 
 """
@@ -18,7 +19,9 @@ class GlobalID(Simple):
     _schema = None
     global resource_types
     
-    def __init__(self, resource_type, key, domain="", id=None, object_id=None, _id=None):
+    # EST 2025-10-07 - TODO reconcile CRIT data to have unique URLs so that we can turn 
+    # this reuse_id back on by default. However, there isn't time to finish that up. 
+    def __init__(self, resource_type, key, domain="", id=None, object_id=None, _id=None, reuse_id=True):
         if not isinstance(resource_type, str) or not resource_type.strip():
             raise ValueError("resource_type is required for all Global IDs.")
         if not isinstance(key, str) or not key.strip():
@@ -48,6 +51,10 @@ class GlobalID(Simple):
         if self.id is None:
             self.id = f"{locutus.model.resource_types[resource_type]._id_prefix}-{generate()}"
             self.save()
+        elif resource is None:
+            self.save()
+        elif not reuse_id:
+            raise IdAlreadyInUse(self.id, self.resource_type, self.key)
 
     def save(self):
         # commit the data to persistent storage
@@ -81,7 +88,7 @@ class GlobalID(Simple):
             if type(item) is not dict:
                 item = item.to_dict()
             if return_instance:
-                search_results.append(cls(**item))
+                search_results.append(cls(**item, reuse_id=True))
             else:
                 search_results.append(item)
         if len(search_results) == 1:
