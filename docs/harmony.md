@@ -68,6 +68,7 @@ tooling to be able to correctly use the newer column names.
     * dd_name
     * dd_id
     * version
+    * table_id
     * local code
     * text
     * table_name
@@ -89,6 +90,7 @@ for each of the columns.
     * dd_name
     * dd_id
     * version
+    * table_id
     * source_text
     * source_description
     * source_domain
@@ -125,6 +127,9 @@ or a data dictionary.
 
 #### version
 Currently this will be the date the export was made. 
+
+#### table_id
+The ID associated with the table the the source text/variable is from.
 
 #### source_text (local code)
 This is the "Code" or Variable that ontological terms are being mapped to. 
