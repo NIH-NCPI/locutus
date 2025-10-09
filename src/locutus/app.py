@@ -54,6 +54,8 @@ from locutus.api.user_prefs import UserPrefOntoFilters
 
 from locutus.model.lookups import FTDOntologyLookup
 
+from locutus.api.combined_harmony import CombinedHarmony
+
 def create_app(config_filename=None):
     app = Flask(__name__, static_folder='static', static_url_path='')
     app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
@@ -153,6 +155,8 @@ def create_app(config_filename=None):
     api.add_resource(HarmonyTableCSV, "/api/Table/<string:id>/harmony")
     api.add_resource(DataDictionaryHarmony, "/api/DataDictionary/<string:id>/harmony")
     api.add_resource(StudyHarmony, "/api/Study/<string:id>/harmony")
+    api.add_resource(CombinedHarmony, "/api/harmony")
+
     # GET/POST/PUT/DELETE Ontology API preferences at Table level
     api.add_resource(
         TableOntologyAPISearchPreferences,

@@ -2,6 +2,7 @@ from . import Serializable
 from marshmallow import Schema, fields, post_load
 
 from locutus.model.datadictionary import DataDictionary
+from locutus.model.table import Table 
 from locutus.model.reference import Reference
 
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
@@ -39,6 +40,54 @@ This will be references to the data-dictionaries associated with the study
 
 """
 
+def build_combined_harmony(study_ids="",
+                dd_ids="",
+                table_ids="",
+                harmony_format=HarmonyFormat.Whistle,
+                harmony_output_format=HarmonyOutputFormat.JSON,
+                version=None):
+    """Build a harmony file based on piecemeal components
+    
+    study_ids, dd_ids, table_ids all must be strings. Multiple IDs can be 
+    provided as a comma separated list of IDs (no whitespace). 
+
+    study_ids="st-asdfvdsa", "st-23432",
+    tablie_ids="tb-gfdsasdf"
+
+    The above example would generate one harmony response containing all data 
+    from both studies above in addition to the table, tb-fgdsasdf
+    """
+    harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
+    total_mappings = []
+
+    if version is None:
+        version = basic_date()
+
+    if study_ids != "":
+        for study_id in study_ids.split(","):
+            study = Study.get(study_id)
+
+            if study:
+                total_mappings += study.as_harmony(harmony_exporter=harmony_exporter,
+                version=version)
+
+    if dd_ids != "":
+        for dd_id in dd_ids.split(","):
+            dd = DataDictionary.get(dd_id)
+
+            if dd:
+                total_mappings += dd.as_harmony(harmony_exporter=harmony_exporter,
+                version=version)
+    
+    if table_ids != "":
+        for table_id in table_ids.split(","):
+            table = Table.get(table_id)
+
+            if table:
+                total_mappings += table.as_harmony(harmony_exporter=harmony_exporter,
+                version=version)                
+    
+    return total_mappings 
 
 class Study(Serializable):
     _id_prefix = "st"
