@@ -1,6 +1,7 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.study import Study as mStudyTerm
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
 from locutus.api import default_headers
 
 from bson import json_util 
@@ -93,3 +94,27 @@ class StudyEdit(Resource):
             )
         study.save()
         return json.loads(json_util.dumps(study.dump())), 200, default_headers
+
+class StudyHarmony(Resource):
+    def get(self, id):
+        data_format = request.args.get('format', 'Whistle')
+        file_format = request.args.get('file-format', 'JSON')
+
+        try:
+            if data_format:
+                data_format = HarmonyFormat(data_format)
+            if file_format:
+                file_format = HarmonyOutputFormat(file_format)
+        except ValueError as e:
+            return {"message_to_user": str(e)}, 400, default_headers
+
+        print(f"Exporting Study Harmony: ")
+        print(f"Harmony format: {data_format}")
+        print(f"File format: {file_format}")
+        t = mStudyTerm.get(id)
+
+        try:
+            harmony = t.as_harmony(harmony_format=data_format, harmony_output_format=file_format)
+        except KeyError as e:
+            return {"message_to_user": str(e)}, 400, default_headers
+        return json.loads(json_util.dumps(harmony)), 200, default_headers

@@ -4,6 +4,9 @@ import locutus
 
 from flask import request
 
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter, basic_date
+
 from locutus.model.variable import Variable, InvalidVariableDefinition
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
@@ -255,22 +258,30 @@ class Table(Serializable):
         except CodeAlreadyPresent as e:
             pass
 
-    def build_harmony_row(self, local_coding, mapped_coding):
+    def build_harmony_row(self, local_coding, mapped_coding, harmony_exporter, **kwargs):
+        return harmony_exporter.add_row(
+            table_id=self.id,
+            source_text=local_coding.code,
+            source_description=local_coding.display,
+            source_domain=self.name,
+            parent_varname="",  # I'm not sure if we can get this ATM
+            source_system=local_coding.system,
+            mapping_relationship=mapped_coding.mapping_relationship,
+            mapped_code=mapped_coding.code,
+            mapped_display=mapped_coding.display,
+            mapped_system=mapped_coding.system,
+            comment="",
+            **kwargs
+        )
 
-        return {
-            "local code": local_coding.code,
-            "text": local_coding.display,
-            "table_name": self.name,
-            "parent_varname": "",  # I'm not sure if we can get this ATM
-            "local code system": local_coding.system,
-            "mapping relationship": mapped_coding.mapping_relationship,
-            "code": mapped_coding.code,
-            "display": mapped_coding.display,
-            "code system": mapped_coding.system,
-            "comment": "",
-        }
-
-    def harmonize_mappings(self, codings, mappings, harmony_mappings, var_name=None):
+    def harmonize_mappings(self, 
+                codings, 
+                mappings, 
+                harmony_mappings, 
+                var_name=None, 
+                harmony_exporter=None,
+                **kwargs):
+                  
         for code in mappings:
             if code not in codings:
                 allowed_codes = "'" + "','".join(codings.keys()) + "'"
@@ -283,18 +294,31 @@ class Table(Serializable):
                 mapped_codings = mappings[code]
 
                 for mc in mapped_codings:
-                    harmony_row = self.build_harmony_row(coding, mc)
+                    harmony_row = self.build_harmony_row(coding, mc, harmony_exporter, **kwargs)
                     if harmony_row is not None:
-                        harmony_mappings.append(harmony_row)
+                        harmony_mappings += harmony_row
 
-    def as_harmony(self):
+    def as_harmony(self, 
+                harmony_exporter=None,
+                harmony_format=HarmonyFormat.Whistle,
+                harmony_output_format=HarmonyOutputFormat.JSON,
+                **kwargs):
+
+        if kwargs.get('version') is None:
+            kwargs['version'] = basic_date()
+
+
+        if harmony_exporter is None:
+            harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
+  
         # Iterate over each table
         harmony_mappings = []
+
         if self.terminology is not None:
             shadow = self.terminology.dereference()
             table_mappings = shadow.mappings()
             table_codings = shadow.build_code_dict()
-            self.harmonize_mappings(table_codings, table_mappings, harmony_mappings)
+            self.harmonize_mappings(codings=table_codings, mappings=table_mappings, harmony_mappings=harmony_mappings, harmony_exporter=harmony_exporter, **kwargs)
         for var in self.variables:
             if var.data_type == Variable.DataType.ENUMERATION:
                 term = var.get_terminology()
@@ -302,7 +326,7 @@ class Table(Serializable):
                 # Capture a dictionary with code=>coding
                 codings = term.build_code_dict()
                 mappings = var.get_mappings()
-                self.harmonize_mappings(codings, mappings, harmony_mappings, var.name)
+                self.harmonize_mappings(codings=codings, mappings=mappings, harmony_mappings=harmony_mappings, var_name=var.name, harmony_exporter=harmony_exporter, **kwargs)
         return harmony_mappings
 
     def keys(self):
