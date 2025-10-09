@@ -40,6 +40,7 @@ class HarmonyBase:
         "dd_name",
         "dd_id",
         "version",
+        "table_id",
         "source_text",
         "source_description",
         "source_domain",
@@ -77,6 +78,7 @@ class HarmonyBase:
         dd_name="",
         dd_id="",
         version="",
+        table_id="",
         source_text="",
         source_description="",
         source_domain="",
@@ -134,7 +136,6 @@ class FtdHarmony(HarmonyBase):
     # No need for header map for this one
     def __init__(self, output_format):
         super().__init__(output_format)
-
 
 def basic_date(t=None):
     if t is None:

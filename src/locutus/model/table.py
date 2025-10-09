@@ -260,6 +260,7 @@ class Table(Serializable):
 
     def build_harmony_row(self, local_coding, mapped_coding, harmony_exporter, **kwargs):
         return harmony_exporter.add_row(
+            table_id=self.id,
             source_text=local_coding.code,
             source_description=local_coding.display,
             source_domain=self.name,
