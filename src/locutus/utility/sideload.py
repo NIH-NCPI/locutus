@@ -5,11 +5,26 @@ Allow users to side load mappings from CSV file
 
 from locutus.model.table import Table 
 from locutus import persistence
+from locutus.model.variable import Variable 
+from collections import defaultdict 
 
 from pathlib import Path 
 import argparse
 from csv import DictReader 
 import os 
+
+def GetTerminology(table, source_variable, source_enum):
+    if source_enum == source_variable:
+        term = table.terminology.dereference()
+    else:
+        variable = table.get_variable(source_variable)
+ 
+        if variable.data_type == Variable.DataType.ENUMERATION:
+            term = variable.get_terminology()
+        else:
+            raise TypeError(f"Variable, {source_variable} is not an enumerated variable and therefor will not contain {source_enumeration}")
+
+    return term 
 
 def SetMappings(mapping_entries):
     """Add mappings to source codes to values from content
@@ -28,37 +43,48 @@ def SetMappings(mapping_entries):
 
     _cur_table = None 
     table_term = None 
-    for row in content:
+
+    mappings = dict()
+
+    for row in mapping_entries:
         if _cur_table is None or _cur_table.id != row['table_id']:
             _cur_table = Table.get(row['table_id'])
-            table_term = _cur_table.terminology.dereference()
-
         source_variable = row['source_variable']
         source_enumeration = row['source_enumeration']
 
-        if source_enumeration in ["", source_variable]:
-            term = table_term 
-        else:
-            # Actual enumerated var
-            variable = _cur_table.get_variable(source_variable)
-            if variable.data_type == Variable.DataType.ENUMERATION:
-                term = variable.get_terminology()
-            else:
-                raise TypeError(f"Variable, {source_variable} is not an enumerated variable and therefor will not contain {source_enumeration}")
+        if source_enumeration == "":
+            source_enumeration = source_variable
 
-        mapping = {
+        term = GetTerminology(_cur_table, source_variable, source_enumeration)
+
+        key = f"{term.id}-{source_enumeration}"
+        if key not in mappings:
+            mappings[key] = {
+                "terminology": term,
+                "source_enumeration": source_enumeration,
+                "provenance": row['provenance'],
+                "mappings": []
+            }
+        mappings[key]['mappings'].append({
             "code": row['code'],
             "display": row['display'],
             "system": row['system'],
-            "mapping_relationship": row['mapping_relationship']
-        }
-        term.set_mapping(source_enumeration, [mapping], row['provenance'])
+            "mapping_relationship": row['mapping_relationship'],
+        })
 
-def sideload_csv(filename):
-    with open(filename, 'rt') as file:
-        reader = DictReader(file, delimiter=',', quotechar='"')
+    for key, mapping_data in mappings.items():
+        term = mapping_data['terminology']
+        source_enumeration = mapping_data['source_enumeration']
+        prov = mapping_data['provenance']
+        term_mappings = mapping_data['mappings']
 
-        SetMappings(reader)
+        term.set_mapping(source_enumeration, term_mappings, prov)
+
+def sideload_csv(csvfile):
+    reader = DictReader(csvfile, delimiter=',', quotechar='"')
+
+
+    SetMappings(list(reader))
 
 def exec():
     parser = argparse.ArgumentParser(description="Load mappings from CSV and apply them to terms in locutus")
@@ -72,12 +98,15 @@ def exec():
         "-f", 
         "--file",
         type=argparse.FileType('rt'),
-        required=true,
+        required=True,
         help="CSV File containing mapping information"
     )
     args = parser.parse_args()
-    os.environ['MONGO_URI'] = args.db 
+    os.environ['MONGO_URI'] = args.database_uri
 
-    client = persistence(mongo_uri=args.db, missing_ok=False)
+    client = persistence(mongo_uri=args.database_uri, missing_ok=False)
 
     sideload_csv(args.file)
+
+if __name__ == "__main__":
+    exec()
