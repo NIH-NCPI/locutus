@@ -212,6 +212,24 @@ class Table(Serializable):
                 return True
         return False
 
+    def get_variable(self, code_or_var):
+        # We'll preference the code, but if none match at the code level, then
+        # we match on name, or return None 
+
+        var_of_interest = None 
+
+        for var in self.variables:
+            if var.code == code_or_var:
+                var_of_interest = var 
+                break 
+        
+        if var_of_interest is None:
+            for var in self.variables:
+                if var.name == code_or_var:
+                    var_of_interest = var 
+                    break 
+        return var_of_interest
+
     def _insert_variable(self, variable):
         """If aa variable with the same name exists, replace it. Else append"""
 
