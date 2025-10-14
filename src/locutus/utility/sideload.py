@@ -5,6 +5,7 @@ Allow users to side load mappings from CSV file
 
 from locutus.model.table import Table 
 from locutus import persistence
+from locutus.model.exceptions import LackingRequiredParameter
 from locutus.model.variable import Variable 
 from collections import defaultdict 
 
@@ -47,6 +48,8 @@ def SetMappings(mapping_entries):
     mappings = dict()
 
     for row in mapping_entries:
+        if row['provenance'].strip() == "":
+            raise LackingRequiredParameter("provenance")
         if _cur_table is None or _cur_table.id != row['table_id']:
             _cur_table = Table.get(row['table_id'])
         source_variable = row['source_variable']
