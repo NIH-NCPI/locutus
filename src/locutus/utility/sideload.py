@@ -47,9 +47,19 @@ def SetMappings(mapping_entries):
 
     mappings = dict()
 
+    # Let's verify the prov is present for all of them before starting
+    # just to prevent having duplicates if some do have prov at the start
     for row in mapping_entries:
         if row['provenance'].strip() == "":
-            raise LackingRequiredParameter("provenance")
+            # We will try to tolerate empty lines
+            if row['source_variable'].strip() != "":
+                raise LackingRequiredParameter("provenance")
+
+        # If we are trying to map to nothing, then we have a problem 
+        if row['code'].strip() != "" and source_variable.strip() == "" and source_enumeration.strip() == "":
+            raise LackingRequiredParameter("source_enumeration or source_variable")
+
+    for row in mapping_entries:
         if _cur_table is None or _cur_table.id != row['table_id']:
             _cur_table = Table.get(row['table_id'])
         source_variable = row['source_variable']
@@ -58,22 +68,25 @@ def SetMappings(mapping_entries):
         if source_enumeration == "":
             source_enumeration = source_variable
 
-        term = GetTerminology(_cur_table, source_variable, source_enumeration)
+        # Avoid letting blank lines kill us. 
+        if row['code'] != "":
+                
+            term = GetTerminology(_cur_table, source_variable, source_enumeration)
 
-        key = f"{term.id}-{source_enumeration}"
-        if key not in mappings:
-            mappings[key] = {
-                "terminology": term,
-                "source_enumeration": source_enumeration,
-                "provenance": row['provenance'],
-                "mappings": []
-            }
-        mappings[key]['mappings'].append({
-            "code": row['code'],
-            "display": row['display'],
-            "system": row['system'],
-            "mapping_relationship": row['mapping_relationship'],
-        })
+            key = f"{term.id}-{source_enumeration}"
+            if key not in mappings:
+                mappings[key] = {
+                    "terminology": term,
+                    "source_enumeration": source_enumeration,
+                    "provenance": row['provenance'],
+                    "mappings": []
+                }
+            mappings[key]['mappings'].append({
+                "code": row['code'],
+                "display": row['display'],
+                "system": row['system'],
+                "mapping_relationship": row['mapping_relationship'],
+            })
 
     for key, mapping_data in mappings.items():
         term = mapping_data['terminology']
