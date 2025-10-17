@@ -1,4 +1,3 @@
-
 """
 Allow users to side load mappings from CSV file
 """
@@ -50,12 +49,14 @@ def SetMappings(mapping_entries):
     # Let's verify the prov is present for all of them before starting
     # just to prevent having duplicates if some do have prov at the start
     for row in mapping_entries:
+        source_variable = row["source_variable"]
+        source_enumeration = row["source_enumeration"]
         if row['provenance'].strip() == "":
             # We will try to tolerate empty lines
             if row['source_variable'].strip() != "":
                 raise LackingRequiredParameter("provenance")
 
-        # If we are trying to map to nothing, then we have a problem 
+        # If we are trying to map to nothing, then we have a problem
         if row['code'].strip() != "" and source_variable.strip() == "" and source_enumeration.strip() == "":
             raise LackingRequiredParameter("source_enumeration or source_variable")
 
@@ -68,9 +69,9 @@ def SetMappings(mapping_entries):
         if source_enumeration == "":
             source_enumeration = source_variable
 
-        # Avoid letting blank lines kill us. 
+        # Avoid letting blank lines kill us.
         if row['code'] != "":
-                
+
             term = GetTerminology(_cur_table, source_variable, source_enumeration)
 
             key = f"{term.id}-{source_enumeration}"
