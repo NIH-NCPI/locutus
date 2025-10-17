@@ -74,6 +74,11 @@ def SetMappings(mapping_entries):
 
             term = GetTerminology(_cur_table, source_variable, source_enumeration)
 
+            if source_variable == source_enumeration:
+                var = _cur_table.get_variable(source_variable)
+                
+                source_enumeration = var.code
+
             key = f"{term.id}-{source_enumeration}"
             if key not in mappings:
                 mappings[key] = {
