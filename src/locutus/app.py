@@ -56,6 +56,8 @@ from locutus.model.lookups import FTDOntologyLookup
 
 from locutus.api.combined_harmony import CombinedHarmony
 
+from locutus.api.sideload import SideLoad 
+
 def create_app(config_filename=None):
     app = Flask(__name__, static_folder='static', static_url_path='')
     app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
@@ -177,6 +179,9 @@ def create_app(config_filename=None):
     api.add_resource(
         TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:input_type>"
     )
+
+    # POST 
+    api.add_resource(SideLoad, "/api/SideLoad")
 
     # POST
     api.add_resource(TableLoader, "/api/LoadTable")

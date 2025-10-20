@@ -1,5 +1,6 @@
 
 from copy import deepcopy
+from nanoid import generate
 
 import locutus 
 import locutus.model.global_id
@@ -80,8 +81,12 @@ class Serializable:
 
     def identify(self):
         if self.id is None:
-            gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
-            self.id = gid.id
+            # We are unable to use GlobalIDs due to the current approach for sneaking in 
+            # additional terms to be mapped in existing data-dictionaries, so we are bypassing 
+            # the global ID table altogether. 
+            # gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
+            # self.id = gid.id
+            self.id = f"{locutus.model.resource_types[self.resource_type]._id_prefix}-{generate()}"
 
     def save(self):
         # commit the data to persistent storage
@@ -112,6 +117,10 @@ class Serializable:
         return None
 
     def global_id(self):
+        return self.id 
+
+        # This is currently unavailable due to how we are currently doing 
+        # incremental mapping updates. 
         gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
         return gid 
 
