@@ -3,6 +3,7 @@ from .simple import Simple
 from marshmallow import Schema, fields, post_load
 from pymongo import ASCENDING
 from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
+from locutus.model.exceptions import APIError
 
 from bson import ObjectId
 from collections import defaultdict 
@@ -151,7 +152,7 @@ class Coding(Simple, BasicCoding):
 
         if _id is None:
             prev = self.__class__.get(_id=_id, terminology_id=terminology_id, code=code, system=system, return_instance=False)
-            if prev != []:
+            if type(prev) is dict:
                 _id = prev['_id']
 
                 if id is None:
@@ -160,6 +161,8 @@ class Coding(Simple, BasicCoding):
                     mappings = prev['mappings']
                 if api_preferences is None:
                     api_preferences = prev['api_preferences']
+            elif type(prev) is list and len(prev) > 0:
+                raise APIError(f"FAIL: {len(prev)} codes for '{code}' in terminology_id: {terminology_id}")
 
         Simple.__init__(self, id=id,
                          _id=_id, 

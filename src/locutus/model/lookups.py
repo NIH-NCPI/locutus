@@ -200,4 +200,4 @@ class FTDOntologyLookup:
             if system == system_url:
                 return curie
         
-        return system_url
+        return ''
