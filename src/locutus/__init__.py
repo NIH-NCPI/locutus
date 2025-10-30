@@ -89,8 +89,10 @@ def format_ftd_code(code, curie):
     """
     if ":" in code:
         return code
-    if code and curie:
+    if code and curie != '':
         return f"{curie}:{code}"
+    if code and curie == '':
+        return code
     else:
         logger.warning(f"Something went wrong trying to format the ftd_code. {curie}:{code}")
         return code
