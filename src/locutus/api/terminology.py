@@ -119,7 +119,7 @@ class TerminologyRenameCode(Resource):
 
 class Terminologies(Resource):
     def get(self):
-        terminologies = [t.realize_as_dict() for t in Term.get(return_instance=True)]
+        terminologies = Term.get(return_instance=False)
 
         return (
             json.loads(json_util.dumps(terminologies)),
