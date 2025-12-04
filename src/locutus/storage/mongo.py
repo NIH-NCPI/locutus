@@ -3,6 +3,9 @@ from pymongo import MongoClient, ASCENDING
 from bson import ObjectId
 from locutus import logger
 from urllib.parse import urlparse, unquote
+import re
+uri_filter = re.compile(r'(mongodb:\/\/[^:]*:)([^@]*)(@)')
+
 
 import pdb
 class DocumentSnapshot:
@@ -157,9 +160,11 @@ class CollectionReference:
     def list_documents(self, page_size):
         return [doc for doc in self.stream()]
 
+def filter_uri(uri):
+    return filter_uri.sub(r'\1****\3', uri)
 
 class FirestoreCompatibleClient:
-    print("FirestoreCompatibleClient")
+    logger.info("FirestoreCompatibleClient")
     from locutus.model import resource_types, simple_types
 
     allowed_collections = set(list(resource_types.keys()) + simple_types + ["OntologyAPI"])
@@ -171,8 +176,7 @@ class FirestoreCompatibleClient:
         parsed = urlparse(mongo_uri)
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
         logger.info(f"Mongo DB Interface")
-        logger.info(f"Connecting to Mongo URI: {mongo_uri}")
-        print(f"Mongo DB URI: {mongo_uri}")
+        logger.info(f"Mongo DB URI: {filter_uri(mongo_uri)}")
         logger.info(f"Database name parsed: '{db_name}'")
         if not db_name:
             raise ValueError("Database name must be specified in the Mongo URI path!")
