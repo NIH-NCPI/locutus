@@ -161,7 +161,7 @@ class CollectionReference:
         return [doc for doc in self.stream()]
 
 def filter_uri(uri):
-    return filter_uri.sub(r'\1****\3', uri)
+    return uri_filter.sub(r'\1****\3', uri)
 
 class FirestoreCompatibleClient:
     logger.info("FirestoreCompatibleClient")
