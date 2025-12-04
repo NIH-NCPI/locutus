@@ -101,7 +101,7 @@ def format_ftd_code(code, curie):
 # Create a logger
 llevel =getenv('LOCUTUS_LOGLEVEL', logging.WARN)
 logger = getlogger(logformat=LOGGING_FORMAT, loglevel=llevel)
-logger.info(f"Logger instanced with level: {llevel}")
+# logger.info(f"Logger instanced with level: {llevel}")
 
 """
 def persistence():
