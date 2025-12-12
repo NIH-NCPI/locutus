@@ -173,10 +173,10 @@ class FirestoreCompatibleClient:
         if mongo_uri is None:
             mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/locutus")
 
-        parsed = urlparse(mongo_uri)
+        print(f"Mongo DB URI: {filter_uri(mongo_uri)}")
+        parsed = urlparse(filter_uri(mongo_uri))
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
-        logger.info(f"Mongo DB Interface")
-        logger.info(f"Mongo DB URI: {filter_uri(mongo_uri)}")
+
         logger.info(f"Database name parsed: '{db_name}'")
         if not db_name:
             raise ValueError("Database name must be specified in the Mongo URI path!")
@@ -207,6 +207,7 @@ _client = None
 
 def persistence(mongo_uri=None, missing_ok=True):
     global _client
+
     if _client is None:
         _client = FirestoreCompatibleClient(mongo_uri, missing_ok)
     return _client
