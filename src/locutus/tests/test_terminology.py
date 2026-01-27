@@ -1,66 +1,84 @@
-import pytest
 import json
-from locutus.model.terminology import Terminology
-from locutus.model.global_id import GlobalID
-from locutus.model.coding import Coding, CodingMapping
-from locutus.model.exceptions import InvalidValueError, CodeAlreadyPresent
-
 import pdb
-from rich import print
-@pytest.fixture 
-def ftd_concept_relationships():
 
+import pytest
+from rich import print
+
+from locutus.model.coding import Coding, CodingMapping
+from locutus.model.exceptions import CodeAlreadyPresent, InvalidValueError
+from locutus.model.global_id import GlobalID
+from locutus.model.terminology import Terminology
+
+
+@pytest.fixture
+def ftd_concept_relationships():
     t = Terminology.get(id="ftd-concept-map-relationship")
     if t is None:
-
         codes = [
-            Coding(terminology_id="ftd-concept-map-relationship", 
-                    code="equivalent", 
-                    display="Equivalent", 
-                    system="http://hl7.org/fhir/concept-map-relationship", 
-                    description="The definitions of the concepts mean the same thing."),
-            Coding(terminology_id="ftd-concept-map-relationship", 
-                    code="source-is-narrower-than-target", 
-                    display="Source Is Narrower Than Target",
-                    description="The source concept is narrower in meaning than the target concept.",
-                    system="http://hl7.org/fhir/concept-map-relationship"),
-            Coding(terminology_id="ftd-concept-map-relationship", 
-                    code="source-is-broader-than-target", 
-                    display="Source Is Broader Than Target",
-                    system="http://hl7.org/fhir/concept-map-relationship", 
-                    description="The source concept is broader in meaning than the target concept.")
+            Coding(
+                terminology_id="ftd-concept-map-relationship",
+                code="equivalent",
+                display="Equivalent",
+                system="http://hl7.org/fhir/concept-map-relationship",
+                description="The definitions of the concepts mean the same thing.",
+            ),
+            Coding(
+                terminology_id="ftd-concept-map-relationship",
+                code="source-is-narrower-than-target",
+                display="Source Is Narrower Than Target",
+                description="The source concept is narrower in meaning than the target concept.",
+                system="http://hl7.org/fhir/concept-map-relationship",
+            ),
+            Coding(
+                terminology_id="ftd-concept-map-relationship",
+                code="source-is-broader-than-target",
+                display="Source Is Broader Than Target",
+                system="http://hl7.org/fhir/concept-map-relationship",
+                description="The source concept is broader in meaning than the target concept.",
+            ),
         ]
-
 
         t = Terminology(
             id="ftd-concept-map-relationship",
             name="concept-map-relationship",
             url="http://hl7.org/fhir/concept-map-relationship",
             description="",
-            codes=codes
+            codes=codes,
         )
         t.save()
-    yield t 
-    #t.delete(hard_delete=True)
+    yield t
+    # t.delete(hard_delete=True)
+
 
 @pytest.fixture
 def sample_terminology():
     initial_codes = [
-        Coding(terminology_id="ontology-one", code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
-        Coding(terminology_id="ontology-one", code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
+        Coding(
+            terminology_id="ontology-one",
+            code="C1",
+            display="Code One",
+            system="http://example.com/ont1",
+            description="Description for C1",
+        ),
+        Coding(
+            terminology_id="ontology-one",
+            code="C2",
+            display="Code Two",
+            system="http://example.com/ont1",
+            description="Description for C2",
+        ),
     ]
     t = Terminology(
         id="ontology-one",
         name="Ontology One",
         url="http://example.com/ont1",
         description="A sample oncology terminology",
-        codes=initial_codes
+        codes=initial_codes,
     )
 
     t.save()
     yield t
     # no global ID to delete
-
 
     t.delete(hard_delete=True)
 
@@ -68,8 +86,20 @@ def sample_terminology():
 @pytest.fixture
 def sample_terminology_with_editor():
     initial_codes = [
-        Coding(terminology_id="ontology-one", code="C1", display="Code One", system="http://example.com/ont1", description="Description for C1"),
-        Coding(terminology_id="ontology-one", code="C2", display="Code Two", system="http://example.com/ont1", description="Description for C2")
+        Coding(
+            terminology_id="ontology-one",
+            code="C1",
+            display="Code One",
+            system="http://example.com/ont1",
+            description="Description for C1",
+        ),
+        Coding(
+            terminology_id="ontology-one",
+            code="C2",
+            display="Code Two",
+            system="http://example.com/ont1",
+            description="Description for C2",
+        ),
     ]
 
     t = Terminology(
@@ -78,7 +108,7 @@ def sample_terminology_with_editor():
         url="http://example.com/ont1",
         description="A sample oncology terminology",
         editor="unit tests",
-        codes=initial_codes
+        codes=initial_codes,
     )
     t.save()
     yield t
@@ -90,12 +120,12 @@ def test_terminology_get(sample_terminology):
     all_terms = Terminology.get(return_instance=False)
     assert len(all_terms) >= 1
 
-    one_term = Terminology.get(all_terms[0]['id'])
-    assert one_term.id == all_terms[0]['id']
+    one_term = Terminology.get(all_terms[0]["id"])
+    assert one_term.id == all_terms[0]["id"]
 
-    one_term = Terminology.get(all_terms[0]['id'], return_instance=False)
-    assert type(one_term) is dict 
-    assert one_term['id'] == all_terms[0]['id']
+    one_term = Terminology.get(all_terms[0]["id"], return_instance=False)
+    assert type(one_term) is dict
+    assert one_term["id"] == all_terms[0]["id"]
 
 
 def test_terminology_id(sample_terminology):
@@ -104,12 +134,13 @@ def test_terminology_id(sample_terminology):
     term = Terminology(
         name="Ontology One",
         url="http://example.com/ont1",
-        description="A sample oncology terminology"
+        description="A sample oncology terminology",
     )
 
     assert term.id[0:3] == "tm-"
-    term.global_id().delete()
+    # term.global_id().delete()
     term.delete()
+
 
 def test_terminology_init(sample_terminology):
     assert sample_terminology.name == "Ontology One"
@@ -118,25 +149,26 @@ def test_terminology_init(sample_terminology):
     assert len(sample_terminology.codes) == 2
     assert sample_terminology.codes[0].dereference().code == "C1"
 
+
 def test_terminology_prov_on_init(sample_terminology_with_editor):
     assert len(sample_terminology_with_editor.get_provenance()) == 1
     prov = sample_terminology_with_editor.get_provenance("self")["self"]
-    assert prov['target'] == "self"
+    assert prov["target"] == "self"
 
-    p1 = prov['changes'][0]
-    assert p1['action'] == "Create Terminology"
-    assert p1['editor'] == "unit tests"
-    assert p1['target'] == "self" or p1['target'] == None
-    assert "timestamp" in p1 
-    
+    p1 = prov["changes"][0]
+    assert p1["action"] == "Create Terminology"
+    assert p1["editor"] == "unit tests"
+    assert p1["target"] == "self" or p1["target"] == None
+    assert "timestamp" in p1
+
     # We started with 2 codes in it, so the provenance should include those two
-    p2 = prov['changes'][1]
-    assert p2['action'] == "Add Term"
-    assert p2['new_value'] == "C1"
+    p2 = prov["changes"][1]
+    assert p2["action"] == "Add Term"
+    assert p2["new_value"] == "C1"
 
-    p3 = prov['changes'][2]
-    assert p3['action'] == "Add Term"
-    assert p3['new_value'] == "C2"
+    p3 = prov["changes"][2]
+    assert p3["action"] == "Add Term"
+    assert p3["new_value"] == "C2"
 
 
 def test_build_code_dict(sample_terminology):
@@ -150,8 +182,15 @@ def test_build_code_dict(sample_terminology):
     assert code_dict["C1"].system == "http://example.com/ont1"
     assert code_dict["C2"].code == "C2"
 
+
 def test_add_code(sample_terminology):
-    sample_terminology.add_code(code="C3", display="Code Three", description="Description for C3", editor="unit-test", exists_ok=False)
+    sample_terminology.add_code(
+        code="C3",
+        display="Code Three",
+        description="Description for C3",
+        editor="unit-test",
+        exists_ok=False,
+    )
     assert len(sample_terminology.codes) == 3
     assert sample_terminology.has_code("C3")
     new_code = next(c for c in sample_terminology.codes if c.dereference().code == "C3")
@@ -160,13 +199,20 @@ def test_add_code(sample_terminology):
     assert new_code.dereference().description == "Description for C3"
 
     # Verify that the addition was reflected in prov
-    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
-    assert prov['action'] == "Add Term"
-    assert prov['new_value'] == "C3"
+    prov = sample_terminology.get_provenance("self")["self"]["changes"][-1]
+    assert prov["action"] == "Add Term"
+    assert prov["new_value"] == "C3"
 
     # Verify that we can't add the same code twice
     with pytest.raises(CodeAlreadyPresent) as e_info:
-        sample_terminology.add_code(code="C3", display="Code Three", description="Description for C3", editor="unit-test", exists_ok=False)
+        sample_terminology.add_code(
+            code="C3",
+            display="Code Three",
+            description="Description for C3",
+            editor="unit-test",
+            exists_ok=False,
+        )
+
 
 def test_remove_code(sample_terminology):
     sample_terminology.remove_code("C1", editor="unit-test")
@@ -175,41 +221,78 @@ def test_remove_code(sample_terminology):
     assert sample_terminology.has_code("C2")
 
     # Verify that the removal was reflected in prov
-    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
-    assert prov['action'] == "Remove Term"
-    assert prov['new_value'] == "C1"
- 
+    prov = sample_terminology.get_provenance("self")["self"]["changes"][-1]
+    assert prov["action"] == "Remove Term"
+    assert prov["new_value"] == "C1"
+
     # Test removing a non-existent code
     with pytest.raises(KeyError) as e_info:
         sample_terminology.remove_code("C99", editor="unit-test")
     assert len(sample_terminology.codes) == 1
 
+
 def test_rename_code(sample_terminology):
-    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
+    sample_terminology.rename_code(
+        "C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test"
+    )
     assert sample_terminology.has_code("C1_NEW")
     assert not sample_terminology.has_code("C1")
-    renamed_code = next(c for c in sample_terminology.codes if c.dereference().code == "C1_NEW")
+    renamed_code = next(
+        c for c in sample_terminology.codes if c.dereference().code == "C1_NEW"
+    )
     assert renamed_code.dereference().display == "New Code One Display"
-    assert renamed_code.dereference().description == "Description for C1" # Description should remain unchanged
+    assert (
+        renamed_code.dereference().description == "Description for C1"
+    )  # Description should remain unchanged
 
-
-
-    sample_terminology.rename_code("C2", new_code="C2", new_display="C2 New Display", new_description="Updated description for C2", editor="unit-test")
-    updated_code = next(c for c in sample_terminology.codes if c.dereference().code == "C2")
+    sample_terminology.rename_code(
+        "C2",
+        new_code="C2",
+        new_display="C2 New Display",
+        new_description="Updated description for C2",
+        editor="unit-test",
+    )
+    updated_code = next(
+        c for c in sample_terminology.codes if c.dereference().code == "C2"
+    )
     assert updated_code.dereference().display == "C2 New Display"
     assert updated_code.dereference().description == "Updated description for C2"
     # Verify that the chnge was reflected in prov
-    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
-    assert prov['action'] == "Edit Term"
-    assert prov['old_value'] == "display: Code Two,description: Description for C2"
-    assert prov['new_value'] == "display: C2 New Display,description: Updated description for C2"
+    prov = sample_terminology.get_provenance("self")["self"]["changes"][-1]
+    assert prov["action"] == "Edit Term"
+    assert prov["old_value"] == "display: Code Two,description: Description for C2"
+    assert (
+        prov["new_value"]
+        == "display: C2 New Display,description: Updated description for C2"
+    )
+
 
 def test_rename_code_with_mappings(ftd_concept_relationships, sample_terminology):
     # Setup some dummy mappings for testing the stub
-    mapping_c1_editorA = CodingMapping(code="MAP_C1_A", display="Map C1 A", system="http://map.com/A", mapping_relationship='equivalent', rank=1)
-    mapping_c1_editorB = CodingMapping(code="MAP_C1_B", display="Map C1 B", system="http://map.com/B", mapping_relationship='equivalent', rank=2)
-    mapping_c2_editorA = CodingMapping(code="MAP_C2_A", display="Map C2 A", system="http://map.com/A", mapping_relationship='equivalent', rank=3)
-    sample_terminology.set_mapping("C1", [mapping_c1_editorA, mapping_c1_editorB], "editorA")
+    mapping_c1_editorA = CodingMapping(
+        code="MAP_C1_A",
+        display="Map C1 A",
+        system="http://map.com/A",
+        mapping_relationship="equivalent",
+        rank=1,
+    )
+    mapping_c1_editorB = CodingMapping(
+        code="MAP_C1_B",
+        display="Map C1 B",
+        system="http://map.com/B",
+        mapping_relationship="equivalent",
+        rank=2,
+    )
+    mapping_c2_editorA = CodingMapping(
+        code="MAP_C2_A",
+        display="Map C2 A",
+        system="http://map.com/A",
+        mapping_relationship="equivalent",
+        rank=3,
+    )
+    sample_terminology.set_mapping(
+        "C1", [mapping_c1_editorA, mapping_c1_editorB], "editorA"
+    )
     sample_terminology.set_mapping("C2", [mapping_c2_editorA], "editorA")
 
     c1_mappings = sample_terminology.mappings("C1")["C1"]
@@ -217,7 +300,9 @@ def test_rename_code_with_mappings(ftd_concept_relationships, sample_terminology
     assert any(m.code == "MAP_C1_A" for m in c1_mappings)
     assert any(m.code == "MAP_C1_B" for m in c1_mappings)
 
-    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
+    sample_terminology.rename_code(
+        "C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test"
+    )
     assert sample_terminology.has_code("C1_NEW")
     assert not sample_terminology.has_code("C1")
 
@@ -226,68 +311,84 @@ def test_rename_code_with_mappings(ftd_concept_relationships, sample_terminology
     assert c1_mappings == c1_mappings2
 
 
-
-
 def test_rename_code_provenance_code_and_display(sample_terminology):
-    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test")
+    sample_terminology.rename_code(
+        "C1", new_code="C1_NEW", new_display="New Code One Display", editor="unit-test"
+    )
 
     # Verify that the chnge was reflected in prov for the terminology
-    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
-    assert prov['action'] == "Edit Term"
-    assert prov['old_value'] == "code: C1,display: Code One"
-    assert prov['new_value'] == "code: C1_NEW,display: New Code One Display"
+    prov = sample_terminology.get_provenance("self")["self"]["changes"][-1]
+    assert prov["action"] == "Edit Term"
+    assert prov["old_value"] == "code: C1,display: Code One"
+    assert prov["new_value"] == "code: C1_NEW,display: New Code One Display"
 
     # Verify that the the old code's prov is gone (should be under the new code now)
-    assert sample_terminology.get_provenance("C1")['C1']['changes'] == []
+    assert sample_terminology.get_provenance("C1")["C1"]["changes"] == []
 
     # Verify that the chnge was reflected in prov for the code's new name
     print(sample_terminology.get_provenance("C1_NEW"))
-    prov = sample_terminology.get_provenance("C1_NEW")['C1_NEW']['changes'][-1]
-    assert prov['action'] == "Edit Term"
-    assert prov['old_value'] == "code: C1,display: Code One"
-    assert prov['new_value'] == "code: C1_NEW,display: New Code One Display"
+    prov = sample_terminology.get_provenance("C1_NEW")["C1_NEW"]["changes"][-1]
+    assert prov["action"] == "Edit Term"
+    assert prov["old_value"] == "code: C1,display: Code One"
+    assert prov["new_value"] == "code: C1_NEW,display: New Code One Display"
+
 
 def test_rename_code_provenance_description_only(sample_terminology):
-    sample_terminology.rename_code("C1", new_code="C1", new_display=None, new_description="Updated description for C1", editor='unit-test')
-    prov = sample_terminology.get_provenance("C1")['C1']['changes']
+    sample_terminology.rename_code(
+        "C1",
+        new_code="C1",
+        new_display=None,
+        new_description="Updated description for C1",
+        editor="unit-test",
+    )
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 1
-    assert prov[0]['action'] == 'Edit Term'
-    assert prov[0]['old_value'] == "description: Description for C1"
-    assert prov[0]['new_value'] == "description: Updated description for C1"
+    assert prov[0]["action"] == "Edit Term"
+    assert prov[0]["old_value"] == "description: Description for C1"
+    assert prov[0]["new_value"] == "description: Updated description for C1"
+
 
 def test_rename_code_provenance_display_only(sample_terminology):
-    sample_terminology.rename_code("C1", new_code="C1", new_display="Updated Display", editor='unit-test')
-    prov = sample_terminology.get_provenance("C1")['C1']['changes']
+    sample_terminology.rename_code(
+        "C1", new_code="C1", new_display="Updated Display", editor="unit-test"
+    )
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 1
-    assert prov[0]['action'] == 'Edit Term'
-    assert prov[0]['old_value'] == "display: Code One"
-    assert prov[0]['new_value'] == "display: Updated Display"
+    assert prov[0]["action"] == "Edit Term"
+    assert prov[0]["old_value"] == "display: Code One"
+    assert prov[0]["new_value"] == "display: Updated Display"
+
 
 def test_rename_code_provenance_code_only(sample_terminology):
     # First, we'll update the display so that the provenance is longer than 1 entry
-    sample_terminology.rename_code("C1", new_code="C1", new_display="Updated Display", editor='unit-test')
-    assert len(sample_terminology.get_provenance("C1")['C1']['changes']) == 1
+    sample_terminology.rename_code(
+        "C1", new_code="C1", new_display="Updated Display", editor="unit-test"
+    )
+    assert len(sample_terminology.get_provenance("C1")["C1"]["changes"]) == 1
 
     # Test only changing the code
-    sample_terminology.rename_code("C1", new_code="C1_NEW", new_display=None, editor="unit-test")
+    sample_terminology.rename_code(
+        "C1", new_code="C1_NEW", new_display=None, editor="unit-test"
+    )
     # Verify that the chnge was reflected in prov for the terminology
-    prov = sample_terminology.get_provenance("self")["self"]['changes'][-1]
-    assert prov['action'] == "Edit Term"
-    assert prov['old_value'] == "code: C1"
-    assert prov['new_value'] == "code: C1_NEW"
+    prov = sample_terminology.get_provenance("self")["self"]["changes"][-1]
+    assert prov["action"] == "Edit Term"
+    assert prov["old_value"] == "code: C1"
+    assert prov["new_value"] == "code: C1_NEW"
 
     # Verify that the the old code's prov is gone (should be under the new code now)
-    assert sample_terminology.get_provenance("C1")['C1']['changes'] == [] 
-    
+    assert sample_terminology.get_provenance("C1")["C1"]["changes"] == []
+
     # Verify that the chnge was reflected in prov for the code's new name
-    prov = sample_terminology.get_provenance("C1_NEW")['C1_NEW']['changes']
+    prov = sample_terminology.get_provenance("C1_NEW")["C1_NEW"]["changes"]
     assert len(prov) == 2
-    assert prov[0]['action'] == "Edit Term"
-    assert prov[0]['old_value'] == "display: Code One"
-    assert prov[0]['new_value'] == "display: Updated Display"
-    assert prov[1]['action'] == "Edit Term"
-    assert prov[1]['old_value'] == "code: C1"
-    assert prov[1]['new_value'] == "code: C1_NEW"
+    assert prov[0]["action"] == "Edit Term"
+    assert prov[0]["old_value"] == "display: Code One"
+    assert prov[0]["new_value"] == "display: Updated Display"
+    assert prov[1]["action"] == "Edit Term"
+    assert prov[1]["old_value"] == "code: C1"
+    assert prov[1]["new_value"] == "code: C1_NEW"
+
 
 def test_has_code(sample_terminology):
     assert sample_terminology.has_code("C1")
@@ -301,7 +402,12 @@ def test_set_mapping(sample_terminology):
     assert len(mappings) == 0
 
     # Set a mapping
-    coding_map = CodingMapping("MAPPED_CODE", "Mapped Display", "http://mapping.system", mapping_relationship="")
+    coding_map = CodingMapping(
+        "MAPPED_CODE",
+        "Mapped Display",
+        "http://mapping.system",
+        mapping_relationship="",
+    )
     sample_terminology.set_mapping("C1", [coding_map], "test_editor")
 
     retrieved_mappings = sample_terminology.mappings("C1")["C1"]
@@ -311,152 +417,308 @@ def test_set_mapping(sample_terminology):
     assert retrieved_mappings[0].system == "http://mapping.system"
 
     # Set another mapping for the same code by a different editor
-    coding_map_2 = CodingMapping("MAPPED_CODE_2", "Mapped Display 2", "http://mapping.system", mapping_relationship="")
+    coding_map_2 = CodingMapping(
+        "MAPPED_CODE_2",
+        "Mapped Display 2",
+        "http://mapping.system",
+        mapping_relationship="",
+    )
     sample_terminology.set_mapping("C1", [coding_map, coding_map_2], "another_editor")
-    
-    retrieved_mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
-    assert len(retrieved_mappings) == 2 # Should now have mappings from both editors
+
+    retrieved_mappings = [
+        mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid
+    ]
+    assert len(retrieved_mappings) == 2  # Should now have mappings from both editors
+
 
 def test_set_mapping_provenance(sample_terminology):
     # Set a mapping
-    coding_map = CodingMapping("MAPPED_CODE", "Mapped Display", "http://mapping.system", mapping_relationship="")
+    coding_map = CodingMapping(
+        "MAPPED_CODE",
+        "Mapped Display",
+        "http://mapping.system",
+        mapping_relationship="",
+    )
     sample_terminology.set_mapping("C1", [coding_map], "unit-test")
 
     # Verify that the chnge was reflected in prov for the terminology
-    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 1
-    assert prov[0]['action'] == "Add Mapping"
-    assert prov[0]['old_value'] == ""
-    assert prov[0]['new_value'] == "MAPPED_CODE"
+    assert prov[0]["action"] == "Add Mapping"
+    assert prov[0]["old_value"] == ""
+    assert prov[0]["new_value"] == "MAPPED_CODE"
 
-    sample_terminology.set_mapping("C1", [CodingMapping("NEW_CODE", "New Mapped Display", "http://mapping.system", mapping_relationship="equivalent")], "unit-test")
-    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    sample_terminology.set_mapping(
+        "C1",
+        [
+            CodingMapping(
+                "NEW_CODE",
+                "New Mapped Display",
+                "http://mapping.system",
+                mapping_relationship="equivalent",
+            )
+        ],
+        "unit-test",
+    )
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 2
-    assert prov[-1]['action'] == "Edit Mapping"
-    assert prov[-1]['old_value'] == "MAPPED_CODE"
-    assert prov[-1]['new_value'] == "NEW_CODE"
+    assert prov[-1]["action"] == "Edit Mapping"
+    assert prov[-1]["old_value"] == "MAPPED_CODE"
+    assert prov[-1]["new_value"] == "NEW_CODE"
 
-    sample_terminology.set_mapping("C1", [coding_map, CodingMapping("NEW_CODE", "New Mapped Display", "http://mapping.system", mapping_relationship="equivalent")], "unit-test")
-    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    sample_terminology.set_mapping(
+        "C1",
+        [
+            coding_map,
+            CodingMapping(
+                "NEW_CODE",
+                "New Mapped Display",
+                "http://mapping.system",
+                mapping_relationship="equivalent",
+            ),
+        ],
+        "unit-test",
+    )
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 3
-    assert prov[-1]['action'] == "Edit Mapping"
-    assert prov[-1]['old_value'] == "NEW_CODE"
-    assert prov[-1]['new_value'] == "MAPPED_CODE,NEW_CODE"
+    assert prov[-1]["action"] == "Edit Mapping"
+    assert prov[-1]["old_value"] == "NEW_CODE"
+    assert prov[-1]["new_value"] == "MAPPED_CODE,NEW_CODE"
+
 
 def test_delete_singular_mapping_provenance(sample_terminology):
     # Setup some dummy mappings for testing the stub
     sample_terminology.save()
-    sample_terminology.set_mapping("C1", [
-                CodingMapping("MAP1", display="Map One", system="http://map.com", mapping_relationship='equivalent'), 
-                CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")
-    sample_terminology.set_mapping("C2", [CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")   
-    
-    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    sample_terminology.set_mapping(
+        "C1",
+        [
+            CodingMapping(
+                "MAP1",
+                display="Map One",
+                system="http://map.com",
+                mapping_relationship="equivalent",
+            ),
+            CodingMapping(
+                "MAP2", "Map Two", "http://map.com", mapping_relationship="equivalent"
+            ),
+        ],
+        "editorA",
+    )
+    sample_terminology.set_mapping(
+        "C2",
+        [
+            CodingMapping(
+                "MAP2", "Map Two", "http://map.com", mapping_relationship="equivalent"
+            )
+        ],
+        "editorA",
+    )
+
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 1
 
     # Test deleting a specific code's mapping for an editor
     sample_terminology.delete_mappings(editor="editorA", code="C1")
-    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
 
     assert len(prov) == 2
-    assert prov[-1]['action'] == "Soft Delete Mapping"
-    old_value = prov[-1]['old_value']
-    
-    assert len(old_value['codes']) == 2
-    assert old_value['codes'][0]['code'] == "MAP1"
-    assert old_value['codes'][0]['display'] == "Map One"
-    assert old_value['codes'][0]['system'] == "http://map.com"
-    assert old_value['codes'][1]['code'] == "MAP2"
-    assert old_value['codes'][1]['display'] == "Map Two"
-    assert old_value['code'] == "C1"
-    
-    assert 'timestamp' in prov[-1]
-    assert prov[-1]['target'] == "C1"
+    assert prov[-1]["action"] == "Soft Delete Mapping"
+    old_value = prov[-1]["old_value"]
+
+    assert len(old_value["codes"]) == 2
+    assert old_value["codes"][0]["code"] == "MAP1"
+    assert old_value["codes"][0]["display"] == "Map One"
+    assert old_value["codes"][0]["system"] == "http://map.com"
+    assert old_value["codes"][1]["code"] == "MAP2"
+    assert old_value["codes"][1]["display"] == "Map Two"
+    assert old_value["code"] == "C1"
+
+    assert "timestamp" in prov[-1]
+    assert prov[-1]["target"] == "C1"
+
 
 def test_delete_all_mapping_provenance(sample_terminology):
     # Setup some dummy mappings for testing the stub
     sample_terminology.save()
-    sample_terminology.set_mapping("C1", [
-                CodingMapping("MAP1", display="Map One", system="http://map.com", mapping_relationship='equivalent'), 
-                CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")
-    sample_terminology.set_mapping("C2", [CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")   
-    
-    assert len(sample_terminology.get_provenance("C1")["C1"]['changes']) == 1
-    assert len(sample_terminology.get_provenance("C2")["C2"]['changes']) == 1
+    sample_terminology.set_mapping(
+        "C1",
+        [
+            CodingMapping(
+                "MAP1",
+                display="Map One",
+                system="http://map.com",
+                mapping_relationship="equivalent",
+            ),
+            CodingMapping(
+                "MAP2", "Map Two", "http://map.com", mapping_relationship="equivalent"
+            ),
+        ],
+        "editorA",
+    )
+    sample_terminology.set_mapping(
+        "C2",
+        [
+            CodingMapping(
+                "MAP2", "Map Two", "http://map.com", mapping_relationship="equivalent"
+            )
+        ],
+        "editorA",
+    )
+
+    assert len(sample_terminology.get_provenance("C1")["C1"]["changes"]) == 1
+    assert len(sample_terminology.get_provenance("C2")["C2"]["changes"]) == 1
 
     # Test deleting a specific code's mapping for an editor
     sample_terminology.delete_mappings(editor="editorA")
 
-    prov = sample_terminology.get_provenance("self")['self']['changes']
+    prov = sample_terminology.get_provenance("self")["self"]["changes"]
     print(prov[-1])
-    assert prov[-1]['action'] == "Soft Delete All Mappings"
-    assert prov[-1]['editor'] == "editorA"
+    assert prov[-1]["action"] == "Soft Delete All Mappings"
+    assert prov[-1]["editor"] == "editorA"
 
-    prov = sample_terminology.get_provenance("C1")["C1"]['changes']
+    prov = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(prov) == 2
-    assert prov[-1]['action'] == "Soft Delete Mapping"
+    assert prov[-1]["action"] == "Soft Delete Mapping"
 
-    old_value = prov[-1]['old_value']
-    
-    assert len(old_value['codes']) == 2
-    assert old_value['codes'][0]['code'] == "MAP1"
-    assert old_value['codes'][0]['display'] == "Map One"
-    assert old_value['codes'][0]['system'] == "http://map.com"
-    assert old_value['codes'][1]['code'] == "MAP2"
-    assert old_value['codes'][1]['display'] == "Map Two"
-    assert old_value['code'] == "C1"
-    
-    assert 'timestamp' in prov[-1]
-    assert prov[-1]['target'] == "C1"
+    old_value = prov[-1]["old_value"]
 
-    prov = sample_terminology.get_provenance("C2")["C2"]['changes']
+    assert len(old_value["codes"]) == 2
+    assert old_value["codes"][0]["code"] == "MAP1"
+    assert old_value["codes"][0]["display"] == "Map One"
+    assert old_value["codes"][0]["system"] == "http://map.com"
+    assert old_value["codes"][1]["code"] == "MAP2"
+    assert old_value["codes"][1]["display"] == "Map Two"
+    assert old_value["code"] == "C1"
+
+    assert "timestamp" in prov[-1]
+    assert prov[-1]["target"] == "C1"
+
+    prov = sample_terminology.get_provenance("C2")["C2"]["changes"]
     assert len(prov) == 2
-    assert prov[-1]['action'] == "Soft Delete Mapping"
-    old_value = prov[-1]['old_value']
-    assert len(old_value['codes']) == 1
+    assert prov[-1]["action"] == "Soft Delete Mapping"
+    old_value = prov[-1]["old_value"]
+    assert len(old_value["codes"]) == 1
+
 
 def test_delete_mappings(ftd_concept_relationships, sample_terminology):
     # Setup some dummy mappings for testing the stub
     sample_terminology.save()
-    sample_terminology.set_mapping("C1", [CodingMapping("MAP1", display="Map One", system="http://map.com", mapping_relationship='equivalent')], "editorA")
-    sample_terminology.set_mapping("C2", [CodingMapping("MAP2", "Map Two", "http://map.com", mapping_relationship='equivalent')], "editorA")
-    sample_terminology.set_mapping("C1", [CodingMapping("MAP3", "Map Three", "http://map.com", mapping_relationship='equivalent')], "editorB")
+    sample_terminology.set_mapping(
+        "C1",
+        [
+            CodingMapping(
+                "MAP1",
+                display="Map One",
+                system="http://map.com",
+                mapping_relationship="equivalent",
+            )
+        ],
+        "editorA",
+    )
+    sample_terminology.set_mapping(
+        "C2",
+        [
+            CodingMapping(
+                "MAP2", "Map Two", "http://map.com", mapping_relationship="equivalent"
+            )
+        ],
+        "editorA",
+    )
+    sample_terminology.set_mapping(
+        "C1",
+        [
+            CodingMapping(
+                "MAP3", "Map Three", "http://map.com", mapping_relationship="equivalent"
+            )
+        ],
+        "editorB",
+    )
 
     # Test deleting a specific code's mapping for an editor
     sample_terminology.delete_mappings(editor="editorA", code="C1")
 
     mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
 
-    assert len(mappings) == 0 # Only editorB's mapping for C1 should remain
-    assert sample_terminology.mappings("C2") # C2 mapping for editorA should still exist
+    assert len(mappings) == 0  # Only editorB's mapping for C1 should remain
+    assert sample_terminology.mappings(
+        "C2"
+    )  # C2 mapping for editorA should still exist
 
     # Test deleting all mappings for an editor
     sample_terminology.delete_mappings(editor="editorA")
     mappings = [mp for mp in sample_terminology.mappings("C2")["C2"] if mp.valid]
-    assert len(mappings) == 0 # C2 mapping for editorA should be gone
+    assert len(mappings) == 0  # C2 mapping for editorA should be gone
     mappings = [mp for mp in sample_terminology.mappings("C1")["C1"] if mp.valid]
-    assert len(mappings) == 0 # editorB's mapping for C1 should remain
+    assert len(mappings) == 0  # editorB's mapping for C1 should remain
+
 
 def test_mapping_relationship(ftd_concept_relationships, sample_terminology):
     try:
-        mapping_c1_editorA = CodingMapping(code="MAP_C1_A", display="Map C1 A", system="http://map.com/A", mapping_relationship='equivalent')
-        mapping_c1_editorB = CodingMapping(code="MAP_C1_B", display="Map C1 B", system="http://map.com/B", mapping_relationship='source-is-narrower-than-target')
-        mapping_c2_editorA = CodingMapping(code="MAP_C2_A", display="Map C2 A", system="http://map.com/A", mapping_relationship='source-is-broader-than-target')
-        mapping_c2_editorB = CodingMapping(code="MAP_C2_B", display="Map C2 A", system="http://map.com/A", mapping_relationship='')
+        mapping_c1_editorA = CodingMapping(
+            code="MAP_C1_A",
+            display="Map C1 A",
+            system="http://map.com/A",
+            mapping_relationship="equivalent",
+        )
+        mapping_c1_editorB = CodingMapping(
+            code="MAP_C1_B",
+            display="Map C1 B",
+            system="http://map.com/B",
+            mapping_relationship="source-is-narrower-than-target",
+        )
+        mapping_c2_editorA = CodingMapping(
+            code="MAP_C2_A",
+            display="Map C2 A",
+            system="http://map.com/A",
+            mapping_relationship="source-is-broader-than-target",
+        )
+        mapping_c2_editorB = CodingMapping(
+            code="MAP_C2_B",
+            display="Map C2 A",
+            system="http://map.com/A",
+            mapping_relationship="",
+        )
     except Exception as e:
-        raise pytest.fail(f"There was a problem with acceptable mapping relationships: {e}")
-    
-    with pytest.raises(InvalidValueError, match="is not valid. The value should be one of") as e_info:
-        mapping_c2_editorA = CodingMapping("MAP_C2_A", "Map C2 A", "http://map.com/A", mapping_relationship='asdf')
+        raise pytest.fail(
+            f"There was a problem with acceptable mapping relationships: {e}"
+        )
+
+    with pytest.raises(
+        InvalidValueError, match="is not valid. The value should be one of"
+    ) as e_info:
+        mapping_c2_editorA = CodingMapping(
+            "MAP_C2_A", "Map C2 A", "http://map.com/A", mapping_relationship="asdf"
+        )
+
 
 def test_mappings(ftd_concept_relationships, sample_terminology):
     # Setup some dummy mappings for testing the stub
-    mapping_c1_editorA = CodingMapping(code="MAP_C1_A", display="Map C1 A", system="http://map.com/A", mapping_relationship='equivalent', rank=1)
-    mapping_c1_editorB = CodingMapping(code="MAP_C1_B", display="Map C1 B", system="http://map.com/B", mapping_relationship='equivalent', rank=2)
-    mapping_c2_editorA = CodingMapping(code="MAP_C2_A", display="Map C2 A", system="http://map.com/A", mapping_relationship='equivalent', rank=3)
+    mapping_c1_editorA = CodingMapping(
+        code="MAP_C1_A",
+        display="Map C1 A",
+        system="http://map.com/A",
+        mapping_relationship="equivalent",
+        rank=1,
+    )
+    mapping_c1_editorB = CodingMapping(
+        code="MAP_C1_B",
+        display="Map C1 B",
+        system="http://map.com/B",
+        mapping_relationship="equivalent",
+        rank=2,
+    )
+    mapping_c2_editorA = CodingMapping(
+        code="MAP_C2_A",
+        display="Map C2 A",
+        system="http://map.com/A",
+        mapping_relationship="equivalent",
+        rank=3,
+    )
 
-    sample_terminology.set_mapping("C1", [mapping_c1_editorA, mapping_c1_editorB], "editorA")
-    
+    sample_terminology.set_mapping(
+        "C1", [mapping_c1_editorA, mapping_c1_editorB], "editorA"
+    )
+
     sample_terminology.set_mapping("C2", [mapping_c2_editorA], "editorA")
 
     c1_mappings = sample_terminology.mappings("C1")["C1"]
@@ -469,33 +731,66 @@ def test_mappings(ftd_concept_relationships, sample_terminology):
     c1_mappings = sample_terminology.mappings("C1")["C1"]
     assert len(c1_mappings) == 1
     assert c1_mappings[0].code == "MAP_C1_B"
-    
+
     c2_mappings = sample_terminology.mappings("C2")["C2"]
     assert len(c2_mappings) == 1
     assert c2_mappings[0].code == "MAP_C2_A"
 
     mappings = [mp for mp in sample_terminology.mappings("C99")["C99"] if mp.valid]
-    assert len(mappings) == 0 # No mappings for non-existent code
+    assert len(mappings) == 0  # No mappings for non-existent code
+
 
 def test_get_provenance(sample_terminology):
     # Test with no provenance
-    assert sample_terminology.get_provenance("C1")["C1"]['changes'] == []
+    assert sample_terminology.get_provenance("C1")["C1"]["changes"] == []
 
     # Add some provenance
-    sample_terminology.add_provenance(change_type="created", editor="admin", target="C1", new_value="Initial creation")
-    sample_terminology.add_provenance(change_type="modified", editor="user1", target="C1", old_value="valA", new_value="valB")
+    sample_terminology.add_provenance(
+        change_type="created", editor="admin", target="C1", new_value="Initial creation"
+    )
+    sample_terminology.add_provenance(
+        change_type="modified",
+        editor="user1",
+        target="C1",
+        old_value="valA",
+        new_value="valB",
+    )
 
     provenance_c1 = sample_terminology.get_provenance("C1")["C1"]["changes"]
     assert len(provenance_c1) == 2
     assert provenance_c1[0]["action"] == "created"
     assert provenance_c1[1]["editor"] == "user1"
 
-    assert sample_terminology.get_provenance("C2")["C2"]['changes'] == []
+    assert sample_terminology.get_provenance("C2")["C2"]["changes"] == []
+
 
 def test_add_provenance(sample_terminology):
-    initial_provenance_count = len(sample_terminology.get_provenance("C1")["C1"]['changes'])
-    sample_terminology.add_provenance(change_type="added", editor="test_editor", target="C1", new_value="Some new data")
-    assert len(sample_terminology.get_provenance("C1")["C1"]["changes"]) == initial_provenance_count + 1
+    initial_provenance_count = len(
+        sample_terminology.get_provenance("C1")["C1"]["changes"]
+    )
+    sample_terminology.add_provenance(
+        change_type="added",
+        editor="test_editor",
+        target="C1",
+        new_value="Some new data",
+    )
+    assert (
+        len(sample_terminology.get_provenance("C1")["C1"]["changes"])
+        == initial_provenance_count + 1
+    )
+    initial_provenance_count = len(
+        sample_terminology.get_provenance("C1")["C1"]["changes"]
+    )
+    sample_terminology.add_provenance(
+        change_type="added",
+        editor="test_editor",
+        target="C1",
+        new_value="Some new data",
+    )
+    assert (
+        len(sample_terminology.get_provenance("C1")["C1"]["changes"])
+        == initial_provenance_count + 1
+    )
     new_provenance_entry = sample_terminology.get_provenance("C1")["C1"]["changes"][-1]
     assert new_provenance_entry["action"] == "added"
     assert new_provenance_entry["editor"] == "test_editor"

@@ -1,13 +1,17 @@
-import pytest
 import json
-from .test_terminology import ftd_concept_relationships, sample_terminology
-from locutus.model.table import Table 
-from locutus.model.terminology import Terminology
-from locutus.model.global_id import GlobalID
+
+import pytest
+
 from locutus.model.exceptions import InvalidValueError
+from locutus.model.global_id import GlobalID
+from locutus.model.table import Table
+from locutus.model.terminology import Terminology
 from locutus.model.variable import Variable
 
-@pytest.fixture 
+from .test_terminology import ftd_concept_relationships, sample_terminology
+
+
+@pytest.fixture
 def basic_table(sample_terminology):
     table = Table(
         name="FTD Table 01",
@@ -19,34 +23,33 @@ def basic_table(sample_terminology):
                 "name": "String Var",
                 "data_type": "string",
                 "code": "string_var",
-                "description": "String Variable Description"
+                "description": "String Variable Description",
             },
             {
                 "name": "Integer Var",
                 "data_type": "integer",
-                "code":  "integer-var",
-                "description": "Integer Variable Description"
+                "code": "integer-var",
+                "description": "Integer Variable Description",
             },
             {
                 "name": "Enum Var",
                 "data_type": "enumeration",
                 "code": "enum_var",
                 "description": "Enumeration Variable Description",
-                "enumerations": {
-                    "reference": f"Terminology/{sample_terminology.id}"
-                }
-            }
-        ]
+                "enumerations": {"reference": f"Terminology/{sample_terminology.id}"},
+            },
+        ],
     )
     table.save()
-    yield table 
-    table.global_id().delete()
+    yield table
+    # table.global_id().delete()
 
     t = Terminology.get(table.terminology.reference_id())
-    t.global_id().delete()
+    # t.global_id().delete()
     t.delete(hard_delete=True)
 
     table.delete(hard_delete=True)
+
 
 def test_table_basics(sample_terminology):
     table = Table(
@@ -59,24 +62,22 @@ def test_table_basics(sample_terminology):
                 "name": "String Var",
                 "data_type": "string",
                 "code": "string_var",
-                "description": "String Variable Description"
+                "description": "String Variable Description",
             },
             {
                 "name": "Integer Var",
                 "data_type": "integer",
-                "code":  "integer-var",
-                "description": "Integer Variable Description"
+                "code": "integer-var",
+                "description": "Integer Variable Description",
             },
             {
                 "name": "Enum Var",
                 "data_type": "enumeration",
                 "code": "enum_var",
                 "description": "Enumeration Variable Description",
-                "enumerations": {
-                    "reference": f"Terminology/{sample_terminology.id}"
-                }
-            }
-        ]
+                "enumerations": {"reference": f"Terminology/{sample_terminology.id}"},
+            },
+        ],
     )
     table.save()
 
@@ -96,15 +97,15 @@ def test_table_basics(sample_terminology):
     assert enums.codes[1].dereference().code == "C2"
 
     shadow = table.terminology.dereference()
-    shadow_id = shadow.id 
+    shadow_id = shadow.id
 
     assert len(shadow.codes) == 3
     assert shadow.codes[2].dereference().code == "enum_var"
-    
-    t = Table.get(table.id)
-    assert t.id == table.id 
 
-    t.global_id().delete()
+    t = Table.get(table.id)
+    assert t.id == table.id
+
+    # t.global_id().delete()
     t.delete(hard_delete=True)
     t = Table.get(table.id)
 
@@ -113,21 +114,19 @@ def test_table_basics(sample_terminology):
     t = Terminology.get(shadow_id)
     # We are currently not deleting shadow terminologies, since they may have not
     # been created specifically for the table
-    assert t is not None 
-    t.global_id().delete()
+    assert t is not None
+    # t.global_id().delete()
     t.delete(hard_delete=True)
     t = Terminology.get(shadow_id)
     assert t is None
 
 
-
 def test_table_get(basic_table):
     table = Table.get(basic_table.id)
-    assert table.id == basic_table.id 
-    assert table.name == basic_table.name 
+    assert table.id == basic_table.id
+    assert table.name == basic_table.name
     assert len(table.variables) == len(basic_table.variables)
 
     shadow_terminology = table.terminology.dereference()
     assert shadow_terminology.id == table.terminology.reference_id()
     assert len(shadow_terminology.codes) == len(basic_table.variables)
-
