@@ -1,3 +1,4 @@
+import logging
 import pdb
 import time
 from datetime import datetime
@@ -9,7 +10,6 @@ import locutus
 import locutus.model.exceptions
 import locutus.model.lookups
 import locutus.model.provenance
-from locutus import logger
 from locutus.api import (
     delete_collection,
     generate_mapping_index,
@@ -102,11 +102,11 @@ class Terminology(Serializable):
                         code["terminology_id"] = self.id
                         code["system"] = self.url
                         if self.url is None:
-                            logger.debug(
+                            logging.debug(
                                 f"Attempting to assign "
                                 " as system from the following Terminology: "
                             )
-                            logger.debug(
+                            logging.debug(
                                 f"Terminology Name: {self.name}\tTerminology ID: {self.id}"
                             )
                             code["system"] = "-"
@@ -307,7 +307,7 @@ class Terminology(Serializable):
             code_found = True
         else:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
-            logger.error(msg)
+            logging.error(msg)
             raise KeyError(msg)
 
     def rename_code(
@@ -426,7 +426,7 @@ class Terminology(Serializable):
             # coding.save()
 
             if len(old_values["codes"]) == 0:
-                logger.debug(
+                logging.debug(
                     f"Soft deleting mappings for code: {code}, Terminology: {self.name} but there were no mappings."
                 )
 
@@ -658,7 +658,7 @@ class Terminology(Serializable):
             else:
                 message = f"No coding found in {self.name} for code, {code}."
 
-        logger.debug(message)
+        logging.debug(message)
         return message
 
     def get_preferred_terminology(self):
@@ -729,7 +729,7 @@ class Terminology(Serializable):
         self.preferred_terminologies = []
         self.save()
 
-        logger.debug(message)
+        logging.debug(message)
         return message
 
     class _Schema(Schema):

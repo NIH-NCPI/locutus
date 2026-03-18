@@ -1,17 +1,17 @@
-
-from .simple import Simple
-from marshmallow import Schema, fields, post_load
-from pymongo import ASCENDING
-from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
-from locutus.model.exceptions import APIError
+import logging
+import pdb
+from collections import defaultdict
 
 from bson import ObjectId
-from collections import defaultdict 
+from marshmallow import Schema, fields, post_load
+from pymongo import ASCENDING
 
-from locutus import logger
-import pdb
+import locutus
+from locutus.model.exceptions import APIError
+from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
 
-import locutus 
+from .simple import Simple
+
 
 class BasicCoding:
     def __init__(self, code, display, system, description=""):
@@ -63,34 +63,41 @@ class CodingMapping(BasicCoding):
         description="",
         valid=None,
         rank=None,
-        mapping_relationship='',
+        mapping_relationship="",
         user_input=None,
-        ftd_code=None
+        ftd_code=None,
     ):
-        super().__init__(code=code, display=display, system=system, description=description)
+        super().__init__(
+            code=code, display=display, system=system, description=description
+        )
         self.rank = rank
         self.valid = valid
         self.user_input = user_input
-        self.ftd_code = code # Default to given code, updated if necessary. 
+        self.ftd_code = code  # Default to given code, updated if necessary.
 
         if mapping_relationship is not None:
-            FTDConceptMapTerminology().validate_codes_against(mapping_relationship, additional_enums=[""])
+            FTDConceptMapTerminology().validate_codes_against(
+                mapping_relationship, additional_enums=[""]
+            )
         self.mapping_relationship = mapping_relationship
 
     class _Schema(Schema):
         code = fields.Str(
-            required=True, error_messages={"required": "CodingMappings *must* have a code "}
+            required=True,
+            error_messages={"required": "CodingMappings *must* have a code "},
         )
         display = fields.Str()
         system = fields.URL(
-            required=True, error_messages={"required": "CodingMappings *must* have a system "}
+            required=True,
+            error_messages={"required": "CodingMappings *must* have a system "},
         )
         description = fields.Str()
         valid = fields.Bool()
         mapping_relationship = fields.Str()
         user_input = fields.Dict(keys=fields.Str(), values=fields.Raw())
-        ftd_code = fields.Str( 
-            required=True, error_messages={"required": "CodingMappings *must* have a ftd_code "}
+        ftd_code = fields.Str(
+            required=True,
+            error_messages={"required": "CodingMappings *must* have a ftd_code "},
         )
 
         @post_load
@@ -108,7 +115,9 @@ class CodingMapping(BasicCoding):
             self.valid = True
 
         # Formatted version of a code for MD to display.
-        formatted = locutus.format_ftd_code(self.ftd_code, FTDOntologyLookup.get_mapped_curie(self.system))
+        formatted = locutus.format_ftd_code(
+            self.ftd_code, FTDOntologyLookup.get_mapped_curie(self.system)
+        )
         self.ftd_code = formatted
         obj["ftd_code"] = self.ftd_code
 
@@ -121,61 +130,71 @@ class CodingMapping(BasicCoding):
         # Returns the user_input for a mapping if requested
         if self.user_input is not None:
             obj["user_input"] = self.user_input
-        
+
         return obj
 
 
 class Coding(Simple, BasicCoding):
-    def __init__(self, 
-                    terminology_id, 
-                    code, 
-                    display="", 
-                    system=None, 
-                    description="", 
-                    rank=0, 
-                    valid=True, 
-                    id=None, 
-                    resource_type=None, 
-                    editor=None, 
-                    _id=None, 
-                    mappings=[],
-                    api_preferences=None):
+    def __init__(
+        self,
+        terminology_id,
+        code,
+        display="",
+        system=None,
+        description="",
+        rank=0,
+        valid=True,
+        id=None,
+        resource_type=None,
+        editor=None,
+        _id=None,
+        mappings=[],
+        api_preferences=None,
+    ):
         if not isinstance(terminology_id, str) or not terminology_id.strip():
             raise ValueError("Term ID is required for all Codings.")
         if not isinstance(code, str) or not code.strip():
             raise ValueError("Code is a required string and cannot be empty.")
         if not isinstance(system, str) or not system.strip():
-            logger.error(f"Coding instantiated without a system")
-            logger.error(f"{terminology_id}/{_id}:{code} - {system} ")
+            logging.error(f"Coding instantiated without a system")
+            logging.error(f"{terminology_id}/{_id}:{code} - {system} ")
             raise ValueError("System is a required string and cannot be empty.")
 
-
         if _id is None:
-            prev = self.__class__.get(_id=_id, terminology_id=terminology_id, code=code, system=system, return_instance=False)
+            prev = self.__class__.get(
+                _id=_id,
+                terminology_id=terminology_id,
+                code=code,
+                system=system,
+                return_instance=False,
+            )
             if type(prev) is dict:
-                _id = prev['_id']
+                _id = prev["_id"]
 
                 if id is None:
-                    id = prev['id']
+                    id = prev["id"]
                 if mappings == []:
-                    mappings = prev['mappings']
+                    mappings = prev["mappings"]
                 if api_preferences is None:
-                    api_preferences = prev['api_preferences']
+                    api_preferences = prev["api_preferences"]
             elif type(prev) is list and len(prev) > 0:
-                raise APIError(f"FAIL: {len(prev)} codes for '{code}' in terminology_id: {terminology_id}")
+                raise APIError(
+                    f"FAIL: {len(prev)} codes for '{code}' in terminology_id: {terminology_id}"
+                )
 
-        Simple.__init__(self, id=id,
-                         _id=_id, 
-                         collection_type="Coding", 
-                         resource_type="Coding")
+        Simple.__init__(
+            self, id=id, _id=_id, collection_type="Coding", resource_type="Coding"
+        )
 
         code = locutus.normalize_ftd_placeholders(code)
-        
-        BasicCoding.__init__(self, code=code, system=system, display=display, description=description)
+
+        BasicCoding.__init__(
+            self, code=code, system=system, display=display, description=description
+        )
         if editor is not None:
             self.save()
 
-        self.terminology_id = terminology_id.strip() 
+        self.terminology_id = terminology_id.strip()
         self.rank = rank
         self.valid = valid
 
@@ -195,26 +214,38 @@ class Coding(Simple, BasicCoding):
             self.api_preferences = OntoApiPreference(api_preferences)
         """
 
-    @classmethod 
-    def get(cls, _id=None, terminology_id=None, code=None, system=None, valid_only=True, return_instance=True):
+    @classmethod
+    def get(
+        cls,
+        _id=None,
+        terminology_id=None,
+        code=None,
+        system=None,
+        valid_only=True,
+        return_instance=True,
+    ):
         if _id is not None:
             return Coding.find({"_id": ObjectId(_id)}, sorting="rank")[0]
 
-        if (not isinstance(terminology_id, str) or not terminology_id.strip()) and (not isinstance(system, str) or not system.strip()):
-            raise ValueError("Terminology ID or system is required to get a coding without an _id.")
-        
+        if (not isinstance(terminology_id, str) or not terminology_id.strip()) and (
+            not isinstance(system, str) or not system.strip()
+        ):
+            raise ValueError(
+                "Terminology ID or system is required to get a coding without an _id."
+            )
+
         params = {}
         if isinstance(code, str) and code.strip():
-            params["code"] = code 
-        
+            params["code"] = code
+
         if isinstance(terminology_id, str) and terminology_id.strip():
             params["terminology_id"] = terminology_id.strip()
-        
+
         if isinstance(system, str) and system.strip():
             params["system"] = system.strip()
 
         if valid_only:
-            params['valid'] = True
+            params["valid"] = True
 
         codings = Coding.find(params, sorting="rank", return_instance=return_instance)
         if len(codings) == 1:
@@ -234,16 +265,16 @@ class Coding(Simple, BasicCoding):
         valid = fields.Bool()
         rank = fields.Integer()
         mappings = fields.List(fields.Nested(CodingMapping._Schema))
-        api_preferences = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
+        api_preferences = fields.Dict(
+            keys=fields.Str(), values=fields.List(fields.Str())
+        )
+
         @post_load
         def build_coding(self, data, **kwargs):
             return Coding(**data)
 
     def get_api_preferences(self):
-        return {
-            "api_preference":  self.api_preferences
-        }
-
+        return {"api_preference": self.api_preferences}
 
     def add_api_preferences(self, api, preferences):
         if len(preferences) > 0:
@@ -257,7 +288,7 @@ class Coding(Simple, BasicCoding):
         obj = BasicCoding.to_dict(self)
 
         if show_valid and self.valid is not None:
-            obj['valid'] = self.valid 
+            obj["valid"] = self.valid
 
         return obj
 
@@ -265,15 +296,15 @@ class Coding(Simple, BasicCoding):
     def index_list(cls):
         "For codings, we must have either a terminology or system and the code"
         return [
-            [("terminology_id", 1), ("code", 1), ('rank', 1), ("valid", 1)],
-            [("terminology_id", 1), ('rank', 1), ("valid", 1)],
-            [("system", 1), ("code", 1), ('rank', 1), ("valid", 1)],
-            [("system", 1), ('rank', 1), ("valid", 1)]
+            [("terminology_id", 1), ("code", 1), ("rank", 1), ("valid", 1)],
+            [("terminology_id", 1), ("rank", 1), ("valid", 1)],
+            [("system", 1), ("code", 1), ("rank", 1), ("valid", 1)],
+            [("system", 1), ("rank", 1), ("valid", 1)],
         ]
 
     def delete(self, hard_delete=True):
         if not hard_delete:
-            self.valid =False 
+            self.valid = False
             self.save()
             t = self.to_dict()
         else:
@@ -288,18 +319,18 @@ class Coding(Simple, BasicCoding):
         )
 
         for mapping in self.mappings:
-            if mapping['code'] == mapped_code:
-                mapping.mapping_relationship = mapping_relationship 
+            if mapping["code"] == mapped_code:
+                mapping.mapping_relationship = mapping_relationship
                 self.save()
 
                 Provenance.add_mapping_provenance(
                     temrinology_id=self.terminology_id,
-                    target_coding=self.code, 
+                    target_coding=self.code,
                     editor=editor,
                     action=Provenance.ChangeType.EditMapping,
-                    new_value=mapping_relationship
+                    new_value=mapping_relationship,
                 )
-                return True 
+                return True
         raise ValueError(
             f"Mapping '{self.code}' | '{mapped_code}' not found in document '{id}'."
         )
@@ -312,25 +343,26 @@ class Coding(Simple, BasicCoding):
         self.mappings = []
 
         # Validation of mapping_relationship
-        ftd_terminology = FTDConceptMapTerminology()  
+        ftd_terminology = FTDConceptMapTerminology()
 
         for mapping in codings:
             if type(mapping) is dict:
                 mapping = CodingMapping(**mapping)
 
-            mapping.valid = True 
-            ftd_terminology.validate_codes_against(mapping.mapping_relationship, additional_enums=[''])
+            mapping.valid = True
+            ftd_terminology.validate_codes_against(
+                mapping.mapping_relationship, additional_enums=[""]
+            )
             mapped_codes.append(mapping.code)
             self.mappings.append(mapping)
 
-        return mapped_codes 
-            
+        return mapped_codes
 
     def delete_mappings(self):
         codes = []
         for mapping in self.mappings:
             codes.append(mapping.to_dict())
-            mapping.valid=False
+            mapping.valid = False
 
         self.mappings = []
         self.save()
