@@ -38,7 +38,13 @@ dependencies = ["marshmallow",
 dev = [
     "rich",
     "pytest",
-    "pytest-env"
+    "pytest-env",
+    "pytest-ordering"
+]
+test = [
+    "pytest",
+    "pytest-env",
+    "pytest-ordering"
 ]
 cloud = [
     "python-json-logger", # Only installed when explicitly requested
