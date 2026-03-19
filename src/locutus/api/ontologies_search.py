@@ -1,11 +1,13 @@
-from flask_restful import Resource
-from flask import request
-from locutus import logger
-from locutus.api import default_headers
-from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
-from locutus.model.exceptions import *
-from bson import json_util 
 import json
+import logging
+
+from bson import json_util
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers
+from locutus.model.exceptions import *
+from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 
 
 class OntologyAPIs(Resource):
@@ -13,10 +15,10 @@ class OntologyAPIs(Resource):
         """
         Retrieve details of all OntologyAPIs or a specific OntologyAPI by ID.
         Args:
-            api_id (str): Unique identifier for a specific API. If None, 
+            api_id (str): Unique identifier for a specific API. If None,
             returns all APIs.
         Returns:
-            list: A dictionary representing a specific API if `api_id` is provided, 
+            list: A dictionary representing a specific API if `api_id` is provided,
             or a list of dictionaries representing all APIs if `api_id` is None.
         """
         if api_id is None:
@@ -28,10 +30,12 @@ class OntologyAPIs(Resource):
                 return {"error": "Ontology API not found"}, 404
             return json.loads(json_util.dumps(result)), 200
 
+
 class OntologyAPISearch(Resource):
     """
     Runs the generic search
     """
+
     def get(self):
 
         try:
@@ -44,17 +48,17 @@ class OntologyAPISearch(Resource):
                 ontology_param = [onto.strip() for onto in ontology_param.split(",")]
             if ontology_param is None:
                 raise LackingRequiredParameter("selected_ontologies")
-            
+
             pref_api = request.args.get("selected_api", default=None)
             if pref_api:
                 pref_api = [api.strip() for api in pref_api.split(",")]
             if pref_api is None:
                 raise LackingRequiredParameter("selected_api")
-            
+
             results_n_param = request.args.get("results_per_page", default=None)
             if results_n_param is None:
                 raise LackingRequiredParameter("results_per_page")
-            
+
             start_param = request.args.get("start_index", default=None)
             if start_param is None:
                 raise LackingRequiredParameter("start")
@@ -63,9 +67,17 @@ class OntologyAPISearch(Resource):
                 keyword_param, ontology_param, pref_api, results_n_param, start_param
             )
             return (search_results, 200, default_headers)
-        
+
         except ValueError as e:
-            return {f"error {keyword_param, ontology_param, pref_api, results_n_param, start_param}": str(e)}, 400, default_headers
-        
+            return (
+                {
+                    f"error {keyword_param, ontology_param, pref_api, results_n_param, start_param}": str(
+                        e
+                    )
+                },
+                400,
+                default_headers,
+            )
+
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
