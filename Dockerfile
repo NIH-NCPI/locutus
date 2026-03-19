@@ -7,21 +7,21 @@ ENV FLASK_RUN_HOST=0.0.0.0
 #ENV PORT=8080
 COPY src  ./src
 COPY .git ./.git
-COPY pyproject.toml . 
+COPY pyproject.toml .
 COPY README.md .
 RUN apk update && \
     apk add --no-cache git && \
-    pip install . 
+    pip install ".[cloud]"
 
-# Install github packages that do not conform to the toml file 
+# Install github packages that do not conform to the toml file
 COPY requirements.txt .
 # install git to enable installing the github package in the requirements
-# file then uninstall it as it is no longer necessary 
+# file then uninstall it as it is no longer necessary
 RUN apk del git
 
 # ENV FLASK_RUN_PORT=8080
 # Cloud Run expects 8080, need to figure out how to change that
 ENV LISTEN_PORT 8080
 # Cloud Run expects 8080, need to figure out how to change that
-EXPOSE 8080 
-CMD ["flask", "run", "--host=0.0.0", "--port=8080"] 
+EXPOSE 8080
+CMD ["flask", "run", "--host=0.0.0", "--port=8080"]

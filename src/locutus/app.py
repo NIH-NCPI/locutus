@@ -1,71 +1,75 @@
-from flask import Flask, request, render_template, url_for, send_from_directory
+import logging
+import os
+import uuid
 
+from flask import Flask, g, render_template, request, send_from_directory, url_for
 from flask_cors import CORS, cross_origin
-from flask_restful import Resource, Api
+from flask_restful import Api, Resource
 
-from locutus.api.terminology import (
-    Terminology,
-    Terminologies,
-    TerminologyRenameCode,
-    TerminologyEdit,
+from locutus import setup_logging
+from locutus.api.combined_harmony import CombinedHarmony
+from locutus.api.datadictionary import (
+    DataDictionaries,
+    DataDictionary,
+    DataDictionaryHarmony,
+    DataDictionaryTable,
+)
+from locutus.api.metadata import Version
+from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
+from locutus.api.preferences_table import (
+    TableOntologyAPISearchPreferences,
+    TablePreferredTerminology,
 )
 from locutus.api.preferences_term import (
     OntologyAPISearchPreferences,
     PreferredTerminology,
 )
-from locutus.api.terminology_mapping import TerminologyMapping, MappingRelationship
-from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.api.table import (
-    Table,
-    Tables,
-    HarmonyTableCSV,
-    TableEdit,
-    TableRenameCode,
-)
-from locutus.api.preferences_table import (
-    TableOntologyAPISearchPreferences,
-    TablePreferredTerminology,
-)
-from locutus.api.table_mappings import TableMappings, TableMapping
-from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.provenance import (
     TableProvenance,
     TableVarProvenance,
-    TerminologyProvenance,
     TerminologyCodeProvenance,
+    TerminologyProvenance,
 )
-from locutus.api.study import Study, Studies, StudyEdit, StudyHarmony
-from locutus.api.datadictionary import (
-    DataDictionary,
-    DataDictionaries,
-    DataDictionaryTable,
-    DataDictionaryHarmony
+from locutus.api.sessions import SessionStart, SessionStatus, SessionTerminate
+from locutus.api.sideload import SideLoad
+from locutus.api.study import Studies, Study, StudyEdit, StudyHarmony
+from locutus.api.table import (
+    HarmonyTableCSV,
+    Table,
+    TableEdit,
+    TableRenameCode,
+    Tables,
 )
-from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
-from locutus.api.sessions import SessionStart, SessionTerminate, SessionStatus
-
+from locutus.api.table_load import TableLoader, TableLoader2
+from locutus.api.table_mappings import TableMapping, TableMappings
+from locutus.api.terminology import (
+    Terminologies,
+    Terminology,
+    TerminologyEdit,
+    TerminologyRenameCode,
+)
+from locutus.api.terminology_mapping import MappingRelationship, TerminologyMapping
+from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.api.user_input import TableUserInput, TerminologyUserInput
+from locutus.api.user_prefs import UserPrefOntoFilters
+from locutus.model.lookups import FTDOntologyLookup
 from locutus.sessions import SessionManager
 
-from locutus.api.user_input import TerminologyUserInput, TableUserInput
-
-from locutus.api.metadata import Version
-
-from locutus.api.user_prefs import UserPrefOntoFilters
-
-from locutus.model.lookups import FTDOntologyLookup
-
-from locutus.api.combined_harmony import CombinedHarmony
-
-from locutus.api.sideload import SideLoad 
 
 def create_app(config_filename=None):
-    app = Flask(__name__, static_folder='static', static_url_path='')
+    llevel = os.getenv("LOCUTUS_LOGLEVEL", logging.WARN)
+
+    setup_logging(level=llevel, log_file=None)
+
+    app = Flask(__name__, static_folder="static", static_url_path="")
     app.url_map.strict_slashes = False  # allow trailing slashes(code/'../')
 
+    from .middleware import add_request_id_header, set_request_id
+
+    app.before_request(set_request_id)
+    app.after_request(add_request_id_header)
     CORS(app)
     api = Api(app)
-
-
 
     # Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
     FTDOntologyLookup.fetch_and_store_csv()
@@ -73,7 +77,7 @@ def create_app(config_filename=None):
     # Sessions
     session_manager = SessionManager(app)
 
-    api.add_resource(OntologyAPISearch,"/api/ontology_search")
+    api.add_resource(OntologyAPISearch, "/api/ontology_search")
 
     # GET app version
     api.add_resource(Version, "/api/version")
@@ -177,10 +181,11 @@ def create_app(config_filename=None):
         TablePreferredTerminology, "/api/Table/<string:id>/preferred_terminology"
     )
     api.add_resource(
-        TableUserInput, "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:input_type>"
+        TableUserInput,
+        "/api/Table/<string:id>/user_input/<path:code>/mapping/<path:mapped_code>/<string:input_type>",
     )
 
-    # POST 
+    # POST
     api.add_resource(SideLoad, "/api/SideLoad")
 
     # POST
@@ -217,20 +222,19 @@ def create_app(config_filename=None):
         OntologyAPIs, "/api/OntologyAPI/<string:api_id>", endpoint="ontology_by_id"
     )
 
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
     def serve_static(path):
         if path.startswith("api/"):
             return "404 Not Found", 404
         else:
-            return send_from_directory(app.static_folder, 'index.html')
-
+            return send_from_directory(app.static_folder, "index.html")
 
     @app.errorhandler(404)
     @cross_origin(allow_headers=["Content-Type"])
     def not_found(e):
-        if e.get_response().status == '404 NOT FOUND':
-            return send_from_directory(app.static_folder, 'index.html')
+        if e.get_response().status == "404 NOT FOUND":
+            return send_from_directory(app.static_folder, "index.html")
 
         return (
             {
@@ -240,6 +244,7 @@ def create_app(config_filename=None):
         )
 
     return app
+
 
 if __name__ == "__main__":
     app = create_app()

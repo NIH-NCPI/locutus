@@ -1,13 +1,15 @@
-import locutus
-import locutus.model.terminology 
-from locutus.model.validation import validate_enums
-from locutus import logger
-import requests
+import csv
+import logging
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import requests
 from search_dragon.support import ftd_ontology_lookup
-import os
-import csv
+
+import locutus
+import locutus.model.terminology
+from locutus.model.validation import validate_enums
 
 
 class ResourceSingletonBase:
@@ -38,10 +40,14 @@ class ResourceSingletonBase:
                 instance._cached_resource = [doc.to_dict() for doc in instance.termref]
             else:
                 # Cache a single document
-                instance._cached_resource = locutus.model.terminology.Terminology.get(resource_name, return_instance=True)
+                instance._cached_resource = locutus.model.terminology.Terminology.get(
+                    resource_name, return_instance=True
+                )
 
                 if instance._cached_resource is not None:
-                    instance._cached_resource = instance._cached_resource.realize_as_dict()
+                    instance._cached_resource = (
+                        instance._cached_resource.realize_as_dict()
+                    )
 
         return cls._instances[(resource_name, is_collection)]
 
@@ -105,12 +111,11 @@ class OntologyAPICollection(ResourceSingletonBase):
             ontologies = ontology_object.get("ontologies", {})
 
             for ontology_code, ontology_details in ontologies.items():
-
                 # Check if the requested field exists in the details
                 if field in ontology_details:
                     ontology_data[ontology_code.upper()] = ontology_details[field]
 
-        logger.debug(f"ontology data {ontology_data}")
+        logging.debug(f"ontology data {ontology_data}")
         return ontology_data
 
     def get_ontology_keys(self):
@@ -136,7 +141,9 @@ class FTDOntologyLookup:
 
     _csv_url = "https://raw.githubusercontent.com/NIH-NCPI/locutus_utilities/main/data/input/ontology_data/locutus_system_map.csv"
     _local_csv_path = "locutus/storage/data/references/ftd_ontology_lookup.csv"
-    abs_path = Path(__file__).parent / "../storage/data/references/ftd_ontology_lookup.csv"
+    abs_path = (
+        Path(__file__).parent / "../storage/data/references/ftd_ontology_lookup.csv"
+    )
     _expiration_days = 90
     stored_ontology_lookup = {}
     reverse_lookup = {}
@@ -156,11 +163,11 @@ class FTDOntologyLookup:
         """
         Load the data from the CSV file into memory.
         This is called after the CSV is fetched or if it exists locally.
-    
+
         """
-        if cls.stored_ontology_lookup: 
+        if cls.stored_ontology_lookup:
             return
-        
+
         for curie, system in ftd_ontology_lookup().items():
             if curie and system:
                 cls.stored_ontology_lookup[curie] = system
@@ -168,16 +175,16 @@ class FTDOntologyLookup:
                 if system not in cls.reverse_lookup:
                     cls.reverse_lookup[system] = curie
 
-        logger.debug("Ontology data loaded into memory.")
+        logging.debug("Ontology data loaded into memory.")
 
     @classmethod
     def fetch_and_store_csv(cls):
         """
         Fetch the CSV from GitHub if expired or missing, then store it locally and load into memory.
 
-        EST 2025-07-30 - I've moved the this into the search dragon library. 
+        EST 2025-07-30 - I've moved the this into the search dragon library.
         """
-        
+
         # Now load the data into memory after the file is fetched or if it exists
         cls.load_data_to_memory()
 
@@ -199,5 +206,5 @@ class FTDOntologyLookup:
         for curie, system in ftd_ontology_lookup().items():
             if system == system_url:
                 return curie
-        
-        return ''
+
+        return ""

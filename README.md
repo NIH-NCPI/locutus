@@ -4,6 +4,23 @@ Locutus provides the backend for a web based terminology mapping tool in the ver
 
 There isn't much here at this time, but there are some example data based on a real research data-dictionary along with standard CRUD functionality.
 
+## New! Pip install notes
+With recent changes, I've added some optional dependencies that allow you to specify how you want locutus installed. When installing to "the cloud", you should use the following pip install command:
+
+```bash
+pip install ".[cloud]"
+```
+This will pick up the optional dependencies for cloud execution, which is currently set to adding the python-json-logger package along with the regular ones. 
+
+For local development, use the following is recommended:
+
+```bash
+pip install ".[dev]"
+```
+Similarly, this will pick up the "dev" specific dependencies, which include pytest and rich. 
+
+There is a third group that we can use inside our CI when we add testing as part of the CI flows, test. 
+
 ## New! Log Level Environment Variable
 By default, the log level is warnings only, however, you can set it to any of the standard python log levels, INFO, DEBUG, etc using the environment variablele, LOCUTUS_LOGLEVEL
 
