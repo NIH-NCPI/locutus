@@ -10,6 +10,10 @@ scratch
 mapdragon-unified-creds.json
 locutus
 src/locutus/_version.py
+locutus-old-version
+md-static
+uv.lock
+run-local
 
 # Python env
 py3x
