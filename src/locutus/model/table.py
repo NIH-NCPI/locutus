@@ -102,9 +102,9 @@ class Table(Serializable):
 
             logging.info(f"Instantiating new terminology {terminology}")
             t = Terminology(**terminology)
-            logging.info(f"Saving...", end="")
+            logging.info(f"Saving Table {name}")
             t.save()
-            logging.info("Saved!")
+            logging.info("Saved Completed")
             print(
                 f"Creating Shadow Terminology for table: {self.name} -- Terminology ID: {t.id}"
             )
