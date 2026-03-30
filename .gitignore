@@ -9,7 +9,7 @@ activate
 scratch
 mapdragon-unified-creds.json
 locutus
-
+src/locutus/_version.py
 
 # Python env
 py3x
