@@ -1,35 +1,38 @@
-from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus.model.terminology import Terminology
+
+import locutus
 from locutus.model.reference import Reference
-import locutus 
+from locutus.model.terminology import Terminology
 from locutus.model.terminology import Terminology as Term
+
+from . import Serializable
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
-it has no id property. 
+it has no id property.
 
 Name:
-The name property is whatever the column name is defined to be. For now, 
+The name property is whatever the column name is defined to be. For now,
 we are assuming this can be whatever the researcher has chosen and can
-contain spaces, capitals etc. 
+contain spaces, capitals etc.
 
 Description:
-This is the descriptive text that often appears inside the data-dictionary 
+This is the descriptive text that often appears inside the data-dictionary
 and can be long enough to convey whatever is needed for a person using the
-data must know in order to properly use it. 
+data must know in order to properly use it.
 
 Data Type:
 This enumeration is necessary in order for the system to properly identify
-the type of variable that is being represented/validated/etc. 
+the type of variable that is being represented/validated/etc.
 
 """
 
-from enum import Enum
 import typing
-from datetime import datetime
-from marshmallow.exceptions import ValidationError
 from copy import deepcopy
+from datetime import datetime
+from enum import Enum
+
+from marshmallow.exceptions import ValidationError
 
 
 class InvalidVariableDefinition(Exception):
@@ -92,7 +95,7 @@ class Variable:
         # print(cls._factory_workers)
         vardata = deepcopy(data)
         del vardata["data_type"]
-        
+
         try:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
         except:
@@ -139,7 +142,7 @@ class EnumerationVariable(Variable):
 
     def get_terminology(self):
         return Terminology.get(self.enumerations.reference_id(), return_instance=True)
-        
+
     class _Schema(Schema):
         name = fields.Str(required=True)
         code = fields.Str()
@@ -232,7 +235,7 @@ class QuantityVariable(Variable):
 
 class IntegerVariable(Variable):
     data_type = Variable.DataType.INTEGER
-    _validation_helper = fields.Number()
+    _validation_helper = fields.Integer()
 
     def __init__(
         self, code="", name="", description=None, min=None, max=None, units=None
