@@ -1,9 +1,12 @@
-from . import Serializable
 from marshmallow import Schema, fields, post_load
-from locutus import persistence
 from search_dragon.search import run_search
-from locutus.model.lookups import OntologyAPICollection
+
+from locutus import persistence
 from locutus.model.exceptions import InvalidValueError
+from locutus.model.lookups import OntologyAPICollection
+
+from . import Serializable
+
 
 class Ontology:
     """
@@ -26,7 +29,8 @@ class Ontology:
     class _Schema(Schema):
         """
         Marshmallow schema for serializing and deserializing Ontologies instances.
-        """        
+        """
+
         ontology_code = fields.Str()
         ontology_title = fields.Str()
         system = fields.Str()
@@ -43,6 +47,7 @@ class Ontology:
                 Ontology: An instance of the Ontology class.
             """
             return Ontology(**data)
+
 
 class OntologyAPI(Serializable):
     """
@@ -61,7 +66,9 @@ class OntologyAPI(Serializable):
         api_name=None,
         resource_type="OntologyAPI",
     ):
-        super().__init__(id=api_id, collection_type="OntologyAPI", resource_type=resource_type)
+        super().__init__(
+            id=api_id, collection_type="OntologyAPI", resource_type=resource_type
+        )
         self.api_id = api_id
         self.api_url = api_url
         self.api_name = api_name
@@ -71,6 +78,7 @@ class OntologyAPI(Serializable):
         """
         Marshmallow schema for serializing and deserializing OntologyAPI instances.
         """
+
         api_id = fields.Str()
         api_url = fields.Str()
         api_name = fields.Str()
@@ -92,10 +100,10 @@ class OntologyAPI(Serializable):
         """
         Retrieve details of all OntologyAPIs or a specific OntologyAPI by ID.
         Args:
-            api_id (str): Unique identifier for a specific API. If None, 
+            api_id (str): Unique identifier for a specific API. If None,
             returns all APIs.
         Returns:
-            processed_data: A list with a specific API if `api_id` is provided, 
+            processed_data: A list with a specific API if `api_id` is provided,
             or a list of dictionaries representing each API if `api_id` is None.
         """
         if api_id:
@@ -106,19 +114,23 @@ class OntologyAPI(Serializable):
         else:
             processed_data = cls.get(return_instance=False)
             return processed_data
-        
-class OntologyAPISearchModel():
 
+
+class OntologyAPISearchModel:
     def run_search_dragon(keywords, ontologies, apis, results_per_page, start_index):
         onto_seed_data = OntologyAPICollection()
         onto_data = onto_seed_data.get_ontology_data("system")
 
         # Validate ontologies(FE provided) against expected ontologies(firestore)
         onto_curies = onto_seed_data.get_ontology_data("curie")
-        valid_curies = onto_curies.values()
+        valid_curies = set([curie.upper() for curie in onto_curies.values()])
         for onto in ontologies:
-            if onto not in valid_curies:
-                raise InvalidValueError(value=f"{onto}",valid_values=valid_curies)
+            if onto.upper() not in valid_curies:
+                raise InvalidValueError(
+                    value=f"{onto}", valid_values=onto_curies.values()
+                )
 
-        search_result = run_search(onto_data, keywords, ontologies, apis, results_per_page, start_index)
+        search_result = run_search(
+            onto_data, keywords, ontologies, apis, results_per_page, start_index
+        )
         return search_result
