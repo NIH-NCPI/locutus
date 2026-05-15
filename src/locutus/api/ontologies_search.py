@@ -63,9 +63,16 @@ class OntologyAPISearch(Resource):
             if start_param is None:
                 raise LackingRequiredParameter("start")
 
-            search_results = OntologyAPISearchModel.run_search_dragon(
-                keyword_param, ontology_param, pref_api, results_n_param, start_param
-            )
+            try:
+                search_results = OntologyAPISearchModel.run_search_dragon(
+                    keyword_param,
+                    ontology_param,
+                    pref_api,
+                    results_n_param,
+                    start_param,
+                )
+            except ValueError as e:
+                return ({"message_to_user": str(e)}, 400, default_headers)
             return (search_results, 200, default_headers)
 
         except ValueError as e:
