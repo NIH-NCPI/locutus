@@ -98,6 +98,8 @@ class Variable:
 
         try:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
+        except ValueError:
+            raise
         except:
             print(data)
             print("ERROR: An issue was encountered with the following data")
@@ -132,7 +134,17 @@ class EnumerationVariable(Variable):
     def __init__(self, code="", name="", description=None, enumerations=None):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.ENUMERATION
-        self.enumerations = Reference(reference=enumerations["reference"])
+
+        # We really expect a valid reference to a terminology here,
+        # but if it comes in as None, we have to be careful.
+        enums = enumerations
+        if enums:
+            enums = enumerations.get("reference")
+        else:
+            raise ValueError(
+                f"{self.name}, {self.data_type} must be defined with a proper list of enumerations."
+            )
+        self.enumerations = Reference(reference=enums)
 
     def get_mappings(self):
         t = self.get_terminology()
@@ -154,7 +166,7 @@ class EnumerationVariable(Variable):
 class BooleanVariable(Variable):
     data_type = Variable.DataType.BOOLEAN
 
-    def __init__(self, name="", description=None):
+    def __init__(self, code="", name="", description=None):
         super().__init__(name, description)
         self.data_type = Variable.DataType.BOOLEAN
 
@@ -173,7 +185,10 @@ class DateVariable(Variable):
     ):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.DATE
-        self.date = datetime.strptime(date, format)
+        if date:
+            self.date = datetime.strptime(date, format)
+        else:
+            self.date = None
         self.format = format
 
     class _Schema(Schema):
@@ -198,7 +213,10 @@ class DateTimeVariable(Variable):
     ):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.DATETIME
-        self.datetime = strptime(datetime, format)
+        if datetime:
+            self.datetime = datetime.strptime(datetime, format)
+        else:
+            self.datetime = None
         self.format = format
 
     class _Schema(Schema):
