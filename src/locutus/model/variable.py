@@ -1,3 +1,5 @@
+import logging
+
 from marshmallow import Schema, fields, post_load
 
 import locutus
@@ -101,8 +103,8 @@ class Variable:
         except ValueError:
             raise
         except:
-            print(data)
-            print("ERROR: An issue was encountered with the following data")
+            logging.error(data)
+            logging.error("ERROR: An issue was encountered with the following data")
             raise InvalidVariableDefinition(data["name"], data)
 
     @classmethod
