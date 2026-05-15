@@ -1,20 +1,26 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.table import Table as mTable
-from locutus.model.terminology import Terminology as Term
-from locutus.model.provenance import Provenance
-from locutus.api import default_headers, get_editor
-from locutus.model.variable import Variable, InvalidVariableDefinition
+import json
 
 import rich
+from bson import json_util
+from flask import request
+from flask_restful import Resource
 
-from bson import json_util 
-import json
+from locutus.api import default_headers, get_editor
+from locutus.model.provenance import Provenance
+from locutus.model.table import Table as mTable
+from locutus.model.terminology import Terminology as Term
+from locutus.model.variable import InvalidVariableDefinition, Variable
 
 # Eventually, these should either live in the dataset or in a top level table
 # so that the user can edit them. But, for now, we'll just maintain a static
 # set of variable representations for data type.
-_data_types = {"int": "integer", "number": "quantity", "numeric": "quantity"}
+_data_types = {
+    "int": "integer",
+    "bool": "boolean",
+    "number": "quantity",
+    "float": "quantity",
+    "numeric": "quantity",
+}
 
 
 def get_data_type(data_type):
@@ -147,6 +153,12 @@ class TableLoader(Resource):
                 # maybe do try except here to catch errors
                 try:
                     tbl.add_variable(var)
+                except ValueError as e:
+                    return (
+                        {"message_to_user": str(e), "data": var},
+                        400,
+                        default_headers,
+                    )
                 except InvalidVariableDefinition as e:
                     return (
                         {"message_to_user": e.message(), "data": e.variable},
