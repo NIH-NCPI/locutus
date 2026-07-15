@@ -169,7 +169,7 @@ class BooleanVariable(Variable):
     data_type = Variable.DataType.BOOLEAN
 
     def __init__(self, code="", name="", description=None):
-        super().__init__(name, description)
+        super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.BOOLEAN
 
     class _Schema(Schema):
