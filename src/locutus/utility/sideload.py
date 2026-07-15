@@ -90,7 +90,10 @@ def SetMappings(mapping_entries):
             if source_variable == source_enumeration:
                 var = _cur_table.get_variable(source_variable)
 
-                source_enumeration = var.code
+                try:
+                    source_enumeration = var.code
+                except:
+                    logging.error(f"{_cur_table.id} has no variable, {source_variable}")
 
             key = f"{term.id}-{source_enumeration}"
             if key not in mappings:
@@ -105,7 +108,7 @@ def SetMappings(mapping_entries):
                     "code": row["code"],
                     "display": row["display"],
                     "system": row["system"],
-                    "mapping_relationship": row["mapping_relationship"],
+                    "mapping_relationship": row.get("mapping_relationship"),
                 }
             )
 
@@ -150,6 +153,7 @@ def exec():
     sideload_csv(args.file)
 
     sideload_csv(args.file)
+
 
 if __name__ == "__main__":
     exec()
