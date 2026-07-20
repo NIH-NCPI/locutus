@@ -13,6 +13,7 @@ authors = [
 ]
 description = "Research terminology management system."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.13"
 dynamic = ["version"]
 keywords = ["Vocabulary", "Research Data", "Borg"]

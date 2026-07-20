@@ -1,0 +1,41 @@
+name: "Test"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: "ubuntu-latest"
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      MONGO_URI: "mongodb://localhost:27017/test"
+      LOCUTUS_DB_TYPE: "mongodb"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v4"
+
+      - name: "Set up Python"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.13"
+
+      - name: "Install dependencies"
+        run: pip install ".[test]"
+
+      - name: "Run tests"
+        run: pytest -v
