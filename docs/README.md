@@ -1,55 +1,8 @@
-# Locutus
+# Locutus API Reference
 
-Locutus provides the backend for a web based terminology mapping tool in the very early stages of development. The goal of the application is to provide a collaborative environment to harmonize dataset terms with public ontologies such as MeSH, HPO and others.
+Locutus provides the backend for a web based terminology mapping tool. The goal of the application is to provide a collaborative environment to harmonize dataset terms with public ontologies such as MeSH, HPO and others.
 
-There isn't much here at this time, but there are some example data based on a real research data-dictionary along with standard CRUD functionality.
-
-## New! Log Level Environment Variable
-By default, the log level is warnings only, however, you can set it to any of the standard python log levels, INFO, DEBUG, etc using the environment variablele, LOCUTUS_LOGLEVEL
-
-## Unit tests
-For developers who wish to run tests, unit tests are written using the PyTest library. To run the tests, simply run the following commands from within the locutus repo directory. It is important that your system is set up with the necessary environment settings to connect to the database, etc. 
-
-
-```bash
-$ pytest
-```
-
-If you wish to run a particular test file, you can specify it on the command line: 
-```bash
-$ pytest src/locutus/tests/test_terminology.py
-```
-
-Finally, if you want to halt on the first error, simply using the -x flag. 
-```bash
-$ pytest -x src/locutus/tests/test_terminology.py
-```
-
-# ## New! Log Level Environment Variable
-By default, the log level is warnings only, however, you can set it to any of the standard python log levels, INFO, DEBUG, etc using the environment variablele, LOCUTUS_LOGLEVEL
-
-## Unit tests
-For developers who wish to run tests, unit tests are written using the PyTest library. To run the tests, simply run the following commands from within the locutus repo directory. It is important that your system is set up with the necessary environment settings to connect to the database, etc. 
-
-
-```bash
-$ pytest
-```
-
-If you wish to run a particular test file, you can specify it on the command line: 
-```bash
-$ pytest src/locutus/tests/test_terminology.py
-```
-
-Finally, if you want to halt on the first error, simply using the -x flag. 
-```bash
-$ pytest -x src/locutus/tests/test_terminology.py
-```
-
-If you are testing with Mongo on your localhost: 
-```bash
-$ LOCUTUS_DB_TYPE=mongodb LOCUTUS_LOGLEVEL=DEBUG pytest
-```
+For an overview of the project, local setup and how to run the test suite, see the [repo README](https://github.com/NIH-NCPI/locutus#readme). This page documents the full REST API.
 
 # API Functionality:
 
