@@ -62,6 +62,21 @@ Stop on the first failure:
 pytest -x src/locutus/tests/test_terminology.py
 ```
 
+## Linting & formatting
+
+The project lints and formats with [Ruff](https://docs.astral.sh/ruff/) and type-checks with [basedpyright](https://docs.basedpyright.com/), both left at their stock/default settings — no project-specific rule overrides.
+
+```bash
+pip install ".[dev]"
+ruff check .
+ruff format .
+basedpyright
+```
+
+**Zed** users get this for free: Zed's built-in Python support already runs Ruff and basedpyright with their default settings, so no extra editor config is needed.
+
+**VS Code** users: this repo ships `.vscode/settings.json` and `.vscode/extensions.json`, so opening the folder will prompt you to install the [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) and [basedpyright](https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright) extensions, with format-on-save and Ruff's fixAll/organize-imports code actions already wired up. Pylance is disabled in favor of basedpyright to avoid two language servers fighting over the same diagnostics.
+
 ## API Reference
 
 The full REST API reference — every resource, request/response payloads, and error behavior — lives in the [docs site](https://nih-ncpi.github.io/locutus/#/).

@@ -40,7 +40,9 @@ dev = [
     "rich",
     "pytest",
     "pytest-env",
-    "pytest-ordering"
+    "pytest-ordering",
+    "ruff",
+    "basedpyright"
 ]
 test = [
     "pytest",
@@ -50,6 +52,9 @@ test = [
 cloud = [
     "python-json-logger", # Only installed when explicitly requested
 ]
+
+[tool.ruff]
+target-version = "py313"
 
 [tool.setuptools_scm]
 version_file = "src/locutus/_version.py"
