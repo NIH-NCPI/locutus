@@ -1,7 +1,8 @@
 from flask_restful import Resource
 from flask import request
-from locutus.model.exceptions import *
-from locutus.api import get_editor, default_headers
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.api import default_headers
+
 
 class SessionStart(Resource):
     """API resource for starting a user session.
@@ -9,6 +10,7 @@ class SessionStart(Resource):
     Attributes:
         session_manager (SessionManager): Manages session operations. :)
     """
+
     def __init__(self, session_manager):
         self.session_manager = session_manager
 
@@ -19,21 +21,22 @@ class SessionStart(Resource):
          `user_id` and an optional `affiliation`.
 
         Returns:
-            dict: A message indicating whether the session was successfully 
+            dict: A message indicating whether the session was successfully
             started, along with HTTP status code.
         """
         body = request.get_json()
-        
+
         try:
-            user_id = body.get('user_id')
+            user_id = body.get("user_id")
             if "user_id" not in body:
                 raise LackingUserID(user_id)
 
-            affiliation = body.get('affiliation')
+            affiliation = body.get("affiliation")
 
             return self.session_manager.initiate_session(user_id, affiliation)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
+
 
 class SessionTerminate(Resource):
     """API resource for terminating a user session.
@@ -41,6 +44,7 @@ class SessionTerminate(Resource):
     Attributes:
         session_manager (SessionManager): Manage session operations. :)
     """
+
     def __init__(self, session_manager):
         self.session_manager = session_manager
 
@@ -50,10 +54,11 @@ class SessionTerminate(Resource):
         Clears the session data for the current user.
 
         Returns:
-            dict: A message indicating that the session was terminated, along 
+            dict: A message indicating that the session was terminated, along
             with HTTP status code.
         """
         return self.session_manager.terminate_session()
+
 
 class SessionStatus(Resource):
     """API resource for checking the status of the current user session.
@@ -62,6 +67,7 @@ class SessionStatus(Resource):
         session_manager (SessionManager): The session manager used to manage
         session operations.
     """
+
     def __init__(self, session_manager):
         self.session_manager = session_manager
 
@@ -72,7 +78,7 @@ class SessionStatus(Resource):
         and affiliation.
 
         Returns:
-            dict: A message indicating the session status, user ID, and 
+            dict: A message indicating the session status, user ID, and
             affiliation, along with HTTP status code.
         """
         return self.session_manager.get_session_status()

@@ -1,12 +1,11 @@
 import json
-import logging
 
 from bson import json_util
 from flask import request
 from flask_restful import Resource
 
 from locutus.api import default_headers
-from locutus.model.exceptions import *
+from locutus.model.exceptions import APIError, LackingRequiredParameter
 from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 
 

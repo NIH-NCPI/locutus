@@ -2,28 +2,29 @@ from flask_restful import Resource
 from flask import request
 from locutus.model.terminology import Terminology as Term
 from locutus.model.table import Table
-from locutus.model.exceptions import *
+from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
 from locutus.api import default_headers, get_editor
-from locutus.sessions import SessionManager
 from locutus.model.user_input import UserInput
-from bson import json_util 
+from bson import json_util
 import json
+
 
 class TerminologyUserInput(Resource, UserInput):
     """
     Resource for handling user input related to terminology mappings.
 
     This class provides methods to retrieve and update user inputs for
-    terminology, including mapping conversations and votes. 
+    terminology, including mapping conversations and votes.
 
     Attributes:
         resource_type (str): The type of resource, default is "Terminology".
         collection_type (str): The sub-collection for user input, default is "user_input".
     """
-    def __init__(self, resource_type= "Terminology", collection_type="user_input"):
+
+    def __init__(self, resource_type="Terminology", collection_type="user_input"):
         self.resource_type = resource_type
         self.collection_type = collection_type
-    
+
     def get(self, id, code, mapped_code, input_type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
@@ -53,17 +54,18 @@ class TerminologyUserInput(Resource, UserInput):
         }
         """
 
-        user_input = UserInput.get_user_input(self.resource_type, self.collection_type,
-                                        id, code, mapped_code, input_type)
-        
+        user_input = UserInput.get_user_input(
+            self.resource_type, self.collection_type, id, code, mapped_code, input_type
+        )
+
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
-            
+
     def put(self, id, code, mapped_code, input_type):
         """
-        Update the user input 
+        Update the user input
 
-        This method updates the user input for a specific mapping based on 
-        the provided user data. 
+        This method updates the user input for a specific mapping based on
+        the provided user data.
 
         Args:
             id (str): Defines the terminology of interest.
@@ -85,44 +87,49 @@ class TerminologyUserInput(Resource, UserInput):
         # Raise error if the code is not in the terminology
         t = Term.get(id)
         try:
-            if not t.has_code(code): 
+            if not t.has_code(code):
                 raise CodeNotPresent(code, id)
 
-            result = UserInput.create_or_replace_user_input(self.resource_type,
-                                                            self.collection_type,
-                                                            id,
-                                                            code,
-                                                            mapped_code=mapped_code,
-                                                            type=input_type,
-                                                            input_value=body,
-                                                            editor=editor)
-            
+            result = UserInput.create_or_replace_user_input(
+                self.resource_type,
+                self.collection_type,
+                id,
+                code,
+                mapped_code=mapped_code,
+                type=input_type,
+                input_value=body,
+                editor=editor,
+            )
+
             if isinstance(result, tuple):
                 return result
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        
-        response = UserInput.get_user_input(self.resource_type, self.collection_type,
-                                        id, code, mapped_code, input_type)
+
+        response = UserInput.get_user_input(
+            self.resource_type, self.collection_type, id, code, mapped_code, input_type
+        )
 
         return (json.loads(json_util.dumps(response)), 200, default_headers)
-    
+
+
 class TableUserInput(Resource, UserInput):
     """
     Resource for handling user input related to table mappings.
 
     This class provides methods to retrieve and update user inputs for
-    table, including mapping conversations and votes. 
+    table, including mapping conversations and votes.
 
     Attributes:
 
         resource_type (str): The type of resource, default is "Terminology", because we dereferenced the Table.
         collection_type (str): The sub-collection for user input, default is "user_input".
     """
-    def __init__(self, resource_type= "Terminology", collection_type="user_input"):
+
+    def __init__(self, resource_type="Terminology", collection_type="user_input"):
         self.resource_type = resource_type
         self.collection_type = collection_type
-    
+
     def get(self, id, code, mapped_code, input_type):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
@@ -154,17 +161,23 @@ class TableUserInput(Resource, UserInput):
         table = Table.get(id)
         term = table.terminology.dereference()
 
-        user_input = UserInput.get_user_input(self.resource_type, self.collection_type,
-                                        term.id, code, mapped_code, input_type)
-        
+        user_input = UserInput.get_user_input(
+            self.resource_type,
+            self.collection_type,
+            term.id,
+            code,
+            mapped_code,
+            input_type,
+        )
+
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
-            
+
     def put(self, id, code, mapped_code, input_type):
         """
-        Update the user input 
+        Update the user input
 
-        This method updates the user input for a specific mapping based on 
-        the provided user data. 
+        This method updates the user input for a specific mapping based on
+        the provided user data.
 
         Args:
             id (str): Defines the terminology of interest.
@@ -189,26 +202,32 @@ class TableUserInput(Resource, UserInput):
         term = table.terminology.dereference()
 
         try:
-            if not term.has_code(code): 
+            if not term.has_code(code):
                 raise CodeNotPresent(code, id)
 
             result = UserInput.create_or_replace_user_input(
-                                                            self.resource_type,
-                                                            self.collection_type,
-                                                            term.id,
-                                                            code,
-                                                            mapped_code,
-                                                            type=input_type,
-                                                            input_value=body,
-                                                            editor=editor)
-            
+                self.resource_type,
+                self.collection_type,
+                term.id,
+                code,
+                mapped_code,
+                type=input_type,
+                input_value=body,
+                editor=editor,
+            )
+
             if isinstance(result, tuple):
                 return result
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
-        
-        response = UserInput.get_user_input(self.resource_type, self.collection_type,
-                                        term.id, code, mapped_code, input_type)
+
+        response = UserInput.get_user_input(
+            self.resource_type,
+            self.collection_type,
+            term.id,
+            code,
+            mapped_code,
+            input_type,
+        )
 
         return (json.loads(json_util.dumps(response)), 200, default_headers)
-        

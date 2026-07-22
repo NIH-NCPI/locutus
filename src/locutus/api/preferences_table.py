@@ -1,9 +1,9 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.table import Table as mTable
-from locutus.api import default_headers, get_editor, delete_collection
-from locutus.model.exceptions import *
-from bson import json_util 
+from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, LackingUserID
+from bson import json_util
 import json
 
 
@@ -13,12 +13,10 @@ class TableOntologyAPISearchPreferences(Resource):
 
         try:
             prefs = t.get_preference(code=code)
-            
+
             if code is None:
                 if "self" not in prefs:
-                    prefs = {
-                        "self": prefs
-                    }
+                    prefs = {"self": prefs}
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 

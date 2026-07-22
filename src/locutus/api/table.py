@@ -1,16 +1,16 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.table import Table as mTable
-from locutus.model.provenance import Provenance 
-from locutus.model.terminology import Terminology
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat 
+from locutus.model.provenance import Provenance
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
 from locutus.api import default_headers, get_editor
 from locutus.api.datadictionary import DataDictionaries
-from locutus.model.exceptions import *
+from locutus.model.exceptions import APIError, LackingUserID
 from copy import deepcopy
 
-from bson import json_util 
+from bson import json_util
 import json
+
 
 class TableRenameCode(Resource):
     def patch(self, id):
@@ -119,7 +119,7 @@ class Tables(Resource):
         We should plan on paginating this at some point."""
 
         return (
-            json.loads(json_util.dumps(mTable.get(return_instance = False))),
+            json.loads(json_util.dumps(mTable.get(return_instance=False))),
             200,
             default_headers,
         )
@@ -141,7 +141,6 @@ class Tables(Resource):
 
 
 class Table(Resource):
-
     def get(self, id):
         return json.loads(json_util.dumps(mTable.get(id, return_instance=False)))
 
@@ -194,8 +193,8 @@ class Table(Resource):
 
 class HarmonyTableCSV(Resource):
     def get(self, id):
-        data_format = request.args.get('format', 'Whistle')
-        file_format = request.args.get('file-format', 'JSON')
+        data_format = request.args.get("format", "Whistle")
+        file_format = request.args.get("file-format", "JSON")
 
         try:
             if data_format:
@@ -211,7 +210,9 @@ class HarmonyTableCSV(Resource):
             print(f"Harmony Format: {data_format}")
             print(f"Output Format: {file_format}")
 
-            harmony = t.as_harmony(harmony_format=data_format, harmony_output_format=file_format)
+            harmony = t.as_harmony(
+                harmony_format=data_format, harmony_output_format=file_format
+            )
 
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers

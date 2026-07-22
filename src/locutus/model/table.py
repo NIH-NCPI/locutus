@@ -1,19 +1,15 @@
 import logging
-import sys
 
-import rich
-from flask import request
 from marshmallow import Schema, fields, post_load
 
 import locutus
-from locutus.api import default_headers
-from locutus.model.exceptions import *
+from locutus.model.exceptions import CodeAlreadyPresent
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
 from locutus.model.provenance import Provenance
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
-from locutus.model.variable import InvalidVariableDefinition, Variable
+from locutus.model.variable import Variable
 
 from . import Serializable
 
@@ -142,7 +138,6 @@ class Table(Serializable):
             raise KeyError(msg)
 
     def rename_var(self, original_varname, new_varname, new_description, editor):
-        status = 200
         # Ensure codes are not placeholders at this point.
         original_varname = locutus.normalize_ftd_placeholders(original_varname)
 
@@ -276,7 +271,7 @@ class Table(Serializable):
             self.terminology.dereference().add_code(
                 code=v.code, display=v.name, editor=editor
             )
-        except CodeAlreadyPresent as e:
+        except CodeAlreadyPresent:
             pass
 
     def build_harmony_row(

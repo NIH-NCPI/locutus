@@ -2,7 +2,6 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 
-from rich import print
 
 import os
 
@@ -30,6 +29,6 @@ def persistence():
         else:
             cert = credentials.ApplicationDefault()
 
-        app = firebase_admin.initialize_app(cert)
+        firebase_admin.initialize_app(cert)
         _db = firestore.client()
     return _db

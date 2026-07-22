@@ -8,8 +8,11 @@ import sys
 import traceback
 from os import getenv
 from pathlib import Path
+from typing import Callable, DefaultDict, Dict, List, TypeVar
 
 from flask import g, has_request_context
+
+from .storage import persistence
 
 try:
     from pythonjsonlogger import jsonlogger
@@ -29,8 +32,6 @@ try:
     IS_RICH = True
 except ImportError:
     IS_RICH = False
-
-from typing import Callable, DefaultDict, Dict, List, TypeVar
 
 
 def is_interactive():
@@ -226,4 +227,3 @@ def init_base_storage(filepath="db"):
 
     return _persistence
 """
-from .storage import persistence

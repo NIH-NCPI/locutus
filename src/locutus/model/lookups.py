@@ -1,10 +1,8 @@
-import csv
 import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import requests
 from search_dragon.support import ftd_ontology_lookup
 
 import locutus

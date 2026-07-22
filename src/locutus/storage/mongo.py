@@ -5,12 +5,9 @@ import re
 from urllib.parse import unquote, urlparse
 
 from bson import ObjectId
-from pymongo import ASCENDING, MongoClient
+from pymongo import MongoClient
 
 uri_filter = re.compile(r"(mongodb:\/\/[^:]*:)([^@]*)(@)")
-
-
-import pdb
 
 
 class DocumentSnapshot:
@@ -36,7 +33,7 @@ class DocumentSnapshot:
         return this
 
     def delete(self):
-        result = self._collection.delete_one({"_id": ObjectId(self._doc_id)})
+        self._collection.delete_one({"_id": ObjectId(self._doc_id)})
 
 
 class DocumentReference:
@@ -74,7 +71,7 @@ class DocumentReference:
             data["_id"] = ObjectId(self._doc_id)
             if "id" not in data:
                 data["id"] = self._doc_id
-            doc = self._collection.replace_one(
+            self._collection.replace_one(
                 {"_id": ObjectId(self._doc_id)}, data, upsert=True
             )
         else:

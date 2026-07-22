@@ -1,15 +1,16 @@
 from flask_restful import Resource
 from flask import request
-from locutus.model.terminology import Coding, Terminology as Term
-from locutus.model.exceptions import *
+from locutus.model.terminology import Terminology as Term
+from locutus.model.exceptions import APIError, LackingUserID
 from flask_cors import cross_origin
-from locutus.api import default_headers, delete_collection, get_editor
-from bson import json_util 
+from locutus.api import default_headers, get_editor
+from bson import json_util
 import json
+
 
 class TerminologyEdit(Resource):
     def put(self, id, code):
-        """Add a new code to an existing terminology."""        
+        """Add a new code to an existing terminology."""
         body = request.get_json()
         display = body.get("display")
         description = body.get("description")
@@ -21,10 +22,18 @@ class TerminologyEdit(Resource):
 
             t = Term.get(id)
             t.add_code(
-                code=code, display=display, description=description, editor=editor, exists_ok=False
+                code=code,
+                display=display,
+                description=description,
+                editor=editor,
+                exists_ok=False,
             )
 
-            return json.loads(json_util.dumps(t.realize_as_dict())), 201, default_headers
+            return (
+                json.loads(json_util.dumps(t.realize_as_dict())),
+                201,
+                default_headers,
+            )
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -138,7 +147,7 @@ class Terminologies(Resource):
             if "resource_type" in term:
                 del term["resource_type"]
 
-            term['editor'] = editor
+            term["editor"] = editor
             t = Term(**term)
             t.save()
 
@@ -152,8 +161,12 @@ class Terminology(Resource):
         response = Term.get(id, return_instance=True)
 
         if response is not None:
-            return json.loads(json_util.dumps(response.realize_as_dict())), 200, default_headers
-        
+            return (
+                json.loads(json_util.dumps(response.realize_as_dict())),
+                200,
+                default_headers,
+            )
+
         return (response, 404, default_headers)
 
     def put(self, id):

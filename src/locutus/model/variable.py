@@ -1,13 +1,16 @@
 import logging
+import typing
+from copy import deepcopy
+from datetime import datetime
+from enum import Enum
 
 from marshmallow import Schema, fields, post_load
+from marshmallow.exceptions import ValidationError
 
 import locutus
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
-from locutus.model.terminology import Terminology as Term
 
-from . import Serializable
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -28,13 +31,6 @@ This enumeration is necessary in order for the system to properly identify
 the type of variable that is being represented/validated/etc.
 
 """
-
-import typing
-from copy import deepcopy
-from datetime import datetime
-from enum import Enum
-
-from marshmallow.exceptions import ValidationError
 
 
 class InvalidVariableDefinition(Exception):
@@ -102,7 +98,7 @@ class Variable:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
         except ValueError:
             raise
-        except:
+        except Exception:
             logging.error(data)
             logging.error("ERROR: An issue was encountered with the following data")
             raise InvalidVariableDefinition(data["name"], data)
@@ -121,7 +117,6 @@ class StringVariable(Variable):
     def __init__(self, code="", name="", description=None):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.STRING
-        data_type = fields.Enum(Variable.DataType)
 
     class _Schema(Schema):
         name = fields.Str(required=True)

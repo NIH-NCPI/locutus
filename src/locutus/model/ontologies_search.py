@@ -1,7 +1,6 @@
 from marshmallow import Schema, fields, post_load
 from search_dragon.search import run_search
 
-from locutus import persistence
 from locutus.model.exceptions import InvalidValueError
 from locutus.model.lookups import OntologyAPICollection
 

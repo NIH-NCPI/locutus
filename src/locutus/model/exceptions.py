@@ -1,9 +1,7 @@
 import logging
 
-from flask import session
 
 import locutus
-from flask_session import Session
 
 
 class APIError(Exception):

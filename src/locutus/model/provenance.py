@@ -1,10 +1,8 @@
 from enum import StrEnum
 from datetime import datetime
 from marshmallow import Schema, fields, post_load
-from .simple import Simple 
-from locutus.model.reference import Reference
+from .simple import Simple
 import locutus
-import pdb
 
 
 class DictOrStringField(fields.Field):
@@ -30,6 +28,7 @@ class DictOrStringField(fields.Field):
         else:
             raise TypeError("Field must be a dictionary or a string.")
 
+
 class Provenance(Simple):
     PROVENANCE_TIMESTAMP_FORMAT = "%Y-%m-%d %I:%M:%S.%f%p"
 
@@ -53,9 +52,9 @@ class Provenance(Simple):
         AddMappingQuality = "Add Mapping Quality"
 
     def __init__(
-        self, 
-        terminology_id, 
-        _id=None, 
+        self,
+        terminology_id,
+        _id=None,
         id=None,
         action=None,
         editor=None,
@@ -63,65 +62,62 @@ class Provenance(Simple):
         old_value=None,
         target=None,
         timestamp=None,
-        valid=True
+        valid=True,
     ):
         super().__init__(
-            _id=_id, 
-            id=id,
-            collection_type="Provenance",
-            resource_type="Provenance"
+            _id=_id, id=id, collection_type="Provenance", resource_type="Provenance"
         )
-        self.terminology_id = terminology_id 
-        self.action = action 
-        self.editor = editor 
-        self.new_value = new_value 
-        self.old_value = old_value 
-        self.target = target 
-        self.timestamp = timestamp 
+        self.terminology_id = terminology_id
+        self.action = action
+        self.editor = editor
+        self.new_value = new_value
+        self.old_value = old_value
+        self.target = target
+        self.timestamp = timestamp
         self.valid = valid
 
         if timestamp is None:
-            self.timestamp = datetime.now().strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
-    
-    @classmethod 
-    def add_terminology_provenance(cls, 
-                                   terminology_id, 
-                                   action,
-                                   editor,
-                                   old_value=None,
-                                   new_value=None,
-                                   timestamp=None):
-        p = cls(terminology_id=terminology_id, 
-                action=action, 
-                target=None,
-                editor=editor,
-                old_value=old_value,
-                new_value=new_value,
-                timestamp=timestamp,
-                valid=True)
+            self.timestamp = datetime.now().strftime(
+                Provenance.PROVENANCE_TIMESTAMP_FORMAT
+            )
+
+    @classmethod
+    def add_terminology_provenance(
+        cls,
+        terminology_id,
+        action,
+        editor,
+        old_value=None,
+        new_value=None,
+        timestamp=None,
+    ):
+        p = cls(
+            terminology_id=terminology_id,
+            action=action,
+            target=None,
+            editor=editor,
+            old_value=old_value,
+            new_value=new_value,
+            timestamp=timestamp,
+            valid=True,
+        )
         p.save()
         return p
 
-    @classmethod 
-    def exists_in_db(cls, 
-                    terminology_id,
-                    target=None,
-                    return_instance=True):
+    @classmethod
+    def exists_in_db(cls, terminology_id, target=None, return_instance=True):
         # This doesn't conform to the always overwrite concept
         return None
 
     @classmethod
-    def terminology_provenance(cls, 
-                               terminology_id,
-                               valid_only=True):
+    def terminology_provenance(cls, terminology_id, valid_only=True):
         params = {
             "terminology_id": terminology_id,
-            "target":  None,
-            }
+            "target": None,
+        }
         if valid_only:
-            params['valid'] = True
-        return cls.find(params=params , 
-            return_instance=False, sorting="timestamp")
+            params["valid"] = True
+        return cls.find(params=params, return_instance=False, sorting="timestamp")
 
     @classmethod
     def index_list(cls):
@@ -131,42 +127,45 @@ class Provenance(Simple):
             [("terminology_id", 1), ("timestamp", 1), ("valid", 1)],
         ]
 
-    @classmethod 
-    def add_mapping_provenance(cls, 
-                               terminology_id, 
-                               target_coding,
-                               action,
-                               editor,
-                               old_value=None,
-                               new_value=None,
-                               timestamp=None):
-        p = cls(terminology_id=terminology_id, 
-                action=action, 
-                target=target_coding,
-                editor=editor,
-                old_value=old_value,
-                new_value=new_value,
-                timestamp=timestamp,
-                valid=True)
+    @classmethod
+    def add_mapping_provenance(
+        cls,
+        terminology_id,
+        target_coding,
+        action,
+        editor,
+        old_value=None,
+        new_value=None,
+        timestamp=None,
+    ):
+        p = cls(
+            terminology_id=terminology_id,
+            action=action,
+            target=target_coding,
+            editor=editor,
+            old_value=old_value,
+            new_value=new_value,
+            timestamp=timestamp,
+            valid=True,
+        )
         p.save()
         return p
 
-    @classmethod 
-    def mapping_provenance(cls, 
-                           terminology_id,
-                           target_coding,
-                           valid_only=True,
-                           return_instance=False):
+    @classmethod
+    def mapping_provenance(
+        cls, terminology_id, target_coding, valid_only=True, return_instance=False
+    ):
         params = {
             "terminology_id": terminology_id,
-            "target":  target_coding,
-            }
+            "target": target_coding,
+        }
 
         if valid_only:
-            params['valid'] = True
+            params["valid"] = True
 
-        return cls.find(params=params , 
-            return_instance=return_instance, sorting="timestamp")
+        return cls.find(
+            params=params, return_instance=return_instance, sorting="timestamp"
+        )
 
     class _Schema(Schema):
         id = fields.Str()
@@ -174,26 +173,28 @@ class Provenance(Simple):
         action = fields.Str(required=True)
         editor = fields.Str(required=True)
         new_value = fields.Str()
-        old_value = DictOrStringField() 
+        old_value = DictOrStringField()
         timestamp = fields.Str()
         valid = fields.Bool()
 
         target = fields.Str()
 
-        @post_load 
+        @post_load
         def build_provenance(self, data, **kwargs):
             return Provenance(**data)
 
-
     def delete(self, hard_delete=True):
         if not hard_delete:
-            self.valid = False 
+            self.valid = False
             self.save()
             t = self.dump()
         else:
-            dref = locutus.persistence().collection(self.__class__.__name__).document(self._id)
+            dref = (
+                locutus.persistence()
+                .collection(self.__class__.__name__)
+                .document(self._id)
+            )
             t = dref.get().to_dict()
 
-            time_of_delete = dref.delete()
+            dref.delete()
         return t
-    

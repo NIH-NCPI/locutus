@@ -1,14 +1,5 @@
-from copy import deepcopy
-
-import pytest
-
 from locutus.model.table import Table
 
-from . import client
-from .test_datadictionary import basic_datadictionary
-from .test_study import basic_study
-from .test_table import basic_table
-from .test_terminology import ftd_concept_relationships, sample_terminology
 
 mini_table_body = {
     "name": "mini table",

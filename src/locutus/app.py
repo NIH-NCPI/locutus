@@ -1,10 +1,9 @@
 import logging
 import os
-import uuid
 
-from flask import Flask, g, render_template, request, send_from_directory, url_for
+from flask import Flask, send_from_directory
 from flask_cors import CORS, cross_origin
-from flask_restful import Api, Resource
+from flask_restful import Api
 
 from locutus import setup_logging
 from locutus.api.combined_harmony import CombinedHarmony

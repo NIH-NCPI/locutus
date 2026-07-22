@@ -10,7 +10,7 @@ notes.md
 activate
 scratch
 mapdragon-unified-creds.json
-locutus
+/locutus
 src/locutus/_version.py
 locutus-old-version
 md-static

@@ -5,9 +5,7 @@ Allow users to side load mappings from CSV file
 import argparse
 import logging
 import os
-from collections import defaultdict
 from csv import DictReader
-from pathlib import Path
 
 from locutus import persistence
 from locutus.model.exceptions import APIError, LackingRequiredParameter
@@ -25,7 +23,7 @@ def GetTerminology(table, source_variable, source_enum):
             term = variable.get_terminology()
         else:
             raise TypeError(
-                f"Variable, {source_variable} is not an enumerated variable and therefor will not contain {source_enumeration}"
+                f"Variable, {source_variable} is not an enumerated variable and therefor will not contain {source_enum}"
             )
 
     return term
@@ -47,7 +45,6 @@ def SetMappings(mapping_entries):
     """
 
     _cur_table = None
-    table_term = None
 
     mappings = dict()
 
@@ -92,7 +89,7 @@ def SetMappings(mapping_entries):
 
                 try:
                     source_enumeration = var.code
-                except:
+                except Exception:
                     logging.error(f"{_cur_table.id} has no variable, {source_variable}")
 
             key = f"{term.id}-{source_enumeration}"
@@ -148,9 +145,7 @@ def exec():
     args = parser.parse_args()
     os.environ["MONGO_URI"] = args.database_uri
 
-    client = persistence(mongo_uri=args.database_uri, missing_ok=False)
-
-    sideload_csv(args.file)
+    persistence(mongo_uri=args.database_uri, missing_ok=False)
 
     sideload_csv(args.file)
 

@@ -1,13 +1,13 @@
 from flask_restful import Resource
 from flask import request
-from locutus import FTD_PLACEHOLDERS, normalize_ftd_placeholders
+from locutus import normalize_ftd_placeholders
 from locutus.model.table import Table
-from locutus.model.terminology import Terminology, MappingUserInputModel
-from locutus.model.coding import Coding, CodingMapping
+from locutus.model.terminology import MappingUserInputModel
+from locutus.model.coding import CodingMapping
 from locutus.api.terminology_mappings import TerminologyMappings
 from flask_cors import cross_origin
-from locutus.model.exceptions import *
-from locutus.api import default_headers, delete_collection, get_editor
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.api import default_headers, get_editor
 
 
 class TableMappings(Resource):
@@ -20,7 +20,7 @@ class TableMappings(Resource):
             editor = get_editor(body=None, editor=editor_param)
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
-            
+
             table = Table.get(id)
             term = table.terminology.dereference()
 
@@ -43,15 +43,16 @@ class TableMappings(Resource):
                         )
                         codingmapping.user_input = user_input_data
                     # Returns valid=true mappings or mappings without the 'valid' attribute.
-                    if codingmapping.valid != False:
+                    if codingmapping.valid:
                         mapping["mappings"].append(codingmapping.to_dict())
 
                 response["codes"].append(mapping)
 
             return response
-        
+
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
+
     @classmethod
     def delete(cls, id):
         body = request.get_json()
@@ -111,7 +112,7 @@ class TableMapping(Resource):
                     )
                     codingmapping.user_input = user_input_data
                 # Returns valid=true mappings or mappings without the 'valid' attribute.
-                if codingmapping.valid != False:
+                if codingmapping.valid:
                     response["mappings"].append(codingmapping.to_dict())
 
             return (response, 200, default_headers)
@@ -127,9 +128,7 @@ class TableMapping(Resource):
                 raise LackingUserID(editor)
 
             table = Table.get(id)
-            mapping_count = table.terminology.dereference().delete_mappings(
-                editor=editor, code=code
-            )
+            table.terminology.dereference().delete_mappings(editor=editor, code=code)
 
             response = TerminologyMappings.get_mappings(
                 table.terminology.reference_id()

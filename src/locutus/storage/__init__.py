@@ -1,11 +1,12 @@
 """
-Just a rudimentary storage mechanism which should be replaced with a true 
-database that supports storing objects. Once we have a clear decision on 
+Just a rudimentary storage mechanism which should be replaced with a true
+database that supports storing objects. Once we have a clear decision on
 what is necessary, we can probably drop this altogether. I'll be mimicking
 some basic firestore functionality but using a simple JSON file for initial
-local dev testing. 
+local dev testing.
 
 """
+
 from collections import defaultdict
 from pathlib import Path
 from copy import deepcopy
@@ -13,9 +14,10 @@ import json
 
 from os import getenv, environ
 
+from locutus.storage.mongo import persistence
+
 db_type = getenv("LOCUTUS_DB_TYPE", "mongodb").lower()
 
-from locutus.storage.mongo import persistence
 
 class StorageBase:
     def __init__(self, project_id):

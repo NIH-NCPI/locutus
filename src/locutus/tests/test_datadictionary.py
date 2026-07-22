@@ -1,13 +1,6 @@
-import json
-
 import pytest
 
 from locutus.model.datadictionary import DataDictionary
-from locutus.model.study import Study
-
-from .test_study import basic_study
-from .test_table import basic_table
-from .test_terminology import ftd_concept_relationships, sample_terminology
 
 
 @pytest.fixture

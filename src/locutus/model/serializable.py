@@ -1,12 +1,9 @@
-
 from copy import deepcopy
 from nanoid import generate
 
-import locutus 
+import locutus
 import locutus.model.global_id
-from pymongo import ASCENDING
 
-import pdb
 
 class Serializable:
     _schema = None
@@ -16,19 +13,18 @@ class Serializable:
 
     def __init__(self, id=None, _id=None, collection_type=None, resource_type=None):
         self.id = id
-        # For Simple objects, we won't have an actual ID, we'll keep both, but here, 
+        # For Simple objects, we won't have an actual ID, we'll keep both, but here,
         # we are requiring an ID is present for all Serializable. _id will be created
         # when the data hits the db if it is None
-        self._id = _id 
+        self._id = _id
         if type(self._id) is dict:
-            self._id = self._id['$oid']
+            self._id = self._id["$oid"]
 
         # This is used to identify the persistence source
         self._collection_type = collection_type
 
         # This is used to identify the resource type to the client
         self.resource_type = resource_type
-
 
     @classmethod
     def find(cls, params, sorting=None, return_instance=True):
@@ -48,7 +44,7 @@ class Serializable:
 
         return items
 
-    @classmethod 
+    @classmethod
     def pull(cls, resource_type, id, return_instance=True):
         """Works like get except that it uses resource_type to select the right class"""
         resource_class = cls._factory_workers[resource_type.lower()]
@@ -81,24 +77,29 @@ class Serializable:
 
     def identify(self):
         if self.id is None:
-            # We are unable to use GlobalIDs due to the current approach for sneaking in 
-            # additional terms to be mapped in existing data-dictionaries, so we are bypassing 
-            # the global ID table altogether. 
+            # We are unable to use GlobalIDs due to the current approach for sneaking in
+            # additional terms to be mapped in existing data-dictionaries, so we are bypassing
+            # the global ID table altogether.
             # gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
             # self.id = gid.id
             self.id = f"{locutus.model.resource_types[self.resource_type]._id_prefix}-{generate()}"
 
     def save(self):
         # commit the data to persistent storage
-        
+
         if self._id is None and id is not None:
             id_matches = self.__class__.get(self.id, return_instance=False)
             if id_matches is not None and len(id_matches) > 0:
                 if type(id_matches) is list:
                     id_matches = id_matches[0]
-                self._id = id_matches['_id']
+                self._id = id_matches["_id"]
 
-        self._id = locutus.persistence().collection(self.resource_type).document(self._id).set(self.dump())
+        self._id = (
+            locutus.persistence()
+            .collection(self.resource_type)
+            .document(self._id)
+            .set(self.dump())
+        )
 
     def dump(self):
         return self.__class__._get_schema().dump(self)
@@ -117,13 +118,14 @@ class Serializable:
         return None
 
     def global_id(self):
-        return self.id 
+        return self.id
 
-        # This is currently unavailable due to how we are currently doing 
-        # incremental mapping updates. 
-        gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
-        return gid 
-
+        # This is currently unavailable due to how we are currently doing
+        # incremental mapping updates.
+        gid = locutus.model.global_id.GlobalID(
+            resource_type=self.resource_type, key=":".join(self.keys())
+        )
+        return gid
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -150,13 +152,17 @@ class Serializable:
 
     def delete(self, hard_delete=True):
         if not hard_delete:
-            self.valid = False 
+            self.valid = False
             self.save()
             t = self.to_dict()
         else:
-            dref = locutus.persistence().collection(self._collection_type).document(self._id)
+            dref = (
+                locutus.persistence()
+                .collection(self._collection_type)
+                .document(self._id)
+            )
             t = dref.get().to_dict()
 
-            time_of_delete = dref.delete()
+            dref.delete()
 
         return t

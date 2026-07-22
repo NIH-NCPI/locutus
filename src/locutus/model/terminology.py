@@ -1,7 +1,4 @@
 import logging
-import pdb
-import time
-from datetime import datetime
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
 
 from marshmallow import Schema, fields, post_load
@@ -11,17 +8,12 @@ import locutus.model.exceptions
 import locutus.model.lookups
 import locutus.model.provenance
 from locutus.api import (
-    delete_collection,
-    generate_mapping_index,
     generate_paired_string,
 )
-from locutus.model.coding import BasicCoding, Coding
-from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
-from locutus.model.onto_api_preference import OntoApiPreference
+from locutus.model.coding import Coding
 from locutus.model.reference import Reference
 from locutus.model.simple_reference import SimpleReference
-from locutus.model.user_input import MappingConversation, MappingVote, UserInput
-from locutus.sessions import SessionManager
+from locutus.model.user_input import MappingConversation, MappingVote
 
 from .serializable import Serializable
 
@@ -103,7 +95,7 @@ class Terminology(Serializable):
                         code["system"] = self.url
                         if self.url is None:
                             logging.debug(
-                                f"Attempting to assign "
+                                "Attempting to assign "
                                 " as system from the following Terminology: "
                             )
                             logging.debug(
@@ -140,7 +132,7 @@ class Terminology(Serializable):
 
             return self.__class__.find(params, return_instance)
 
-        raise ValueError(f"Terminology.find_match() requires both a url and name.")
+        raise ValueError("Terminology.find_match() requires both a url and name.")
 
     def delete(self, hard_delete=True):
         t = self.realize_as_dict()
@@ -280,7 +272,6 @@ class Terminology(Serializable):
             )
 
     def remove_code(self, code, editor):
-        code_found = False
         # Ensure codes are not placeholders at this point.
         code = locutus.normalize_ftd_placeholders(code)
 
@@ -304,7 +295,6 @@ class Terminology(Serializable):
                 target="self",
                 new_value=code,
             )
-            code_found = True
         else:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
             logging.error(msg)
@@ -313,7 +303,6 @@ class Terminology(Serializable):
     def rename_code(
         self, original_code, new_code, new_display, editor, new_description=None
     ):
-        status = 200
         print(
             f"Renaming Code, {original_code} to {new_code} with new display: {new_display} and new description: {new_description}"
         )
@@ -519,7 +508,7 @@ class Terminology(Serializable):
         self, change_type, editor, target=None, timestamp=None, **kwargs
     ):
         if target is None or target == "self":
-            p = locutus.model.provenance.Provenance.add_terminology_provenance(
+            locutus.model.provenance.Provenance.add_terminology_provenance(
                 terminology_id=self.id,
                 action=change_type,
                 editor=editor,
@@ -542,13 +531,12 @@ class Terminology(Serializable):
                     normalized_left, normalized_right
                 )
 
-                code_index = target  # mapping pairs are already formatted as indexes
             # Ensure special characters in single code targets are handled properly
             else:
                 normalized_target = locutus.normalize_ftd_placeholders(target)
-                code_index = locutus.get_code_index(target)
+                locutus.get_code_index(target)
 
-            p = locutus.model.provenance.Provenance.add_mapping_provenance(
+            locutus.model.provenance.Provenance.add_mapping_provenance(
                 terminology_id=self.id,
                 action=change_type,
                 editor=editor,
@@ -560,7 +548,7 @@ class Terminology(Serializable):
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
     def set_mapping(self, code, codings, editor):
-        code_index = locutus.get_code_index(code)
+        locutus.get_code_index(code)
 
         # Ensure code is not a placeholder at this point.
         code = locutus.normalize_ftd_placeholders(code)
@@ -765,8 +753,8 @@ class MappingUserInputModel:
         This function collects and formats the user_input data for a given mapping,
         then creates the user_input object to be included in a CodingMapping.
         """
-        code_index = locutus.get_code_index(code)
-        mapped_code_index = locutus.get_code_index(mapped_code)
+        locutus.get_code_index(code)
+        locutus.get_code_index(mapped_code)
 
         # Ensure codes/mappings are not placeholders at this point
         code = locutus.normalize_ftd_placeholders(code)

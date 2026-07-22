@@ -1,14 +1,15 @@
 from flask_restful import Resource
 from flask import request
 from locutus.model.datadictionary import DataDictionary as DD
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat 
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
 from locutus.api.study import Studies
 from locutus.api import default_headers
 
 from flask_cors import cross_origin
 
-from bson import json_util 
+from bson import json_util
 import json
+
 
 class DataDictionaries(Resource):
     def get(self):
@@ -49,7 +50,6 @@ class DataDictionaries(Resource):
 
 
 class DataDictionary(Resource):
-
     def get(self, id):
         t = DD.get(id, return_instance=False)
         if t is not None:
@@ -97,8 +97,8 @@ class DataDictionaryTable(Resource):
 
 class DataDictionaryHarmony(Resource):
     def get(self, id):
-        data_format = request.args.get('format', 'Whistle')
-        file_format = request.args.get('file-format', 'JSON')
+        data_format = request.args.get("format", "Whistle")
+        file_format = request.args.get("file-format", "JSON")
 
         try:
             if data_format:
@@ -110,9 +110,10 @@ class DataDictionaryHarmony(Resource):
 
         t = DD.get(id)
 
-
         try:
-            harmony = t.as_harmony(harmony_format=data_format, harmony_output_format=file_format)
+            harmony = t.as_harmony(
+                harmony_format=data_format, harmony_output_format=file_format
+            )
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
         return json.loads(json_util.dumps(harmony)), 200, default_headers

@@ -1,14 +1,8 @@
-import json
-
 import pytest
 
-from locutus.model.exceptions import InvalidValueError
-from locutus.model.global_id import GlobalID
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology
 from locutus.model.variable import Variable
-
-from .test_terminology import ftd_concept_relationships, sample_terminology
 
 
 @pytest.fixture

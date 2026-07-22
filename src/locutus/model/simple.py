@@ -1,28 +1,29 @@
 from copy import deepcopy
 
 import locutus
-from pymongo import ASCENDING
 
 from bson import ObjectId
 
+
 class Simple:
     """Similar in some ways to serializables but these will be only retrievable by searches not by usable IDs"""
-    _schema = None 
+
+    _schema = None
     _factory_workers = {}
 
     def __init__(self, _id=None, id=None, collection_type=None, resource_type=None):
-        self.id = id 
+        self.id = id
         self._id = _id
         if type(self._id) is dict:
-            self._id = ObjectId(self._id['$oid'])
+            self._id = ObjectId(self._id["$oid"])
         if id is None and _id is not None:
             self.id = str(_id)
         elif id is not None and _id is None:
             self._id = ObjectId(id)
-        self._collection_type = collection_type 
-        self.resource_type = resource_type 
+        self._collection_type = collection_type
+        self.resource_type = resource_type
 
-    @classmethod 
+    @classmethod
     def pull(cls, resource_type, id, return_instance=True):
         resource_class = cls._factory_workers[resource_type.lower()]
         return resource_class.get(_id=id, return_instance=return_instance)
@@ -49,24 +50,22 @@ class Simple:
         "This should be overridden by all derived classes. This is a list of lists where the inner list contains the tuples (key, dir) for each compound index"
         return []
 
-    @classmethod 
+    @classmethod
     def create_indexes(cls):
         index_items = cls.index_list()
+        collection = locutus.persistence().collection(cls.__name__)
 
         for idx in index_items:
             collection.create_index(idx)
-        # For now, let's not do this. I suspect nothing really needs this sort of work done. We'll explicity enumerate all valid indexes
-        """
-        for idx in index_items:
-            while len(idx) 0 :
-                collection.create_index(idx)
-
-                idx.pop(0)
-        """
 
     def save(self):
         # commit the data to persistent storage
-        self._id = locutus.persistence().collection(self.resource_type).document(self._id).set(self.dump())
+        self._id = (
+            locutus.persistence()
+            .collection(self.resource_type)
+            .document(self._id)
+            .set(self.dump())
+        )
         self.id = str(self._id)
 
         # EST - 2025-05-25 -- Leaving this here as an example to profile tricky bugs
@@ -106,15 +105,19 @@ class Simple:
         if "resource_type" in d:
             del d["resource_type"]
         return cls._factory_workers[data["resource_type"].lower()](**d)
-    
+
     def delete(self, hard_delete=False):
-        if hasattr(self, 'valid') and not hard_delete:
-            self.valid =False 
+        if hasattr(self, "valid") and not hard_delete:
+            self.valid = False
             self.save()
             t = self.to_dict()
         else:
-            dref = locutus.persistence().collection(self.__class__.__name__).document(self._id)
+            dref = (
+                locutus.persistence()
+                .collection(self.__class__.__name__)
+                .document(self._id)
+            )
             t = dref.get().to_dict()
 
-            time_of_delete = dref.delete()
+            dref.delete()
         return t

@@ -1,6 +1,5 @@
 from flask_restful import Resource
-from flask import request
-from locutus.api import default_headers, get_editor
+from locutus.api import get_editor
 
 
 class UserPrefOntoFilters(Resource):
@@ -8,7 +7,7 @@ class UserPrefOntoFilters(Resource):
 
         try:
             editor = get_editor({})
-        except:
+        except Exception:
             editor = "Application Default"
         # For now, we will just return a constant
         return {editor: {"api_preference": {"ols": ["mondo", "hp", "maxo", "ncit"]}}}
