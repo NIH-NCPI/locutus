@@ -1,5 +1,6 @@
 import pytest
 
+from . import client
 from locutus.model.ontologies_search import OntologyAPI
 
 

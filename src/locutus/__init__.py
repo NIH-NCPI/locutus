@@ -12,8 +12,6 @@ from typing import Callable, DefaultDict, Dict, List, TypeVar
 
 from flask import g, has_request_context
 
-from .storage import persistence
-
 try:
     from pythonjsonlogger import jsonlogger
 
@@ -227,3 +225,9 @@ def init_base_storage(filepath="db"):
 
     return _persistence
 """
+
+# Deliberately imported this late: locutus.storage.mongo imports locutus.model
+# at class-definition time, which transitively imports locutus.api, which
+# needs get_code_index (defined above) from this module. Importing storage
+# any earlier in this file creates a circular import.
+from .storage import persistence  # noqa: E402

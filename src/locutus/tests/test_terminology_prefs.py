@@ -1,4 +1,6 @@
 import pytest
+
+from .test_terminology import ftd_concept_relationships, sample_terminology
 from locutus.model.terminology import Terminology
 
 

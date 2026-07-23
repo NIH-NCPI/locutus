@@ -1,5 +1,6 @@
 import pytest
 
+from .test_terminology import sample_terminology
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology
 from locutus.model.variable import Variable

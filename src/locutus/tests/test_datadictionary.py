@@ -1,5 +1,8 @@
 import pytest
 
+from .test_study import basic_study
+from .test_table import basic_table
+from .test_terminology import sample_terminology
 from locutus.model.datadictionary import DataDictionary
 
 

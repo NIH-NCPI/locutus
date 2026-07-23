@@ -1,3 +1,10 @@
+from . import client
+from .test_datadictionary import basic_datadictionary
+from .test_study import basic_study
+from .test_table import basic_table
+from .test_terminology import sample_terminology
+
+
 def test_dd_get(client, basic_study, basic_datadictionary):
     response = client.get("/api/DataDictionary")
     assert response.status_code == 200

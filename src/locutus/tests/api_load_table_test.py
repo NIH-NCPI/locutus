@@ -1,3 +1,5 @@
+from . import client
+from .test_terminology import ftd_concept_relationships
 from locutus.model.table import Table
 
 

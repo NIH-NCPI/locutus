@@ -1,3 +1,5 @@
+from . import client
+from .test_terminology import ftd_concept_relationships, sample_terminology
 from locutus.model.terminology import Terminology
 from locutus.model.coding import Coding
 from locutus.model import GlobalID
