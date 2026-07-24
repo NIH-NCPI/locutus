@@ -62,6 +62,14 @@ target-version = "py313"
 # Test modules import fixtures across files for pytest to discover/inject them
 "src/locutus/tests/*.py" = ["F401", "F811"]
 
+[tool.basedpyright]
+# "standard" (the default) treats missing/incomplete type annotations as
+# errors, which floods an untyped codebase with noise unrelated to actual
+# bugs. "basic" keeps the substantive checks (attribute access, None
+# handling, argument/call type mismatches) while we incrementally add
+# annotations. Revisit once real findings are near zero.
+typeCheckingMode = "basic"
+
 [tool.setuptools_scm]
 version_file = "src/locutus/_version.py"
 
