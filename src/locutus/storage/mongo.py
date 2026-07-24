@@ -33,7 +33,7 @@ class DocumentSnapshot:
         return this
 
     def delete(self):
-        self._collection.delete_one({"_id": ObjectId(self._doc_id)})
+        self._collection.delete_one({"_id": ObjectId(self.id)})
 
 
 class DocumentReference:
@@ -166,6 +166,9 @@ class CollectionReference:
 
     def list_documents(self, page_size):
         return [doc for doc in self.stream()]
+
+    def create_index(self, keys):
+        return self._collection.create_index(keys)
 
 
 def filter_uri(uri):

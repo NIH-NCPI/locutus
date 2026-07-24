@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any, ClassVar
 
 import locutus
 
@@ -8,8 +9,14 @@ from bson import ObjectId
 class Simple:
     """Similar in some ways to serializables but these will be only retrievable by searches not by usable IDs"""
 
+    # Every concrete subclass defines its own marshmallow Schema and to_dict();
+    # left loosely typed here rather than constraining subclasses' exact shape.
+    _Schema: ClassVar[Any]
     _schema = None
     _factory_workers = {}
+
+    def to_dict(self) -> dict:
+        raise NotImplementedError
 
     def __init__(self, _id=None, id=None, collection_type=None, resource_type=None):
         self.id = id

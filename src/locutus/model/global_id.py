@@ -1,4 +1,6 @@
 import locutus
+import locutus.model
+from typing import Optional
 from marshmallow import Schema, fields, post_load
 from nanoid import generate
 from .simple import Simple
@@ -41,7 +43,7 @@ class GlobalID(Simple):
             resource_type, key=key, domain=domain, return_instance=False
         )
 
-        if resource is not None:
+        if isinstance(resource, dict):
             if id is None:
                 self.id = resource["id"]
 
@@ -76,9 +78,9 @@ class GlobalID(Simple):
         return self.__class__._get_schema().dump(self)
 
     @classmethod
-    def load(self, resource):
+    def load(cls, resource):
         # We probably will want to use the schema to validate this first
-        self.__init__(**resource)
+        return cls(**resource)
 
     @classmethod
     def find(cls, resource_type, key=None, domain="", return_instance=True):
@@ -109,6 +111,7 @@ class GlobalID(Simple):
         return [[("resource_type", 1), ("domain", 1), ("key", 1)]]
 
     class _Schema(Schema):
+        _parent: Optional[type] = None
         id = fields.Str()
         resource_type = fields.Str(required=True)
         key = fields.Str(required=True)
