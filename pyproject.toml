@@ -33,14 +33,17 @@ dependencies = ["marshmallow",
                 "pymongo"
                 ]
 [dependency-groups]
-    dev = ["pytest"]
+    dev = [
+    "pytest",
+    "pytest-order>=1.5.0",
+]
 
 [project.optional-dependencies]
 dev = [
     "rich",
     "pytest",
     "pytest-env",
-    "pytest-ordering",
+    "pytest-order>=1.5.0",
     "ruff",
     "basedpyright"
 ]
