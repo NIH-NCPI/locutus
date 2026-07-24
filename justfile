@@ -32,7 +32,11 @@ provision:
 
 # Install dependencies for local development
 install:
-    uv pip install ".[dev]"
+    uv sync --extra dev
+
+#Upgrade dependencies to latest versions
+upgrade:
+    uv sync --upgrade
 
 # Lint the code
 lint:
