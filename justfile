@@ -12,11 +12,11 @@ mongo:
 
 # Run the unit tests against the local MongoDB container
 test: mongo
-    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}}/test uv run pytest
+    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} uv run pytest
 
 # Run the Flask app against the local MongoDB container
 run: mongo
-    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}}/locutus FLASK_APP=src/locutus/app.py uv run flask run --debug
+    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} FLASK_APP=src/locutus/app.py uv run flask run --debug
 
 # Stop the local MongoDB container
 mongo-stop:
