@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal, Self, overload
 
 from nanoid import generate
 
@@ -58,6 +58,16 @@ class Serializable:
         resource_class = cls._factory_workers[resource_type.lower()]
 
         return resource_class.get(id=id, return_instance=return_instance)
+
+    @overload
+    @classmethod
+    def get(cls, id: None = None, return_instance: bool = True) -> list[Any]: ...
+    @overload
+    @classmethod
+    def get(cls, id: str, return_instance: Literal[True] = True) -> Self | None: ...
+    @overload
+    @classmethod
+    def get(cls, id: str, return_instance: Literal[False]) -> dict | None: ...
 
     @classmethod
     def get(cls, id=None, return_instance=True):

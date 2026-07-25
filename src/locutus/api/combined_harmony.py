@@ -20,10 +20,8 @@ class CombinedHarmony(Resource):
         table_ids = request.args.get("tables", "")
 
         try:
-            if data_format:
-                data_format = HarmonyFormat(data_format)
-            if file_format:
-                file_format = HarmonyOutputFormat(file_format)
+            data_format = HarmonyFormat(data_format)
+            file_format = HarmonyOutputFormat(file_format)
 
             harmony = build_combined_harmony(
                 study_ids=study_ids,

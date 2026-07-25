@@ -7,7 +7,7 @@ class UserPrefOntoFilters(Resource):
     def get(self):
 
         try:
-            editor = get_editor({})
+            editor = get_editor({}, editor=None)
         except Exception:  # noqa: BLE001 - this endpoint must not fail regardless of cause
             editor = "Application Default"
         # For now, we will just return a constant
