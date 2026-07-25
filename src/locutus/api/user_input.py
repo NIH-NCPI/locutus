@@ -1,12 +1,14 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.terminology import Terminology as Term
-from locutus.model.table import Table
-from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
-from locutus.api import default_headers, get_editor
-from locutus.model.user_input import UserInput
-from bson import json_util
 import json
+
+from bson import json_util
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
+from locutus.model.table import Table
+from locutus.model.terminology import Terminology as Term
+from locutus.model.user_input import UserInput
 
 
 class TerminologyUserInput(Resource, UserInput):

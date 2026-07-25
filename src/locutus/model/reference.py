@@ -1,6 +1,6 @@
-from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
 
+from .serializable import Serializable
 
 """
 The reference just represents a placeholder for an entity from another table

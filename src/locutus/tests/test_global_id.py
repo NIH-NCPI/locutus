@@ -1,4 +1,5 @@
 import pytest
+
 from locutus.model import GlobalID
 
 

@@ -1,10 +1,11 @@
-from flask_restful import Resource
-from locutus.model.table import Table
-from locutus.model.terminology import Terminology
-from locutus.api import default_headers
+import json
 
 from bson import json_util
-import json
+from flask_restful import Resource
+
+from locutus.api import default_headers
+from locutus.model.table import Table
+from locutus.model.terminology import Terminology
 
 
 class TableProvenance(Resource):

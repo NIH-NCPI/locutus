@@ -11,6 +11,7 @@ import locutus
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
 
+logger = logging.getLogger(__name__)
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -47,7 +48,7 @@ class Variable:
     _schema = None
     # Register each of our data_types with their corresponding class for
     # deserialization
-    _factory_workers = {}
+    _factory_workers: typing.ClassVar[dict] = {}
 
     class DataType(Enum):
         STRING = 1
@@ -98,9 +99,9 @@ class Variable:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
         except ValueError:
             raise
-        except Exception:
-            logging.error(data)
-            logging.error("ERROR: An issue was encountered with the following data")
+        except Exception:  # noqa: BLE001 - deliberately wraps any failure as a domain error
+            logger.error(data)
+            logger.error("ERROR: An issue was encountered with the following data")
             raise InvalidVariableDefinition(data["name"], data)
 
     @classmethod
@@ -183,7 +184,9 @@ class DateVariable(Variable):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.DATE
         if date:
-            self.date = datetime.strptime(date, format)
+            # A calendar date with no time-of-day component; a timezone
+            # would be meaningless here, so this intentionally stays naive.
+            self.date = datetime.strptime(date, format)  # noqa: DTZ007
         else:
             self.date = None
         self.format = format
@@ -284,15 +287,13 @@ class IntegerVariable(Variable):
         if not isinstance(value, (int)):
             raise ValidationError(f"Integer expected, but, {value}, was found.")
 
-        if self.min is not None:
-            if value < self.min:
-                return ValidationError(
-                    f"Integer value, {value}, is lower than the specified minimum, {self.min}."
-                )
+        if self.min is not None and value < self.min:
+            return ValidationError(
+                f"Integer value, {value}, is lower than the specified minimum, {self.min}."
+            )
 
-        if self.max is not None:
-            if value > self.max:
-                return ValidationError(
-                    f"Integer value, {value}, is larger than the specified maximum, {self.max}."
-                )
+        if self.max is not None and value > self.max:
+            return ValidationError(
+                f"Integer value, {value}, is larger than the specified maximum, {self.max}."
+            )
         return IntegerVariable._validation_helper._validated(value)

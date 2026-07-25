@@ -1,13 +1,16 @@
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import ClassVar
 
 from search_dragon.support import ftd_ontology_lookup
 
 import locutus
 import locutus.model.terminology
 from locutus.model.validation import validate_enums
+
+logger = logging.getLogger(__name__)
 
 
 class ResourceSingletonBase:
@@ -24,12 +27,12 @@ class ResourceSingletonBase:
             or a list of dictionaries (for collections).
     """
 
-    _instances = {}
+    _instances: ClassVar[dict] = {}
 
     def __new__(cls, resource_name, is_collection=False):
         """Ensure only one instance of each terminology or collection is created."""
         if (resource_name, is_collection) not in cls._instances:
-            instance = super(ResourceSingletonBase, cls).__new__(cls)
+            instance = super().__new__(cls)
             cls._instances[(resource_name, is_collection)] = instance
             instance.db = locutus.persistence()  # Initialize database client
             if is_collection:
@@ -61,7 +64,7 @@ class FTDConceptMapTerminology(ResourceSingletonBase):
 
     def __new__(cls):
         # Automatically pass the resource_name to the base class
-        return super(FTDConceptMapTerminology, cls).__new__(cls, cls.resource_name)
+        return super().__new__(cls, cls.resource_name)
 
     def get_cached_resource(self):
         """Access the FTD Concept Map terminology document."""
@@ -93,9 +96,7 @@ class OntologyAPICollection(ResourceSingletonBase):
         """
         Creates or retrieves the singleton instance for the OntologyAPI collection.
         """
-        return super(OntologyAPICollection, cls).__new__(
-            cls, cls.resource_name, is_collection=True
-        )
+        return super().__new__(cls, cls.resource_name, is_collection=True)
 
     def get_ontology_data(self, field):
         """Retrieve specific field data for each ontology object.
@@ -113,11 +114,10 @@ class OntologyAPICollection(ResourceSingletonBase):
                 if field in ontology_details:
                     ontology_data[ontology_code.upper()] = ontology_details[field]
 
-        logging.debug(f"ontology data {ontology_data}")
+        logger.debug(f"ontology data {ontology_data}")
         return ontology_data
 
     def get_ontology_keys(self):
-        """ """
         cached_data = self.get_cached_resource()
 
         for ontology_object in cached_data:
@@ -143,8 +143,8 @@ class FTDOntologyLookup:
         Path(__file__).parent / "../storage/data/references/ftd_ontology_lookup.csv"
     )
     _expiration_days = 90
-    stored_ontology_lookup = {}
-    reverse_lookup = {}
+    stored_ontology_lookup: ClassVar[dict] = {}
+    reverse_lookup: ClassVar[dict] = {}
 
     @staticmethod
     def is_expired(filepath, expiration_days):
@@ -153,8 +153,8 @@ class FTDOntologyLookup:
         """
         if not os.path.exists(filepath):
             return True
-        file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
-        return datetime.now() - file_mtime > timedelta(days=expiration_days)
+        file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath), tz=UTC)
+        return datetime.now(UTC) - file_mtime > timedelta(days=expiration_days)
 
     @classmethod
     def load_data_to_memory(cls):
@@ -173,7 +173,7 @@ class FTDOntologyLookup:
                 if system not in cls.reverse_lookup:
                     cls.reverse_lookup[system] = curie
 
-        logging.debug("Ontology data loaded into memory.")
+        logger.debug("Ontology data loaded into memory.")
 
     @classmethod
     def fetch_and_store_csv(cls):

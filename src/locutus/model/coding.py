@@ -10,6 +10,8 @@ from locutus.model.provenance import Provenance
 
 from .simple import Simple
 
+logger = logging.getLogger(__name__)
+
 
 class BasicCoding:
     def __init__(self, code, display, system, description=""):
@@ -146,16 +148,18 @@ class Coding(Simple, BasicCoding):
         resource_type=None,
         editor=None,
         _id=None,
-        mappings=[],
+        mappings=None,
         api_preferences=None,
     ):
+        if mappings is None:
+            mappings = []
         if not isinstance(terminology_id, str) or not terminology_id.strip():
             raise ValueError("Term ID is required for all Codings.")
         if not isinstance(code, str) or not code.strip():
             raise ValueError("Code is a required string and cannot be empty.")
         if not isinstance(system, str) or not system.strip():
-            logging.error("Coding instantiated without a system")
-            logging.error(f"{terminology_id}/{_id}:{code} - {system} ")
+            logger.error("Coding instantiated without a system")
+            logger.error(f"{terminology_id}/{_id}:{code} - {system} ")
             raise ValueError("System is a required string and cannot be empty.")
 
         if _id is None:

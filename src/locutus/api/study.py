@@ -1,11 +1,12 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.study import Study as mStudyTerm
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
-from locutus.api import default_headers
+import json
 
 from bson import json_util
-import json
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.study import Study as mStudyTerm
 
 
 class Studies(Resource):

@@ -674,7 +674,7 @@ def test_mapping_relationship(ftd_concept_relationships, sample_terminology):
             system="http://map.com/A",
             mapping_relationship="",
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - fail the test clearly on any unexpected error
         raise pytest.fail(
             f"There was a problem with acceptable mapping relationships: {e}"
         )

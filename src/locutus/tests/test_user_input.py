@@ -2,7 +2,7 @@ import pytest
 
 from locutus.model.coding import Coding, CodingMapping
 from locutus.model.terminology import Terminology
-from locutus.model.user_input import UserInput, MappingConversation, MappingVote
+from locutus.model.user_input import MappingConversation, MappingVote, UserInput
 
 
 @pytest.fixture

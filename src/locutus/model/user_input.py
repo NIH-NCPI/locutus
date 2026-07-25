@@ -9,9 +9,10 @@ Current Use:
 """
 
 from marshmallow import Schema, fields, post_load
+
 from locutus.api import generate_mapping_index, get_editor
-from locutus.sessions import SessionManager
 from locutus.model.exceptions import LackingUserID
+from locutus.sessions import SessionManager
 
 from .simple import Simple
 
@@ -88,7 +89,7 @@ class UserInput:
             existing_data["code"] = existing_data["source_code"]
             return existing_data
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - surfaces whatever failed to the caller
             return (
                 f"An error occurred while retrieving user input for {id} {resource_type} - {code}/{mapped_code}: {e}"
             ), 500
@@ -206,7 +207,7 @@ class UserInput:
             content["code"] = content["source_code"]
             return content
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - surfaces whatever failed to the caller
             return (
                 f"An error occurred while updating firestore {id} \
                     {resource_type} - {document_id}: {e}"

@@ -1,14 +1,14 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.datadictionary import DataDictionary as DD
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
-from locutus.api.study import Studies
-from locutus.api import default_headers
-
-from flask_cors import cross_origin
+import json
 
 from bson import json_util
-import json
+from flask import request
+from flask_cors import cross_origin
+from flask_restful import Resource
+
+from locutus.api import default_headers
+from locutus.api.study import Studies
+from locutus.model.datadictionary import DataDictionary as DD
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
 
 
 class DataDictionaries(Resource):

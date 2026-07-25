@@ -7,12 +7,11 @@ local dev testing.
 
 """
 
-from collections import defaultdict
-from pathlib import Path
-from copy import deepcopy
 import json
-
-from os import getenv, environ
+from collections import defaultdict
+from copy import deepcopy
+from os import environ, getenv
+from pathlib import Path
 
 from locutus.storage.mongo import persistence
 

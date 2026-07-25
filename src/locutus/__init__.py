@@ -8,7 +8,6 @@ import sys
 import traceback
 from os import getenv
 from pathlib import Path
-from typing import Callable, DefaultDict, Dict, List, TypeVar
 
 from flask import g, has_request_context
 
@@ -30,6 +29,8 @@ try:
     IS_RICH = True
 except ImportError:
     IS_RICH = False
+
+logger = logging.getLogger(__name__)
 
 
 def is_interactive():
@@ -171,7 +172,7 @@ def get_code_index(code):
       code_index(str):
       Examples: `given0x2Fcode' or <FTD-DOT-DOT>`
     """
-    logging.warning(f"get_code_index call: \n{''.join(traceback.format_stack()[-2])}")
+    logger.warning(f"get_code_index call: \n{''.join(traceback.format_stack()[-2])}")
     return code
     # Ensure any codes with designated placeholders have them in place at indexing.
     if code in REVERSE_FTD_PLACEHOLDERS:
@@ -201,7 +202,7 @@ def format_ftd_code(code, curie):
     if code and curie == "":
         return code
     else:
-        logging.warning(
+        logger.warning(
             f"Something went wrong trying to format the ftd_code. {curie}:{code}"
         )
         return code
@@ -230,4 +231,4 @@ def init_base_storage(filepath="db"):
 # at class-definition time, which transitively imports locutus.api, which
 # needs get_code_index (defined above) from this module. Importing storage
 # any earlier in this file creates a circular import.
-from .storage import persistence  # noqa: E402
+from .storage import persistence

@@ -1,8 +1,11 @@
+from datetime import UTC, datetime
 from enum import StrEnum
-from datetime import datetime
+
 from marshmallow import Schema, fields, post_load
-from .simple import Simple
+
 import locutus
+
+from .simple import Simple
 
 
 class DictOrStringField(fields.Field):
@@ -77,7 +80,7 @@ class Provenance(Simple):
         self.valid = valid
 
         if timestamp is None:
-            self.timestamp = datetime.now().strftime(
+            self.timestamp = datetime.now(UTC).strftime(
                 Provenance.PROVENANCE_TIMESTAMP_FORMAT
             )
 

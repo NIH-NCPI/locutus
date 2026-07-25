@@ -1,7 +1,7 @@
-from locutus.model.provenance import Provenance
-from datetime import datetime
-
+from datetime import UTC, datetime, timezone
 from time import sleep
+
+from locutus.model.provenance import Provenance
 
 
 class TestProvenance:
@@ -26,7 +26,7 @@ class TestProvenance:
         )
         assert p2.timestamp is not None
 
-        t1 = datetime.now().strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
+        t1 = datetime.now(UTC).strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
         sleep(0.1)
         p3 = Provenance.add_terminology_provenance(
             terminology_id="tm-0000001",
@@ -107,9 +107,9 @@ class TestProvenance:
 
     def test_prov_order(self):
         # Create 2 timestamps with some delay between them
-        t1 = datetime.now().strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
+        t1 = datetime.now(UTC).strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
         sleep(0.1)
-        t2 = datetime.now().strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
+        t2 = datetime.now(UTC).strftime(Provenance.PROVENANCE_TIMESTAMP_FORMAT)
         sleep(0.1)
 
         p2 = Provenance(

@@ -1,10 +1,10 @@
-from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
 
-from locutus.model.reference import Reference
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
+from locutus.model.reference import Reference
 
+from .serializable import Serializable
 
 """
 A data-dictionary is a collection of tables that, together, describe the 
@@ -61,11 +61,9 @@ class DataDictionary(Serializable):
 
         treference = f"Table/{table_id}"
 
-        idx = 0
-        for tblref in self.tables:
+        for idx, tblref in enumerate(self.tables):
             if tblref.reference == treference:
                 matching_references.append(idx)
-            idx += 1
 
         if len(matching_references) > 0:
             for ref in matching_references:

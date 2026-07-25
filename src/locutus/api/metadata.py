@@ -1,5 +1,7 @@
 import os
+
 from flask_restful import Resource
+
 from locutus._version import __version__
 
 

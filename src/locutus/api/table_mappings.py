@@ -1,13 +1,14 @@
-from flask_restful import Resource
 from flask import request
+from flask_cors import cross_origin
+from flask_restful import Resource
+
 from locutus import normalize_ftd_placeholders
+from locutus.api import default_headers, get_editor
+from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.model.coding import CodingMapping
+from locutus.model.exceptions import APIError, LackingUserID
 from locutus.model.table import Table
 from locutus.model.terminology import MappingUserInputModel
-from locutus.model.coding import CodingMapping
-from locutus.api.terminology_mappings import TerminologyMappings
-from flask_cors import cross_origin
-from locutus.model.exceptions import APIError, LackingUserID
-from locutus.api import default_headers, get_editor
 
 
 class TableMappings(Resource):

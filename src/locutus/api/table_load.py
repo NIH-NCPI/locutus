@@ -24,8 +24,6 @@ _data_types = {
 
 
 def get_data_type(data_type):
-    global _data_types
-
     dtype = data_type.lower()
     if dtype in _data_types:
         print(f"Swapping {dtype} out for {_data_types[dtype]}")

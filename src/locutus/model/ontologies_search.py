@@ -122,7 +122,7 @@ class OntologyAPISearchModel:
 
         # Validate ontologies(FE provided) against expected ontologies(firestore)
         onto_curies = onto_seed_data.get_ontology_data("curie")
-        valid_curies = set([curie.upper() for curie in onto_curies.values()])
+        valid_curies = {curie.upper() for curie in onto_curies.values()}
         for onto in ontologies:
             if onto.upper() not in valid_curies:
                 raise InvalidValueError(

@@ -17,6 +17,8 @@ from locutus.model.user_input import MappingConversation, MappingVote
 
 from .serializable import Serializable
 
+logger = logging.getLogger(__name__)
+
 """
 A terminology exists on its own within the project but can be referenced by
 variables as part of their data-type construction.
@@ -58,10 +60,14 @@ class Terminology(Serializable):
         description=None,
         codes=None,
         resource_type=None,
-        preferred_terminologies=[],
-        api_preferences={},
+        preferred_terminologies=None,
+        api_preferences=None,
         editor=None,
     ):
+        if preferred_terminologies is None:
+            preferred_terminologies = []
+        if api_preferences is None:
+            api_preferences = {}
         super().__init__(
             id=id, _id=_id, collection_type="Terminology", resource_type="Terminology"
         )
@@ -94,11 +100,11 @@ class Terminology(Serializable):
                         code["terminology_id"] = self.id
                         code["system"] = self.url
                         if self.url is None:
-                            logging.debug(
+                            logger.debug(
                                 "Attempting to assign "
                                 " as system from the following Terminology: "
                             )
-                            logging.debug(
+                            logger.debug(
                                 f"Terminology Name: {self.name}\tTerminology ID: {self.id}"
                             )
                             code["system"] = "-"
@@ -297,7 +303,7 @@ class Terminology(Serializable):
             )
         else:
             msg = f"The terminology, '{self.name}' ({self.id}), has no code, '{code}'"
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def rename_code(
@@ -415,7 +421,7 @@ class Terminology(Serializable):
             # coding.save()
 
             if len(old_values["codes"]) == 0:
-                logging.debug(
+                logger.debug(
                     f"Soft deleting mappings for code: {code}, Terminology: {self.name} but there were no mappings."
                 )
 
@@ -646,7 +652,7 @@ class Terminology(Serializable):
             else:
                 message = f"No coding found in {self.name} for code, {code}."
 
-        logging.debug(message)
+        logger.debug(message)
         return message
 
     def get_preferred_terminology(self):
@@ -717,7 +723,7 @@ class Terminology(Serializable):
         self.preferred_terminologies = []
         self.save()
 
-        logging.debug(message)
+        logger.debug(message)
         return message
 
     class _Schema(Schema):

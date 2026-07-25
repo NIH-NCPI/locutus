@@ -1,11 +1,14 @@
-from flask_restful import Resource
-from flask import request
-from locutus import normalize_ftd_placeholders
-from locutus.model.terminology import Terminology as Term, MappingUserInputModel
-from locutus.model.exceptions import APIError, LackingUserID
-from locutus.api import default_headers, get_editor
-from bson import json_util
 import json
+
+from bson import json_util
+from flask import request
+from flask_restful import Resource
+
+from locutus import normalize_ftd_placeholders
+from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.model.terminology import MappingUserInputModel
+from locutus.model.terminology import Terminology as Term
 
 
 class TerminologyMappings(Resource):
