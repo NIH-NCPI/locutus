@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, ClassVar, Literal, Self, overload
+from typing import Any, ClassVar, Literal, Self, cast, overload
 
 from nanoid import generate
 
@@ -122,8 +122,8 @@ class Serializable:
             .set(self.dump())
         )
 
-    def dump(self):
-        return self.__class__._get_schema().dump(self)
+    def dump(self) -> dict:
+        return cast(dict, self.__class__._get_schema().dump(self))
 
     def load(self, resource):
         # We probably will want to use the schema to validate this first

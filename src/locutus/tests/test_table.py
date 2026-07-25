@@ -42,7 +42,8 @@ def basic_table(sample_terminology):
 
     t = Terminology.get(table.terminology.reference_id())
     # t.global_id().delete()
-    t.delete(hard_delete=True)
+    if t is not None:
+        t.delete(hard_delete=True)
 
     table.delete(hard_delete=True)
 

@@ -55,7 +55,9 @@ def test_terminology_rename(client):
     )
     assert response.status_code == 201
 
-    term = Terminology.get("ontology-two").realize_as_dict()
+    term_obj = Terminology.get("ontology-two")
+    assert term_obj is not None
+    term = term_obj.realize_as_dict()
     assert term["codes"][0]["code"] == "Code01"
 
     response = client.patch(
@@ -71,6 +73,7 @@ def test_terminology_rename(client):
     assert response.status_code == 201
 
     term = Terminology.get("ontology-two")
+    assert term is not None
     assert term.codes[1].dereference().display == "second code"
     assert term.codes[1].dereference().description == "second desc"
 
@@ -211,6 +214,7 @@ def test_terminology_add_and_delete_code(client):
     assert len(term["codes"]) == 2
 
     coding = Coding.get(new_coding_id)
+    assert isinstance(coding, Coding)
     coding.delete()
 
     term = Terminology.get(term_id)

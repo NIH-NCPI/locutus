@@ -20,6 +20,7 @@ class MappingRelationshipModel:
 
         # Mappings have been moved into the Coding:
         coding = Coding.get(terminology_id=id, code=code)
+        assert isinstance(coding, Coding)
 
         try:
             coding.set_mapping_relationship(

@@ -133,6 +133,7 @@ def test_terminology_id(sample_terminology):
         description="A sample oncology terminology",
     )
 
+    assert term.id is not None
     assert term.id[0:3] == "tm-"
     # term.global_id().delete()
     term.delete()
