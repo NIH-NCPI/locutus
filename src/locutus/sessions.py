@@ -1,12 +1,18 @@
 import logging
 import secrets
+import tempfile
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
+from cachelib.file import FileSystemCache
 from flask import session
-
 from flask_session import Session
 
 logger = logging.getLogger(__name__)
+
+# Session cache lives outside the repo (system temp dir) so it never collides
+# with source files or gets mistaken for part of the project tree.
+SESSION_CACHE_DIR = Path(tempfile.gettempdir()) / "locutus_flask_session"
 
 
 class SessionManager:
@@ -23,8 +29,11 @@ class SessionManager:
         # Generates a secure 32-character hex key to encrypt session data
         self.app.config["SECRET_KEY"] = secrets.token_hex(16)
 
-        # Store session info on server filesystem
-        self.app.config["SESSION_TYPE"] = "filesystem"
+        # Store session info on server filesystem, outside the repo tree
+        self.app.config["SESSION_TYPE"] = "cachelib"
+        self.app.config["SESSION_CACHELIB"] = FileSystemCache(
+            cache_dir=str(SESSION_CACHE_DIR)
+        )
 
         # Extra security
         self.app.config["SESSION_COOKIE_HTTPONLY"] = True
