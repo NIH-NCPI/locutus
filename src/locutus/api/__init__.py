@@ -1,5 +1,5 @@
-from locutus.sessions import SessionManager
 from locutus import get_code_index
+from locutus.sessions import SessionManager
 
 default_headers = [
     ("Content-Type", "application/fhir+json"),
@@ -17,7 +17,7 @@ def delete_collection(collection, batch_size=100):
         docs = collection.list_documents(page_size=batch_size)
         for doc in docs:
             doc.delete()
-            del_count += 1
+            del_count += 1  # noqa: SIM113 - also drives the outer while loop, not just an index
             total_deleted += 1
 
     return total_deleted

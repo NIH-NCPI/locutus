@@ -8,10 +8,13 @@ Current Use:
 
 """
 
+from typing import Any
+
 from marshmallow import Schema, fields, post_load
+
 from locutus.api import generate_mapping_index, get_editor
-from locutus.sessions import SessionManager
 from locutus.model.exceptions import LackingUserID
+from locutus.sessions import SessionManager
 
 from .simple import Simple
 
@@ -19,10 +22,22 @@ USER_INPUT_CHAR_LIMIT = 1000
 
 
 class UserInput:
+    """Mixin used alongside Simple by concrete subclasses (MappingConversation,
+    MappingVote), which provide terminology_id/source_code/mapped_code and
+    Simple's find()/get()."""
+
+    terminology_id: Any
+    source_code: Any
+    mapped_code: Any
+
     def __init__(self, return_format, input_type, update_policy):
         self.return_format = return_format
         self.input_type = input_type
         self.update_policy = update_policy
+
+    @classmethod
+    def find(cls, *args, **kwargs) -> Any:
+        raise NotImplementedError
 
     @classmethod
     def get_input_class(cls, type):
@@ -88,7 +103,7 @@ class UserInput:
             existing_data["code"] = existing_data["source_code"]
             return existing_data
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - surfaces whatever failed to the caller
             return (
                 f"An error occurred while retrieving user input for {id} {resource_type} - {code}/{mapped_code}: {e}"
             ), 500
@@ -206,7 +221,7 @@ class UserInput:
             content["code"] = content["source_code"]
             return content
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - surfaces whatever failed to the caller
             return (
                 f"An error occurred while updating firestore {id} \
                     {resource_type} - {document_id}: {e}"
@@ -372,8 +387,8 @@ class MappingConversation(Simple, UserInput):
 
         @post_load
         def build_mapping_conversations(self, data, **kwargs):
-            """Transforms deserialized data into a MappingConversations instance."""
-            return MappingConversation(data["mapping_conversations"])
+            """Transforms deserialized data into a MappingConversation instance."""
+            return MappingConversation(**data)
 
     def to_dict(self):
         """Converts the list of mapping conversations to a dictionary format.
@@ -526,7 +541,7 @@ class MappingVote(Simple, UserInput):
             Returns:
                 dict: A dictionary representation of the mapping votes.
             """
-            return MappingVote(data["mapping_votes"])
+            return MappingVote(**data)
 
     def to_dict(self):
         """Converts the list of mapping votes to a dictionary format."""

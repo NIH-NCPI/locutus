@@ -1,9 +1,10 @@
 import pytest
 
-from .test_terminology import sample_terminology
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology
 from locutus.model.variable import Variable
+
+from .test_terminology import sample_terminology
 
 
 @pytest.fixture
@@ -41,7 +42,8 @@ def basic_table(sample_terminology):
 
     t = Terminology.get(table.terminology.reference_id())
     # t.global_id().delete()
-    t.delete(hard_delete=True)
+    if t is not None:
+        t.delete(hard_delete=True)
 
     table.delete(hard_delete=True)
 

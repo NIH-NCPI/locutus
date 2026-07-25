@@ -1,4 +1,5 @@
 import pytest
+
 from locutus.model import GlobalID
 
 
@@ -122,6 +123,7 @@ def test_global_id_creation_minimal():
 
     assert gid.resource_type == "DataDictionary"
     assert gid.key == "LOINC"
+    assert gid.id is not None
     assert gid.id[0:3] == "dd-"
     assert gid.object_id is None
     gid.delete()

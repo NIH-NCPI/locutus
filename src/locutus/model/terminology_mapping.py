@@ -1,7 +1,7 @@
 from locutus import get_code_index
-from locutus.model.terminology import Coding
-from locutus.model.lookups import FTDConceptMapTerminology
 from locutus.api.terminology_mapping import TerminologyMappings
+from locutus.model.lookups import FTDConceptMapTerminology
+from locutus.model.terminology import Coding
 
 
 class MappingRelationshipModel:
@@ -20,6 +20,7 @@ class MappingRelationshipModel:
 
         # Mappings have been moved into the Coding:
         coding = Coding.get(terminology_id=id, code=code)
+        assert isinstance(coding, Coding)
 
         try:
             coding.set_mapping_relationship(
@@ -29,7 +30,7 @@ class MappingRelationshipModel:
             )
 
         except Exception as e:
-            print(f"An error occurred while setting the mapping relationship: {str(e)}")
+            print(f"An error occurred while setting the mapping relationship: {e!s}")
             raise
 
         response = TerminologyMappings.get_mappings(id)

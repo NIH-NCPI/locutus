@@ -56,7 +56,7 @@ from locutus.sessions import SessionManager
 
 
 def create_app(config_filename=None):
-    llevel = os.getenv("LOCUTUS_LOGLEVEL", logging.WARN)
+    llevel = os.getenv("LOCUTUS_LOGLEVEL", logging.WARNING)
 
     setup_logging(level=llevel, log_file=None)
 
@@ -227,12 +227,14 @@ def create_app(config_filename=None):
         if path.startswith("api/"):
             return "404 Not Found", 404
         else:
+            assert app.static_folder is not None
             return send_from_directory(app.static_folder, "index.html")
 
     @app.errorhandler(404)
     @cross_origin(allow_headers=["Content-Type"])
     def not_found(e):
         if e.get_response().status == "404 NOT FOUND":
+            assert app.static_folder is not None
             return send_from_directory(app.static_folder, "index.html")
 
         return (

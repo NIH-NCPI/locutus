@@ -1,4 +1,6 @@
 from copy import deepcopy
+from typing import Any, ClassVar, Literal, Self, cast, overload
+
 from nanoid import generate
 
 import locutus
@@ -6,10 +8,16 @@ import locutus.model.global_id
 
 
 class Serializable:
+    # Every concrete subclass defines its own marshmallow Schema and to_dict();
+    # left loosely typed here rather than constraining subclasses' exact shape.
+    _Schema: ClassVar[Any]
     _schema = None
     # Register each of our data_types with their corresponding class for
     # deserialization
-    _factory_workers = {}
+    _factory_workers: ClassVar[dict] = {}
+
+    def to_dict(self) -> dict:
+        raise NotImplementedError
 
     def __init__(self, id=None, _id=None, collection_type=None, resource_type=None):
         self.id = id
@@ -51,6 +59,16 @@ class Serializable:
 
         return resource_class.get(id=id, return_instance=return_instance)
 
+    @overload
+    @classmethod
+    def get(cls, id: None = None, return_instance: bool = True) -> list[Any]: ...
+    @overload
+    @classmethod
+    def get(cls, id: str, return_instance: Literal[True] = True) -> Self | None: ...
+    @overload
+    @classmethod
+    def get(cls, id: str, return_instance: Literal[False]) -> dict | None: ...
+
     @classmethod
     def get(cls, id=None, return_instance=True):
         """Pull instance from the database and (default) instantiate"""
@@ -82,6 +100,9 @@ class Serializable:
             # the global ID table altogether.
             # gid = locutus.model.global_id.GlobalID(resource_type=self.resource_type, key=":".join(self.keys()))
             # self.id = gid.id
+            assert self.resource_type is not None, (
+                "resource_type must be set before identify() is called"
+            )
             self.id = f"{locutus.model.resource_types[self.resource_type]._id_prefix}-{generate()}"
 
     def save(self):
@@ -89,9 +110,9 @@ class Serializable:
 
         if self._id is None and id is not None:
             id_matches = self.__class__.get(self.id, return_instance=False)
-            if id_matches is not None and len(id_matches) > 0:
-                if type(id_matches) is list:
-                    id_matches = id_matches[0]
+            if isinstance(id_matches, list) and len(id_matches) > 0:
+                id_matches = id_matches[0]
+            if isinstance(id_matches, dict):
                 self._id = id_matches["_id"]
 
         self._id = (
@@ -101,15 +122,15 @@ class Serializable:
             .set(self.dump())
         )
 
-    def dump(self):
-        return self.__class__._get_schema().dump(self)
+    def dump(self) -> dict:
+        return cast(dict, self.__class__._get_schema().dump(self))
 
     def load(self, resource):
         # We probably will want to use the schema to validate this first
         self.__init__(**resource)
 
     def all(self):
-        locutus.persistence().collection(self.resource_type).documents()
+        return self.__class__.get(id=None)
 
     # Returns 1 or more keys, the first of which is recognized as the primary
     # and all subsequent keys are useful lookups. The primary key is what is

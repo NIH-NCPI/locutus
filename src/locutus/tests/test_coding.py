@@ -1,10 +1,9 @@
 # test_coding.py
 import pytest
-from locutus.model.coding import Coding, CodingMapping
-from locutus import get_code_index
-
-
 from rich import print
+
+from locutus import get_code_index
+from locutus.model.coding import Coding, CodingMapping
 
 
 @pytest.fixture
@@ -45,7 +44,7 @@ class TestCoding:
     def test_coding_initialization_required_fields(self):
         """Tests successful initialization with only required fields."""
         with pytest.raises(TypeError):
-            Coding(code="SNOMED", system="https://snomedct.org")
+            Coding(code="SNOMED", system="https://snomedct.org")  # pyright: ignore[reportCallIssue] - deliberately omits required terminology_id
 
         with pytest.raises(ValueError, match="Term ID is required for all Codings."):
             Coding(terminology_id="", code="SNOMED", system="https://snomedct.org")
@@ -77,11 +76,13 @@ class TestCoding:
             code=coding_one.code,
             valid_only=False,
         )
+        assert isinstance(coding, Coding)
         assert not coding.valid
         coding = Coding(terminology_id="term1", code="SNOMED", system="SNOMED CT")
         coding.save()
 
         c = Coding.get(code="SNOMED", system="SNOMED CT")
+        assert isinstance(c, Coding)
         assert c.code == coding.code
         assert c.terminology_id == coding.terminology_id
         coding.delete(hard_delete=True)
@@ -126,6 +127,7 @@ class TestCoding:
         assert len(codes) == 2
 
         code = Coding.get(system=coding_one.system, code=coding_one.code)
+        assert isinstance(code, Coding)
         assert code.code == coding_one.code
         assert code.system == coding_one.system
         assert code.terminology_id == coding_one.terminology_id
@@ -154,6 +156,7 @@ class TestCoding:
         db_copy = Coding.get(
             terminology_id=coding_one.terminology_id, code=coding_one.code
         )
+        assert isinstance(db_copy, Coding)
         assert len(db_copy.mappings) == 2
 
         assert db_copy.mappings[0].code == "MAP_C1_A"
@@ -167,6 +170,7 @@ class TestCoding:
         db_copy = Coding.get(
             terminology_id=coding_one.terminology_id, code=coding_one.code
         )
+        assert isinstance(db_copy, Coding)
         assert len(db_copy.mappings) == 1
         assert db_copy.mappings[0].code == "MAP_C1_B"
         assert db_copy.mappings[0].mapping_relationship == "equivalent"
@@ -177,6 +181,7 @@ class TestCoding:
         db_copy = Coding.get(
             terminology_id=coding_one.terminology_id, code=coding_one.code
         )
+        assert isinstance(db_copy, Coding)
         assert len(db_copy.mappings) == 0
 
     def test_coding_with_dots(self):
@@ -254,47 +259,47 @@ class TestCoding:
         )
         c11.save()
         c = Coding.get(terminology_id="term1", code=".")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "."
 
         c = Coding.get(terminology_id="term1", code="..")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == ".."
 
         c = Coding.get(terminology_id="term1", code=".term")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == ".term"
 
         c = Coding.get(terminology_id="term1", code="..term")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "..term"
 
         c = Coding.get(terminology_id="term1", code="/")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "/"
 
         c = Coding.get(terminology_id="term1", code="/slash")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "/slash"
 
         c = Coding.get(terminology_id="term1", code="slash/")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "slash/"
 
         c = Coding.get(terminology_id="term1", code="#")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "#"
 
         c = Coding.get(terminology_id="term1", code="#hash")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "#hash"
 
         c = Coding.get(terminology_id="term1", code="ha#sh")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "ha#sh"
 
         c = Coding.get(terminology_id="term1", code="hash#")
-        assert c is not None
+        assert isinstance(c, Coding)
         assert c.code == "hash#"
 
         codes = Coding.get(terminology_id="term1")

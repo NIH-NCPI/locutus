@@ -2,10 +2,13 @@
 import logging
 import os
 import re
+from typing import ClassVar
 from urllib.parse import unquote, urlparse
 
 from bson import ObjectId
 from pymongo import MongoClient
+
+logger = logging.getLogger(__name__)
 
 uri_filter = re.compile(r"(mongodb:\/\/[^:]*:)([^@]*)(@)")
 
@@ -33,7 +36,7 @@ class DocumentSnapshot:
         return this
 
     def delete(self):
-        self._collection.delete_one({"_id": ObjectId(self._doc_id)})
+        self._collection.delete_one({"_id": ObjectId(self.id)})
 
 
 class DocumentReference:
@@ -167,16 +170,19 @@ class CollectionReference:
     def list_documents(self, page_size):
         return [doc for doc in self.stream()]
 
+    def create_index(self, keys):
+        return self._collection.create_index(keys)
+
 
 def filter_uri(uri):
     return uri_filter.sub(r"\1****\3", uri)
 
 
 class FirestoreCompatibleClient:
-    logging.info("FirestoreCompatibleClient")
+    logger.info("FirestoreCompatibleClient")
     from locutus.model import resource_types, simple_types
 
-    allowed_collections = set(
+    allowed_collections: ClassVar[set] = set(
         list(resource_types.keys()) + simple_types + ["OntologyAPI"]
     )
 
@@ -188,7 +194,7 @@ class FirestoreCompatibleClient:
         parsed = urlparse(filter_uri(mongo_uri))
         db_name = unquote(parsed.path.lstrip("/")) if parsed.path else None
 
-        logging.info(f"Database name parsed: '{db_name}'")
+        logger.info(f"Database name parsed: '{db_name}'")
         if not db_name:
             raise ValueError("Database name must be specified in the Mongo URI path!")
         self.client = MongoClient(mongo_uri)
@@ -199,11 +205,11 @@ class FirestoreCompatibleClient:
                 raise ValueError(
                     f"The specified database, {db_name}, isn't present in the database. Available DBs include: {', '.join(self.client.list_database_names())}"
                 )
-            logging.error(f"Database, {db_name}, not currently found.")
+            logger.error(f"Database, {db_name}, not currently found.")
         self.db = self.client[db_name]
         self.db_name = db_name
         self.collection_list = self.db.list_collection_names()
-        logging.info(
+        logger.info(
             f"List of database collections in the connected DB: \n{', '.join(self.collection_list)}"
         )
 
@@ -213,7 +219,7 @@ class FirestoreCompatibleClient:
                 FirestoreCompatibleClient.allowed_collections
             )
             msg = f"{collection_name} is not present in the database. Available collections are:\n * {collection_names}"
-            logging.info(msg)
+            logger.info(msg)
 
             raise KeyError(msg)
         return CollectionReference(self.db[collection_name])

@@ -1,15 +1,16 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.table import Table as mTable
-from locutus.model.provenance import Provenance
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
-from locutus.api import default_headers, get_editor
-from locutus.api.datadictionary import DataDictionaries
-from locutus.model.exceptions import APIError, LackingUserID
+import json
 from copy import deepcopy
 
 from bson import json_util
-import json
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers, get_editor
+from locutus.api.datadictionary import DataDictionaries
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.provenance import Provenance
+from locutus.model.table import Table as mTable
 
 
 class TableRenameCode(Resource):
@@ -44,7 +45,7 @@ class TableRenameCode(Resource):
             description_updates = {}
 
         var_list = sorted(
-            list(set(list(varname_updates.keys()) + list(description_updates.keys())))
+            set(list(varname_updates.keys()) + list(description_updates.keys()))
         )
 
         for var in var_list:

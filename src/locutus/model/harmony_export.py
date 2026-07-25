@@ -6,9 +6,9 @@ column headers and format.
 
 """
 
+from datetime import UTC, datetime
 from enum import StrEnum
-from datetime import datetime
-
+from typing import ClassVar
 
 FTD_DATE_FORMAT = "%Y-%m-%d"
 
@@ -35,8 +35,8 @@ def harmony_exporter(
 class HarmonyBase:
     # For any derived class that wants a different header, we'll
     # use the map to offset any differences
-    _header_map = {}
-    _header_base = [
+    _header_map: ClassVar[dict] = {}
+    _header_base: ClassVar[list] = [
         "study_title",
         "study_name",
         "study_id",
@@ -61,18 +61,14 @@ class HarmonyBase:
         self.data = []
 
     def header(self):
-        return [
-            self._header_map[col] if col in self._header_map else col
-            for col in self._header_base
-        ]
+        return [self._header_map.get(col, col) for col in self._header_base]
 
     def init_data(self):
         # use default column names unless there is a special mapping for it
         # in _header_map
-        if self.output_format == HarmonyOutputFormat.CSV:
-            if len(self.data) == 0:
-                self.data.append(self.header())
-                return self.data[0]
+        if self.output_format == HarmonyOutputFormat.CSV and len(self.data) == 0:
+            self.data.append(self.header())
+            return self.data[0]
 
         # for JSON files, we'll merge them into the objects
         # as properties so no header needed
@@ -126,7 +122,7 @@ class HarmonyBase:
 
 
 class WhistleHarmony(HarmonyBase):
-    _header_map = {
+    _header_map: ClassVar[dict] = {
         "source_text": "local code",
         "source_description": "text",
         "source_domain": "table_name",
@@ -149,5 +145,5 @@ class FtdHarmony(HarmonyBase):
 
 def basic_date(t=None):
     if t is None:
-        t = datetime.now()
+        t = datetime.now(UTC)
     return t.strftime(FTD_DATE_FORMAT)

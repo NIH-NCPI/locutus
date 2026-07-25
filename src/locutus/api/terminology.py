@@ -1,11 +1,13 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.terminology import Terminology as Term
-from locutus.model.exceptions import APIError, LackingUserID
-from flask_cors import cross_origin
-from locutus.api import default_headers, get_editor
-from bson import json_util
 import json
+
+from bson import json_util
+from flask import request
+from flask_cors import cross_origin
+from flask_restful import Resource
+
+from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.model.terminology import Terminology as Term
 
 
 class TerminologyEdit(Resource):
@@ -92,12 +94,10 @@ class TerminologyRenameCode(Resource):
             description_updates = {}
 
         code_list = sorted(
-            list(
-                set(
-                    list(code_updates.keys())
-                    + list(display_updates.keys())
-                    + list(description_updates.keys())
-                )
+            set(
+                list(code_updates.keys())
+                + list(display_updates.keys())
+                + list(description_updates.keys())
             )
         )
         try:

@@ -1,13 +1,14 @@
 """Generic Harmony export that allows users to specify one or more IDs to add to a single harmony result"""
 
-from flask_restful import Resource
-from flask import request
-from locutus.model.study import build_combined_harmony
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
-from locutus.api import default_headers
+import json
 
 from bson import json_util
-import json
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.study import build_combined_harmony
 
 
 class CombinedHarmony(Resource):
@@ -19,10 +20,8 @@ class CombinedHarmony(Resource):
         table_ids = request.args.get("tables", "")
 
         try:
-            if data_format:
-                data_format = HarmonyFormat(data_format)
-            if file_format:
-                file_format = HarmonyOutputFormat(file_format)
+            data_format = HarmonyFormat(data_format)
+            file_format = HarmonyOutputFormat(file_format)
 
             harmony = build_combined_harmony(
                 study_ids=study_ids,
