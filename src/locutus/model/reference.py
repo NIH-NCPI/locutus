@@ -41,10 +41,12 @@ class Reference(Serializable):
         does cache this locally, but that shouldn't be trusted for more
         than a single block."""
         if self._reference is None:
+            assert self.reference is not None
             resource_type, id = self.reference.split("/")
             self._reference = Serializable.pull(resource_type, id)
 
         return self._reference
 
     def reference_id(self):
+        assert self.reference is not None
         return self.reference.split("/")[-1]

@@ -12,7 +12,9 @@ from pathlib import Path
 from flask import g, has_request_context
 
 try:
-    from pythonjsonlogger import jsonlogger
+    # Only installed via the "cloud" extra (see pyproject.toml), not "dev" -
+    # unresolvable in a plain dev environment/type-checker by design.
+    from pythonjsonlogger import jsonlogger  # pyright: ignore[reportMissingImports]
 
     HAS_JSON_LOGGER = True
 except ImportError:
@@ -55,7 +57,7 @@ class RequestIDFilter(logging.Filter):
         return True
 
 
-def setup_logging(level="INFO", log_file="output/log.txt"):
+def setup_logging(level: str | int = "INFO", log_file: str | None = "output/log.txt"):
     """If rich is installed and we are running inside a tty, we'll use rich's
     built in handler for logging and will simplify the format since otherwise,
     there is duplicated information.

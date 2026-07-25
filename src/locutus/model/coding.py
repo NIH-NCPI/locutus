@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class BasicCoding:
-    def __init__(self, code, display, system, description: str | None = ""):
+    def __init__(self, code, display: str | None, system, description: str | None = ""):
 
         if display is None:
             display = ""
@@ -139,7 +139,7 @@ class Coding(Simple, BasicCoding):
         self,
         terminology_id,
         code,
-        display="",
+        display: str | None = "",
         system=None,
         description: str | None = "",
         rank=0,

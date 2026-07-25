@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from bson import ObjectId
 
@@ -83,8 +83,8 @@ class Simple:
         #     print(self.dump())
         #     print("--------------------------")
 
-    def dump(self):
-        return self.__class__._get_schema().dump(self)
+    def dump(self) -> dict:
+        return cast(dict, self.__class__._get_schema().dump(self))
 
     def load(self, resource):
         # We probably will want to use the schema to validate this first

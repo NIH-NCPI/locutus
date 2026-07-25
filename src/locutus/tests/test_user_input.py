@@ -57,7 +57,7 @@ def create_user_input(
     code="C1",
     mapped_code="MAPPED_CODE",
 ):
-    return UserInput.create_or_replace_user_input(
+    result = UserInput.create_or_replace_user_input(
         resource_type="Terminology",
         collection_type="user_input",
         id=terminology_id,
@@ -67,20 +67,11 @@ def create_user_input(
         input_value=input_value,
         editor=editor,
     )
+    assert isinstance(result, dict)
+    return result
 
 
 class TestMappingConversations:
-    def get_input_class(self, type):
-        """
-        Returns the appropriate UserInput subclass for the given type.
-        """
-        if type == "mapping_conversations":
-            return MappingConversation()
-        elif type == "mapping_votes":
-            return MappingVote()
-        else:
-            raise ValueError("Invalid input type specified.")
-
     def test_duplicate_votes(self, sample_terminology):
         mv1 = MappingVote(
             terminology_id=sample_terminology.id,
@@ -218,6 +209,7 @@ class TestMappingConversations:
             mapped_code="MAPPED_CODE",
             type="mapping_conversations",  # "mapping_votes"
         )
+        assert isinstance(uitotal, dict)
         assert len(uitotal["mapping_conversations"]) == 3
         assert uitotal["mapped_code"] == "MAPPED_CODE"
         assert uitotal["code"] == "C1"
@@ -239,6 +231,7 @@ class TestMappingConversations:
             mapped_code="MAPPED_CODE",
             type="mapping_conversations",  # "mapping_votes"
         )
+        assert isinstance(uitotal, dict)
         assert "message" in uitotal
         assert uitotal["message"] == "No user input for this mapping."
 
@@ -287,6 +280,7 @@ class TestMappingConversations:
             mapped_code="MAPPED_CODE",
             type="mapping_votes",  # "mapping_votes"
         )
+        assert isinstance(uitotal, dict)
         assert len(uitotal["mapping_votes"]) == 2
         assert uitotal["mapped_code"] == "MAPPED_CODE"
         assert uitotal["code"] == "C1"
@@ -308,5 +302,6 @@ class TestMappingConversations:
             mapped_code="MAPPED_CODE",
             type="mapping_votes",  # "mapping_votes"
         )
+        assert isinstance(uitotal, dict)
         assert "message" in uitotal
         assert uitotal["message"] == "No user input for this mapping."

@@ -1,3 +1,5 @@
+from typing import cast
+
 from marshmallow import Schema, fields, post_load
 from nanoid import generate
 
@@ -74,8 +76,8 @@ class GlobalID(Simple):
             .set(self.dump())
         )
 
-    def dump(self):
-        return self.__class__._get_schema().dump(self)
+    def dump(self) -> dict:
+        return cast(dict, self.__class__._get_schema().dump(self))
 
     @classmethod
     def load(cls, resource):
