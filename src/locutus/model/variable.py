@@ -59,7 +59,11 @@ class Variable:
         BOOLEAN = 6
         ENUMERATION = 7
 
-    def __init__(self, code="", name="", description=""):
+    # Every concrete subclass overrides this, both at the class level and
+    # again per-instance in its own __init__.
+    data_type: typing.Optional["Variable.DataType"] = None
+
+    def __init__(self, code="", name="", description: str | None = ""):
         """Default variable type is a basic string"""
         # super().__init__(self, "Variable", self.__class__.__name__)
         self.name = locutus.strip_none(name)
@@ -71,6 +75,8 @@ class Variable:
             self.code = self.name
 
     class _Schema(Schema):
+        _parent: type | None = None
+
         @post_load
         def build_variable(self, data, **kwargs):
             args = deepcopy(data)
@@ -85,6 +91,9 @@ class Variable:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        assert cls.data_type is not None, (
+            f"{cls.__name__} must set a data_type class attribute"
+        )
         cls._factory_workers[cls.data_type.name.lower()] = cls
 
     @classmethod
@@ -137,7 +146,7 @@ class EnumerationVariable(Variable):
         # but if it comes in as None, we have to be careful.
         enums = enumerations
         if enums:
-            enums = enumerations.get("reference")
+            enums = enums.get("reference")
         else:
             raise ValueError(
                 f"{self.name}, {self.data_type} must be defined with a proper list of enumerations."
@@ -146,6 +155,12 @@ class EnumerationVariable(Variable):
 
     def get_mappings(self):
         t = self.get_terminology()
+        if not isinstance(t, Terminology):
+            # ValueError, not TypeError: the reference itself is stale/missing,
+            # not a caller passing the wrong argument type.
+            raise ValueError(  # noqa: TRY004
+                f"{self.name}'s enumerations reference a terminology that no longer exists."
+            )
         mappings = t.mappings()
 
         return mappings

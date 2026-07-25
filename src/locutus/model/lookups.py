@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from search_dragon.support import ftd_ontology_lookup
 
@@ -28,6 +28,12 @@ class ResourceSingletonBase:
     """
 
     _instances: ClassVar[dict] = {}
+
+    # Set in __new__ only (this class deliberately has no __init__, since
+    # cached singleton instances shouldn't be re-initialized on every "call").
+    db: Any
+    termref: Any
+    _cached_resource: Any
 
     def __new__(cls, resource_name, is_collection=False):
         """Ensure only one instance of each terminology or collection is created."""

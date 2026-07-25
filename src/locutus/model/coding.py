@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class BasicCoding:
-    def __init__(self, code, display, system, description=""):
+    def __init__(self, code, display, system, description: str | None = ""):
 
         if display is None:
             display = ""
@@ -141,7 +141,7 @@ class Coding(Simple, BasicCoding):
         code,
         display="",
         system=None,
-        description="",
+        description: str | None = "",
         rank=0,
         valid=True,
         id=None,
@@ -205,9 +205,7 @@ class Coding(Simple, BasicCoding):
             mapping = CodingMapping(**mp)
             self.mappings.append(mapping)
 
-        self.api_preferences = api_preferences
-        if self.api_preferences is None:
-            self.api_preferences = {}
+        self.api_preferences: dict = {} if api_preferences is None else api_preferences
 
         """
         if api_preferences is None:
@@ -326,7 +324,7 @@ class Coding(Simple, BasicCoding):
                 self.save()
 
                 Provenance.add_mapping_provenance(
-                    temrinology_id=self.terminology_id,
+                    terminology_id=self.terminology_id,
                     target_coding=self.code,
                     editor=editor,
                     action=Provenance.ChangeType.EditMapping,

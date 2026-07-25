@@ -111,6 +111,9 @@ class Terminology(Serializable):
 
                         code = Coding(**code)
                 if ref is None:
+                    # By construction: if we get here, `code` was either
+                    # already a Coding instance, or just became one above.
+                    assert isinstance(code, Coding)
                     code.system = self.url
                     code.save()
                     ref = SimpleReference(f"Coding/{code.id}")
@@ -122,7 +125,7 @@ class Terminology(Serializable):
                         locutus.model.provenance.Provenance.ChangeType.AddTerm,
                         editor=editor,
                         target="self",
-                        new_value=code.code,
+                        new_value=ref.dereference().code,
                     )
             # Be sure to capture the references we just created
             self.save()
@@ -159,10 +162,8 @@ class Terminology(Serializable):
         ):
             prov.delete(hard_delete=hard_delete)
 
-        all_codings = locutus.model.coding.Coding.get(
-            terminology_id=self.id, valid_only=False
-        )
-        if type(all_codings) is locutus.model.coding.Coding:
+        all_codings = Coding.get(terminology_id=self.id, valid_only=False)
+        if type(all_codings) is Coding:
             all_codings = [all_codings]
 
         for coding in all_codings:
@@ -212,9 +213,7 @@ class Terminology(Serializable):
                 new_to_codes = False
             else:
                 # If it's not in codes, but it is in the database...
-                coding = locutus.model.coding.Coding.get(
-                    terminology_id=self.id, code=code
-                )
+                coding = Coding.get(terminology_id=self.id, code=code)
 
                 if coding == []:
                     coding = None
@@ -226,7 +225,7 @@ class Terminology(Serializable):
                     )
 
             # Finally, the code is not really new, so all we are doing is updating valid status
-            if coding is not None:
+            if isinstance(coding, Coding):
                 if coding.valid is False:
                     self.add_provenance(
                         locutus.model.provenance.Provenance.ChangeType.EditTerm,
@@ -345,24 +344,24 @@ class Terminology(Serializable):
                     new_values.append(f"description: {new_description}")
                     code.description = new_description
 
-                old_values = ",".join(old_values)
-                new_values = ",".join(new_values)
+                old_values_str = ",".join(old_values)
+                new_values_str = ",".join(new_values)
 
                 code.save()
                 self.save()
-                if new_values:
+                if new_values_str:
                     self.add_provenance(
                         change_type=locutus.model.provenance.Provenance.ChangeType.EditTerm,
                         target=original_code,
-                        old_value=old_values,
-                        new_value=new_values,
+                        old_value=old_values_str,
+                        new_value=new_values_str,
                         editor=editor,
                     )
                     self.add_provenance(
                         change_type=locutus.model.provenance.Provenance.ChangeType.EditTerm,
                         target="self",
-                        old_value=old_values,
-                        new_value=new_values,
+                        old_value=old_values_str,
+                        new_value=new_values_str,
                         editor=editor,
                     )
                     if original_code != new_code:
@@ -408,6 +407,8 @@ class Terminology(Serializable):
         if code is not None:
             # Ensure codes are not placeholders at this point.
             coding = self.get_coding(code)
+            if coding is None:
+                raise locutus.model.exceptions.CodeNotPresent(code, self.id)
 
             old_values = {"code": coding.code, "codes": coding.delete_mappings()}
 
@@ -754,6 +755,7 @@ class Terminology(Serializable):
 
 
 class MappingUserInputModel:
+    @staticmethod
     def generate_mapping_user_input(id, code, mapped_code, user_id):
         """Mappings may have user_input data stored seperate from the mapping itself.
         This function collects and formats the user_input data for a given mapping,
@@ -800,6 +802,7 @@ class MappingUserInputModel:
             "users_vote": user_vote,
         }
 
+    @staticmethod
     def get_mapping_votes_counts(mapping_votes):
         """Counts up and down votes for a given mapping"""
         return {
