@@ -8,17 +8,29 @@ from locutus.model.terminology import Terminology as Term
 
 
 class OntologyAPISearchPreferences(Resource):
-    def get(self, id=None, code=None):
+    def get(self, id: str, code: str | None = None):
 
         # Optional parameter
         table_id = request.args.get("table_id", default=None)
 
         t = Term.get(id)
+        if t is None:
+            return (
+                {"message_to_user": f"No terminology found with id {id}"},
+                404,
+                default_headers,
+            )
         pref = t.get_preference(code=code)
 
         # get the prefs from the table if none exist for the terminology
         if table_id and not any(pref.values()):
             tb = Table.get(table_id)
+            if tb is None:
+                return (
+                    {"message_to_user": f"No table found with id {table_id}"},
+                    404,
+                    default_headers,
+                )
             try:
                 pref = tb.get_preference(code=code)
             except KeyError as e:
@@ -84,7 +96,7 @@ class OntologyAPISearchPreferences(Resource):
 
 
 class PreferredTerminology(Resource):
-    def get(self, id=None):
+    def get(self, id: str):
         """
         Retrieve the preferred terminology for a specific Terminology
 
@@ -107,12 +119,24 @@ class PreferredTerminology(Resource):
         table_id = request.args.get("table_id", default=None)
 
         t = Term.get(id)
+        if t is None:
+            return (
+                {"message_to_user": f"No terminology found with id {id}"},
+                404,
+                default_headers,
+            )
 
         pref = t.get_preferred_terminology()
 
         # get the prefs from the table if none exist for the terminology
         if table_id and not any(pref.values()):
             tb = Table.get(table_id)
+            if tb is None:
+                return (
+                    {"message_to_user": f"No table found with id {table_id}"},
+                    404,
+                    default_headers,
+                )
             try:
                 pref = tb.get_preferred_terminology()
             except KeyError as e:

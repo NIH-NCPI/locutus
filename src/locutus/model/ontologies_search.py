@@ -116,6 +116,7 @@ class OntologyAPI(Serializable):
 
 
 class OntologyAPISearchModel:
+    @staticmethod
     def run_search_dragon(keywords, ontologies, apis, results_per_page, start_index):
         onto_seed_data = OntologyAPICollection()
         onto_data = onto_seed_data.get_ontology_data("system")

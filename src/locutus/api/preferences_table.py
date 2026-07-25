@@ -69,7 +69,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
 
 class TablePreferredTerminology(Resource):
-    def get(self, id=None):
+    def get(self, id: str):
         """
         Retrieve the preferred terminology for a specific Terminology
 
@@ -89,6 +89,12 @@ class TablePreferredTerminology(Resource):
         }
         """
         t = mTable.get(id)
+        if t is None:
+            return (
+                {"message_to_user": f"No table found with id {id}"},
+                404,
+                default_headers,
+            )
 
         pref = t.get_preferred_terminology()
 
