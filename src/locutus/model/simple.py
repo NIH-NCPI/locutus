@@ -1,9 +1,9 @@
 from copy import deepcopy
 from typing import Any, ClassVar
 
-import locutus
-
 from bson import ObjectId
+
+import locutus
 
 
 class Simple:
@@ -13,7 +13,7 @@ class Simple:
     # left loosely typed here rather than constraining subclasses' exact shape.
     _Schema: ClassVar[Any]
     _schema = None
-    _factory_workers = {}
+    _factory_workers: ClassVar[dict] = {}
 
     def to_dict(self) -> dict:
         raise NotImplementedError

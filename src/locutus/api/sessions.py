@@ -1,7 +1,8 @@
-from flask_restful import Resource
 from flask import request
-from locutus.model.exceptions import APIError, LackingUserID
+from flask_restful import Resource
+
 from locutus.api import default_headers
+from locutus.model.exceptions import APIError, LackingUserID
 
 
 class SessionStart(Resource):

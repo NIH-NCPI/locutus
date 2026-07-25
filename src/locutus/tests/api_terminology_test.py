@@ -1,8 +1,9 @@
+from locutus.model import GlobalID
+from locutus.model.coding import Coding
+from locutus.model.terminology import Terminology
+
 from . import client
 from .test_terminology import ftd_concept_relationships, sample_terminology
-from locutus.model.terminology import Terminology
-from locutus.model.coding import Coding
-from locutus.model import GlobalID
 
 
 def test_terminology_get(client, ftd_concept_relationships, sample_terminology):

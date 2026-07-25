@@ -1,10 +1,9 @@
 # test_coding.py
 import pytest
-from locutus.model.coding import Coding, CodingMapping
-from locutus import get_code_index
-
-
 from rich import print
+
+from locutus import get_code_index
+from locutus.model.coding import Coding, CodingMapping
 
 
 @pytest.fixture

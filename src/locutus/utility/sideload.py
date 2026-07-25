@@ -12,6 +12,8 @@ from locutus.model.exceptions import APIError, LackingRequiredParameter
 from locutus.model.table import Table
 from locutus.model.variable import Variable
 
+logger = logging.getLogger(__name__)
+
 
 def GetTerminology(table, source_variable, source_enum):
     if source_enum == source_variable:
@@ -46,17 +48,16 @@ def SetMappings(mapping_entries):
 
     _cur_table = None
 
-    mappings = dict()
+    mappings = {}
 
     # Let's verify the prov is present for all of them before starting
     # just to prevent having duplicates if some do have prov at the start
     for row in mapping_entries:
         source_variable = row["source_variable"]
         source_enumeration = row["source_enumeration"]
-        if row["provenance"].strip() == "":
-            # We will try to tolerate empty lines
-            if row["source_variable"].strip() != "":
-                raise LackingRequiredParameter("provenance")
+        # We will try to tolerate empty lines
+        if row["provenance"].strip() == "" and row["source_variable"].strip() != "":
+            raise LackingRequiredParameter("provenance")
 
         # If we are trying to map to nothing, then we have a problem
         if (
@@ -71,7 +72,7 @@ def SetMappings(mapping_entries):
             _cur_table = Table.get(row["table_id"])
 
         if _cur_table is None:
-            logging.error(f"Unable to find a table with the ID, {row['table_id']}")
+            logger.error(f"Unable to find a table with the ID, {row['table_id']}")
             raise APIError(f"unable to find table with the ID, {row['table_id']}")
 
         source_variable = row["source_variable"]
@@ -89,8 +90,8 @@ def SetMappings(mapping_entries):
 
                 try:
                     source_enumeration = var.code
-                except Exception:
-                    logging.error(f"{_cur_table.id} has no variable, {source_variable}")
+                except Exception:  # noqa: BLE001 - best-effort CSV row processing, log and continue
+                    logger.error(f"{_cur_table.id} has no variable, {source_variable}")
 
             key = f"{term.id}-{source_enumeration}"
             if key not in mappings:

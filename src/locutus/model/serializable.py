@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import Any, ClassVar
+
 from nanoid import generate
 
 import locutus
@@ -13,7 +14,7 @@ class Serializable:
     _schema = None
     # Register each of our data_types with their corresponding class for
     # deserialization
-    _factory_workers = {}
+    _factory_workers: ClassVar[dict] = {}
 
     def to_dict(self) -> dict:
         raise NotImplementedError

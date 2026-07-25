@@ -1,6 +1,6 @@
-from .simple import Simple
 from marshmallow import Schema, fields, post_load
 
+from .simple import Simple
 
 """
 The reference just represents a placeholder for an entity from another table

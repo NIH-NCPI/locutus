@@ -1,7 +1,8 @@
 import pytest
 
-from . import client
 from locutus.model.ontologies_search import OntologyAPI
+
+from . import client
 
 
 @pytest.fixture

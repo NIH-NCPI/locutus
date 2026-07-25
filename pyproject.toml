@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = ["marshmallow",
+                "cachelib",
                 "flask",
                 "flask-cors",
                 "flask-restful",

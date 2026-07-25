@@ -1,7 +1,8 @@
+from locutus.model.study import Study
+
 from . import client
 from .test_study import basic_study
 from .test_terminology import sample_terminology
-from locutus.model.study import Study
 
 
 def test_study_none(client):

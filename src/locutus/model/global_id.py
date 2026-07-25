@@ -1,8 +1,9 @@
-import locutus
-import locutus.model
-from typing import Optional
 from marshmallow import Schema, fields, post_load
 from nanoid import generate
+
+import locutus
+import locutus.model
+
 from .simple import Simple
 
 """
@@ -18,7 +19,6 @@ from .simple import Simple
 
 class GlobalID(Simple):
     _schema = None
-    global resource_types
 
     def __init__(
         self, resource_type, key, domain="", id=None, object_id=None, _id=None
@@ -111,7 +111,7 @@ class GlobalID(Simple):
         return [[("resource_type", 1), ("domain", 1), ("key", 1)]]
 
     class _Schema(Schema):
-        _parent: Optional[type] = None
+        _parent: type | None = None
         id = fields.Str()
         resource_type = fields.Str(required=True)
         key = fields.Str(required=True)

@@ -1,25 +1,29 @@
-from flask_restful import Resource
+import json
+
+from bson import json_util
 from flask import request
+from flask_cors import cross_origin
+from flask_restful import Resource
+
 from locutus import (
     normalize_ftd_placeholders,
 )
-from locutus.model.terminology import (
-    Terminology as Term,
-    MappingUserInputModel,
-)
-from locutus.model.coding import CodingMapping
+from locutus.api import default_headers, get_editor
 from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.model.terminology_mapping import MappingRelationshipModel
+from locutus.model.coding import CodingMapping
 from locutus.model.exceptions import (
     APIError,
     CodeNotPresent,
     LackingRequiredParameter,
     LackingUserID,
 )
-from flask_cors import cross_origin
-from locutus.api import default_headers, get_editor
-from bson import json_util
-import json
+from locutus.model.terminology import (
+    MappingUserInputModel,
+)
+from locutus.model.terminology import (
+    Terminology as Term,
+)
+from locutus.model.terminology_mapping import MappingRelationshipModel
 
 
 class TerminologyMapping(Resource):

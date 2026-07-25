@@ -1,9 +1,10 @@
-from flask_restful import Resource
 from flask import request
-from locutus.model.terminology import Terminology as Term
-from locutus.model.table import Table
-from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
+from flask_restful import Resource
+
 from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
+from locutus.model.table import Table
+from locutus.model.terminology import Terminology as Term
 
 
 class OntologyAPISearchPreferences(Resource):
@@ -23,9 +24,8 @@ class OntologyAPISearchPreferences(Resource):
             except KeyError as e:
                 return {"message_to_user": str(e)}, 400, default_headers
 
-        if code is None:
-            if "self" not in pref:
-                pref = {"self": pref}
+        if code is None and "self" not in pref:
+            pref = {"self": pref}
 
         return (pref, 200, default_headers)
 

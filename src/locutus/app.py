@@ -56,7 +56,7 @@ from locutus.sessions import SessionManager
 
 
 def create_app(config_filename=None):
-    llevel = os.getenv("LOCUTUS_LOGLEVEL", logging.WARN)
+    llevel = os.getenv("LOCUTUS_LOGLEVEL", logging.WARNING)
 
     setup_logging(level=llevel, log_file=None)
 

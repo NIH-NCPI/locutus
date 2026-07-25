@@ -29,9 +29,7 @@ def main():
             "submit",
             "--region=" + args.region,
             "--config=cloudbuild.yaml",
-            "--substitutions=_PROJECT_ID={},_IMAGE_NAME={},_SERVICE_NAME={},_REGION={}".format(
-                args.project, args.image, args.service, args.region
-            ),
+            f"--substitutions=_PROJECT_ID={args.project},_IMAGE_NAME={args.image},_SERVICE_NAME={args.service},_REGION={args.region}",
         ],
         check=True,
     )

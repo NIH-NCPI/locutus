@@ -1,7 +1,8 @@
+from locutus.model.table import Table
+
 from . import client
 from .test_table import basic_table
 from .test_terminology import sample_terminology
-from locutus.model.table import Table
 
 
 def test_table_get(client, sample_terminology, basic_table):
