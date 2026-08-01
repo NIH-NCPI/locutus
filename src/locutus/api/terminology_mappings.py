@@ -1,15 +1,14 @@
-from flask_restful import Resource
-from flask import request
-from locutus import FTD_PLACEHOLDERS, normalize_ftd_placeholders
-from locutus.model.terminology import Terminology as Term, MappingUserInputModel
-from locutus.model.exceptions import *
-from flask_cors import cross_origin
-from locutus.api import default_headers, delete_collection, get_editor
-from locutus.sessions import SessionManager
-from bson import json_util 
 import json
 
-import pdb
+from bson import json_util
+from flask import request
+from flask_restful import Resource
+
+from locutus import normalize_ftd_placeholders
+from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.model.terminology import MappingUserInputModel
+from locutus.model.terminology import Terminology as Term
 
 
 class TerminologyMappings(Resource):
@@ -27,7 +26,6 @@ class TerminologyMappings(Resource):
             term = Term.get(id)
 
             if term is not None:
-
                 response = {
                     "terminology": {
                         "Reference": f"Terminology/{term.id}",
@@ -37,7 +35,6 @@ class TerminologyMappings(Resource):
                 mappings = term.mappings()
 
                 for code in mappings:
-
                     # Ensure codes are not placeholders at this point.
                     code = normalize_ftd_placeholders(code)
 
@@ -51,7 +48,7 @@ class TerminologyMappings(Resource):
                             )
                             codingmapping.user_input = user_input_data
                         # Returns valid=true mappings or mappings without the 'valid' attribute.
-                        if codingmapping.valid != False:
+                        if codingmapping.valid:
                             mapping["mappings"].append(codingmapping.to_dict())
 
                     response["codes"].append(mapping)

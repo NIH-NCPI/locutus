@@ -1,26 +1,29 @@
-from flask_restful import Resource
+import json
+
+from bson import json_util
 from flask import request
+from flask_cors import cross_origin
+from flask_restful import Resource
+
 from locutus import (
-    get_code_index,
-    FTD_PLACEHOLDERS,
     normalize_ftd_placeholders,
+)
+from locutus.api import default_headers, get_editor
+from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.model.coding import CodingMapping
+from locutus.model.exceptions import (
+    APIError,
+    CodeNotPresent,
+    LackingRequiredParameter,
+    LackingUserID,
+)
+from locutus.model.terminology import (
+    MappingUserInputModel,
 )
 from locutus.model.terminology import (
     Terminology as Term,
-    MappingUserInputModel,
 )
-from locutus.model.coding import (
-    Coding, 
-    CodingMapping
-)
-from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.model.terminology_mapping import MappingRelationshipModel
-from locutus.model.exceptions import *
-from locutus.sessions import SessionManager
-from flask_cors import cross_origin
-from locutus.api import default_headers, get_editor
-from bson import json_util 
-import json
 
 
 class TerminologyMapping(Resource):
@@ -54,7 +57,7 @@ class TerminologyMapping(Resource):
                     )
                     codingmapping.user_input = user_input_data
                 # Returns valid=true mappings or mappings without the 'valid' attribute.
-                if codingmapping.valid != False:
+                if codingmapping.valid:
                     response["mappings"].append(codingmapping.to_dict())
 
             return (json.loads(json_util.dumps(response)), 200, default_headers)
@@ -90,13 +93,15 @@ class TerminologyMapping(Resource):
             editor = get_editor(body=body, editor=None)
             if editor is None:
                 raise LackingUserID(editor)
-            
+
             mappings = body["mappings"]
 
             # Ensure each mapping has a 'system' key
             for i, mapping in enumerate(mappings):
                 if "system" not in mapping or mapping["system"] is None:
-                    raise LackingRequiredParameter(f"Missing required parameter 'system' in mapping at index {i}")
+                    raise LackingRequiredParameter(
+                        f"Missing required parameter 'system' in mapping at index {i}"
+                    )
 
             codingmapping = [CodingMapping(**x) for x in mappings]
 
@@ -116,7 +121,6 @@ class TerminologyMapping(Resource):
 
 
 class MappingRelationship(Resource):
-
     def put(self, id, code, mapped_code):
         body = request.get_json()
 

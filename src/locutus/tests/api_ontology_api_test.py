@@ -1,10 +1,8 @@
 import pytest
 
-from . import client
-from .test_terminology import ftd_concept_relationships, sample_terminology
-from .test_study import basic_study
-from .test_table import basic_table
 from locutus.model.ontologies_search import OntologyAPI
+
+from . import client
 
 
 @pytest.fixture
@@ -13,8 +11,12 @@ def ontology_apis():
     # by hand in the target database. Seed the minimum records here so the
     # suite is self-contained and passes against a fresh database (e.g. in CI).
     apis = [
-        OntologyAPI(api_id="ols", api_url="https://www.ebi.ac.uk/ols4/api", api_name="OLS"),
-        OntologyAPI(api_id="umls", api_url="https://uts-ws.nlm.nih.gov/rest", api_name="UMLS"),
+        OntologyAPI(
+            api_id="ols", api_url="https://www.ebi.ac.uk/ols4/api", api_name="OLS"
+        ),
+        OntologyAPI(
+            api_id="umls", api_url="https://uts-ws.nlm.nih.gov/rest", api_name="UMLS"
+        ),
     ]
     for api in apis:
         api.save()
@@ -29,6 +31,7 @@ def test_ontoapi_get(client, ontology_apis):
 
     apis = response.json
     assert len(apis) >= 2
+
 
 def test_ontoapi_get_with_id(client, ontology_apis):
     response = client.get("/api/OntologyAPI/ols")

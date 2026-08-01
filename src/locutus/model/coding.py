@@ -1,20 +1,20 @@
 import logging
-import pdb
-from collections import defaultdict
 
 from bson import ObjectId
 from marshmallow import Schema, fields, post_load
-from pymongo import ASCENDING
 
 import locutus
 from locutus.model.exceptions import APIError
 from locutus.model.lookups import FTDConceptMapTerminology, FTDOntologyLookup
+from locutus.model.provenance import Provenance
 
 from .simple import Simple
 
+logger = logging.getLogger(__name__)
+
 
 class BasicCoding:
-    def __init__(self, code, display, system, description=""):
+    def __init__(self, code, display: str | None, system, description: str | None = ""):
 
         if display is None:
             display = ""
@@ -139,25 +139,27 @@ class Coding(Simple, BasicCoding):
         self,
         terminology_id,
         code,
-        display="",
+        display: str | None = "",
         system=None,
-        description="",
+        description: str | None = "",
         rank=0,
         valid=True,
         id=None,
         resource_type=None,
         editor=None,
         _id=None,
-        mappings=[],
+        mappings=None,
         api_preferences=None,
     ):
+        if mappings is None:
+            mappings = []
         if not isinstance(terminology_id, str) or not terminology_id.strip():
             raise ValueError("Term ID is required for all Codings.")
         if not isinstance(code, str) or not code.strip():
             raise ValueError("Code is a required string and cannot be empty.")
         if not isinstance(system, str) or not system.strip():
-            logging.error(f"Coding instantiated without a system")
-            logging.error(f"{terminology_id}/{_id}:{code} - {system} ")
+            logger.error("Coding instantiated without a system")
+            logger.error(f"{terminology_id}/{_id}:{code} - {system} ")
             raise ValueError("System is a required string and cannot be empty.")
 
         if _id is None:
@@ -203,9 +205,7 @@ class Coding(Simple, BasicCoding):
             mapping = CodingMapping(**mp)
             self.mappings.append(mapping)
 
-        self.api_preferences = api_preferences
-        if self.api_preferences is None:
-            self.api_preferences = {}
+        self.api_preferences: dict = {} if api_preferences is None else api_preferences
 
         """
         if api_preferences is None:
@@ -324,7 +324,7 @@ class Coding(Simple, BasicCoding):
                 self.save()
 
                 Provenance.add_mapping_provenance(
-                    temrinology_id=self.terminology_id,
+                    terminology_id=self.terminology_id,
                     target_coding=self.code,
                     editor=editor,
                     action=Provenance.ChangeType.EditMapping,

@@ -1,10 +1,10 @@
-from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
 
-from locutus.model.reference import Reference
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
+from locutus.model.reference import Reference
 
+from .serializable import Serializable
 
 """
 A data-dictionary is a collection of tables that, together, describe the 
@@ -30,11 +30,20 @@ references to the various tables that comprise the data-dictionary
 class DataDictionary(Serializable):
     _id_prefix = "dd"
 
-    def __init__(self, id=None, _id=None, name=None, description=None, 
-                    tables=None,
-                    resource_type=None):
+    def __init__(
+        self,
+        id=None,
+        _id=None,
+        name=None,
+        description=None,
+        tables=None,
+        resource_type=None,
+    ):
         super().__init__(
-            id, _id=_id, collection_type="DataDictionary", resource_type="DataDictionary"
+            id,
+            _id=_id,
+            collection_type="DataDictionary",
+            resource_type="DataDictionary",
         )
         self.id = id
         self.name = name
@@ -52,11 +61,9 @@ class DataDictionary(Serializable):
 
         treference = f"Table/{table_id}"
 
-        idx = 0
-        for tblref in self.tables:
+        for idx, tblref in enumerate(self.tables):
             if tblref.reference == treference:
                 matching_references.append(idx)
-            idx += 1
 
         if len(matching_references) > 0:
             for ref in matching_references:
@@ -67,25 +74,31 @@ class DataDictionary(Serializable):
     def keys(self):
         return [self.name]
 
-    def as_harmony(self, 
-                harmony_exporter=None,
-                harmony_format=HarmonyFormat.Whistle,
-                harmony_output_format=HarmonyOutputFormat.JSON,
-                **kwargs):
+    def as_harmony(
+        self,
+        harmony_exporter=None,
+        harmony_format=HarmonyFormat.Whistle,
+        harmony_output_format=HarmonyOutputFormat.JSON,
+        **kwargs,
+    ):
 
-        if kwargs.get('version') is None:
-            kwargs['version'] = basic_date()
+        if kwargs.get("version") is None:
+            kwargs["version"] = basic_date()
 
         if harmony_exporter is None:
-            harmony_exporter = build_harmony_exporter(harmony_format=harmony_format, output_format=harmony_output_format)
+            harmony_exporter = build_harmony_exporter(
+                harmony_format=harmony_format, output_format=harmony_output_format
+            )
 
         total_mappings = []
         for table in self.tables:
-            total_mappings += table.dereference().as_harmony(harmony_exporter=harmony_exporter, 
+            total_mappings += table.dereference().as_harmony(
+                harmony_exporter=harmony_exporter,
                 dd_name=self.name,
                 dd_id=self.id,
-                **kwargs)
-        
+                **kwargs,
+            )
+
         return total_mappings
 
     class _Schema(Schema):

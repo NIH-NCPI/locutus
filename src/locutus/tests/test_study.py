@@ -1,11 +1,6 @@
-import json
-
 import pytest
 
-from locutus.model.global_id import GlobalID
 from locutus.model.study import Study
-
-from .test_terminology import ftd_concept_relationships, sample_terminology
 
 
 @pytest.fixture

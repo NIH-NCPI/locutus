@@ -1,12 +1,8 @@
-import json
-import pdb
-
 import pytest
 from rich import print
 
 from locutus.model.coding import Coding, CodingMapping
 from locutus.model.exceptions import CodeAlreadyPresent, InvalidValueError
-from locutus.model.global_id import GlobalID
 from locutus.model.terminology import Terminology
 
 
@@ -137,6 +133,7 @@ def test_terminology_id(sample_terminology):
         description="A sample oncology terminology",
     )
 
+    assert term.id is not None
     assert term.id[0:3] == "tm-"
     # term.global_id().delete()
     term.delete()
@@ -158,7 +155,7 @@ def test_terminology_prov_on_init(sample_terminology_with_editor):
     p1 = prov["changes"][0]
     assert p1["action"] == "Create Terminology"
     assert p1["editor"] == "unit tests"
-    assert p1["target"] == "self" or p1["target"] == None
+    assert p1["target"] == "self" or p1["target"] is None
     assert "timestamp" in p1
 
     # We started with 2 codes in it, so the provenance should include those two
@@ -204,7 +201,7 @@ def test_add_code(sample_terminology):
     assert prov["new_value"] == "C3"
 
     # Verify that we can't add the same code twice
-    with pytest.raises(CodeAlreadyPresent) as e_info:
+    with pytest.raises(CodeAlreadyPresent):
         sample_terminology.add_code(
             code="C3",
             display="Code Three",
@@ -226,7 +223,7 @@ def test_remove_code(sample_terminology):
     assert prov["new_value"] == "C1"
 
     # Test removing a non-existent code
-    with pytest.raises(KeyError) as e_info:
+    with pytest.raises(KeyError):
         sample_terminology.remove_code("C99", editor="unit-test")
     assert len(sample_terminology.codes) == 1
 
@@ -654,39 +651,39 @@ def test_delete_mappings(ftd_concept_relationships, sample_terminology):
 
 def test_mapping_relationship(ftd_concept_relationships, sample_terminology):
     try:
-        mapping_c1_editorA = CodingMapping(
+        CodingMapping(
             code="MAP_C1_A",
             display="Map C1 A",
             system="http://map.com/A",
             mapping_relationship="equivalent",
         )
-        mapping_c1_editorB = CodingMapping(
+        CodingMapping(
             code="MAP_C1_B",
             display="Map C1 B",
             system="http://map.com/B",
             mapping_relationship="source-is-narrower-than-target",
         )
-        mapping_c2_editorA = CodingMapping(
+        CodingMapping(
             code="MAP_C2_A",
             display="Map C2 A",
             system="http://map.com/A",
             mapping_relationship="source-is-broader-than-target",
         )
-        mapping_c2_editorB = CodingMapping(
+        CodingMapping(
             code="MAP_C2_B",
             display="Map C2 A",
             system="http://map.com/A",
             mapping_relationship="",
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - fail the test clearly on any unexpected error
         raise pytest.fail(
             f"There was a problem with acceptable mapping relationships: {e}"
         )
 
     with pytest.raises(
         InvalidValueError, match="is not valid. The value should be one of"
-    ) as e_info:
-        mapping_c2_editorA = CodingMapping(
+    ):
+        CodingMapping(
             "MAP_C2_A", "Map C2 A", "http://map.com/A", mapping_relationship="asdf"
         )
 

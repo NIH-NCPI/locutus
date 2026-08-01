@@ -12,7 +12,9 @@ from pathlib import Path
 from flask import g, has_request_context
 
 try:
-    from pythonjsonlogger import jsonlogger
+    # Only installed via the "cloud" extra (see pyproject.toml), not "dev" -
+    # unresolvable in a plain dev environment/type-checker by design.
+    from pythonjsonlogger import jsonlogger  # pyright: ignore[reportMissingImports]
 
     HAS_JSON_LOGGER = True
 except ImportError:
@@ -30,7 +32,7 @@ try:
 except ImportError:
     IS_RICH = False
 
-from typing import Callable, DefaultDict, Dict, List, TypeVar
+logger = logging.getLogger(__name__)
 
 
 def is_interactive():
@@ -55,7 +57,7 @@ class RequestIDFilter(logging.Filter):
         return True
 
 
-def setup_logging(level="INFO", log_file="output/log.txt"):
+def setup_logging(level: str | int = "INFO", log_file: str | None = "output/log.txt"):
     """If rich is installed and we are running inside a tty, we'll use rich's
     built in handler for logging and will simplify the format since otherwise,
     there is duplicated information.
@@ -172,7 +174,7 @@ def get_code_index(code):
       code_index(str):
       Examples: `given0x2Fcode' or <FTD-DOT-DOT>`
     """
-    logging.warning(f"get_code_index call: \n{''.join(traceback.format_stack()[-2])}")
+    logger.warning(f"get_code_index call: \n{''.join(traceback.format_stack()[-2])}")
     return code
     # Ensure any codes with designated placeholders have them in place at indexing.
     if code in REVERSE_FTD_PLACEHOLDERS:
@@ -202,7 +204,7 @@ def format_ftd_code(code, curie):
     if code and curie == "":
         return code
     else:
-        logging.warning(
+        logger.warning(
             f"Something went wrong trying to format the ftd_code. {curie}:{code}"
         )
         return code
@@ -226,4 +228,9 @@ def init_base_storage(filepath="db"):
 
     return _persistence
 """
+
+# Deliberately imported this late: locutus.storage.mongo imports locutus.model
+# at class-definition time, which transitively imports locutus.api, which
+# needs get_code_index (defined above) from this module. Importing storage
+# any earlier in this file creates a circular import.
 from .storage import persistence

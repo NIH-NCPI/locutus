@@ -1,4 +1,4 @@
-from locutus.model.exceptions import *
+from locutus.model.exceptions import InvalidValueError
 
 
 def validate_enums(codes, enums, additional_enums=None):

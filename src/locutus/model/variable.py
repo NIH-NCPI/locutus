@@ -1,13 +1,17 @@
 import logging
+import typing
+from copy import deepcopy
+from datetime import datetime
+from enum import Enum
 
 from marshmallow import Schema, fields, post_load
+from marshmallow.exceptions import ValidationError
 
 import locutus
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
-from locutus.model.terminology import Terminology as Term
 
-from . import Serializable
+logger = logging.getLogger(__name__)
 
 """
 A Variable lives inside a table and doesn't exist as a unit on its own, thus
@@ -29,13 +33,6 @@ the type of variable that is being represented/validated/etc.
 
 """
 
-import typing
-from copy import deepcopy
-from datetime import datetime
-from enum import Enum
-
-from marshmallow.exceptions import ValidationError
-
 
 class InvalidVariableDefinition(Exception):
     def __init__(self, varname, var_data):
@@ -51,7 +48,7 @@ class Variable:
     _schema = None
     # Register each of our data_types with their corresponding class for
     # deserialization
-    _factory_workers = {}
+    _factory_workers: typing.ClassVar[dict] = {}
 
     class DataType(Enum):
         STRING = 1
@@ -62,7 +59,11 @@ class Variable:
         BOOLEAN = 6
         ENUMERATION = 7
 
-    def __init__(self, code="", name="", description=""):
+    # Every concrete subclass overrides this, both at the class level and
+    # again per-instance in its own __init__.
+    data_type: typing.Optional["Variable.DataType"] = None
+
+    def __init__(self, code="", name="", description: str | None = ""):
         """Default variable type is a basic string"""
         # super().__init__(self, "Variable", self.__class__.__name__)
         self.name = locutus.strip_none(name)
@@ -74,6 +75,8 @@ class Variable:
             self.code = self.name
 
     class _Schema(Schema):
+        _parent: type | None = None
+
         @post_load
         def build_variable(self, data, **kwargs):
             args = deepcopy(data)
@@ -88,6 +91,9 @@ class Variable:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        assert cls.data_type is not None, (
+            f"{cls.__name__} must set a data_type class attribute"
+        )
         cls._factory_workers[cls.data_type.name.lower()] = cls
 
     @classmethod
@@ -102,9 +108,9 @@ class Variable:
             return cls._factory_workers[data["data_type"].lower()](**vardata)
         except ValueError:
             raise
-        except:
-            logging.error(data)
-            logging.error("ERROR: An issue was encountered with the following data")
+        except Exception:  # noqa: BLE001 - deliberately wraps any failure as a domain error
+            logger.error(data)
+            logger.error("ERROR: An issue was encountered with the following data")
             raise InvalidVariableDefinition(data["name"], data)
 
     @classmethod
@@ -121,7 +127,6 @@ class StringVariable(Variable):
     def __init__(self, code="", name="", description=None):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.STRING
-        data_type = fields.Enum(Variable.DataType)
 
     class _Schema(Schema):
         name = fields.Str(required=True)
@@ -141,7 +146,7 @@ class EnumerationVariable(Variable):
         # but if it comes in as None, we have to be careful.
         enums = enumerations
         if enums:
-            enums = enumerations.get("reference")
+            enums = enums.get("reference")
         else:
             raise ValueError(
                 f"{self.name}, {self.data_type} must be defined with a proper list of enumerations."
@@ -150,6 +155,12 @@ class EnumerationVariable(Variable):
 
     def get_mappings(self):
         t = self.get_terminology()
+        if not isinstance(t, Terminology):
+            # ValueError, not TypeError: the reference itself is stale/missing,
+            # not a caller passing the wrong argument type.
+            raise ValueError(  # noqa: TRY004
+                f"{self.name}'s enumerations reference a terminology that no longer exists."
+            )
         mappings = t.mappings()
 
         return mappings
@@ -188,7 +199,9 @@ class DateVariable(Variable):
         super().__init__(code=code, name=name, description=description)
         self.data_type = Variable.DataType.DATE
         if date:
-            self.date = datetime.strptime(date, format)
+            # A calendar date with no time-of-day component; a timezone
+            # would be meaningless here, so this intentionally stays naive.
+            self.date = datetime.strptime(date, format)  # noqa: DTZ007
         else:
             self.date = None
         self.format = format
@@ -289,15 +302,13 @@ class IntegerVariable(Variable):
         if not isinstance(value, (int)):
             raise ValidationError(f"Integer expected, but, {value}, was found.")
 
-        if self.min is not None:
-            if value < self.min:
-                return ValidationError(
-                    f"Integer value, {value}, is lower than the specified minimum, {self.min}."
-                )
+        if self.min is not None and value < self.min:
+            return ValidationError(
+                f"Integer value, {value}, is lower than the specified minimum, {self.min}."
+            )
 
-        if self.max is not None:
-            if value > self.max:
-                return ValidationError(
-                    f"Integer value, {value}, is larger than the specified maximum, {self.max}."
-                )
+        if self.max is not None and value > self.max:
+            return ValidationError(
+                f"Integer value, {value}, is larger than the specified maximum, {self.max}."
+            )
         return IntegerVariable._validation_helper._validated(value)

@@ -1,7 +1,6 @@
-from .serializable import Serializable
 from marshmallow import Schema, fields, post_load
-import locutus
 
+from .serializable import Serializable
 
 """
 The reference just represents a placeholder for an entity from another table
@@ -42,10 +41,12 @@ class Reference(Serializable):
         does cache this locally, but that shouldn't be trusted for more
         than a single block."""
         if self._reference is None:
+            assert self.reference is not None
             resource_type, id = self.reference.split("/")
             self._reference = Serializable.pull(resource_type, id)
 
         return self._reference
 
     def reference_id(self):
+        assert self.reference is not None
         return self.reference.split("/")[-1]

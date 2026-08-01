@@ -1,11 +1,13 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.study import Study as mStudyTerm
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
-from locutus.api import default_headers
-
-from bson import json_util 
 import json
+
+from bson import json_util
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers
+from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.study import Study as mStudyTerm
+
 
 class Studies(Resource):
     def get(self):
@@ -40,13 +42,13 @@ class Studies(Resource):
 
     def delete_dd_references(self, id):
         affected_ids = 0
-        
+
         for study in mStudyTerm.get(return_instance=True):
             matched_references = study.remove_dd(id)
 
             if matched_references > 0:
                 study.save()
-                affected_ids += matched_references 
+                affected_ids += matched_references
 
         return affected_ids
 
@@ -95,10 +97,11 @@ class StudyEdit(Resource):
         study.save()
         return json.loads(json_util.dumps(study.dump())), 200, default_headers
 
+
 class StudyHarmony(Resource):
     def get(self, id):
-        data_format = request.args.get('format', 'Whistle')
-        file_format = request.args.get('file-format', 'JSON')
+        data_format = request.args.get("format", "Whistle")
+        file_format = request.args.get("file-format", "JSON")
 
         try:
             if data_format:
@@ -108,13 +111,15 @@ class StudyHarmony(Resource):
         except ValueError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
-        print(f"Exporting Study Harmony: ")
+        print("Exporting Study Harmony: ")
         print(f"Harmony format: {data_format}")
         print(f"File format: {file_format}")
         t = mStudyTerm.get(id)
 
         try:
-            harmony = t.as_harmony(harmony_format=data_format, harmony_output_format=file_format)
+            harmony = t.as_harmony(
+                harmony_format=data_format, harmony_output_format=file_format
+            )
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
         return json.loads(json_util.dumps(harmony)), 200, default_headers

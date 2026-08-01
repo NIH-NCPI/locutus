@@ -1,10 +1,12 @@
-from flask_restful import Resource
-from flask import request
-from locutus.model.table import Table as mTable
-from locutus.api import default_headers, get_editor, delete_collection
-from locutus.model.exceptions import *
-from bson import json_util 
 import json
+
+from bson import json_util
+from flask import request
+from flask_restful import Resource
+
+from locutus.api import default_headers, get_editor
+from locutus.model.exceptions import APIError, LackingUserID
+from locutus.model.table import Table as mTable
 
 
 class TableOntologyAPISearchPreferences(Resource):
@@ -13,12 +15,9 @@ class TableOntologyAPISearchPreferences(Resource):
 
         try:
             prefs = t.get_preference(code=code)
-            
-            if code is None:
-                if "self" not in prefs:
-                    prefs = {
-                        "self": prefs
-                    }
+
+            if code is None and "self" not in prefs:
+                prefs = {"self": prefs}
         except KeyError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
@@ -70,7 +69,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
 
 class TablePreferredTerminology(Resource):
-    def get(self, id=None):
+    def get(self, id: str):
         """
         Retrieve the preferred terminology for a specific Terminology
 
@@ -90,6 +89,12 @@ class TablePreferredTerminology(Resource):
         }
         """
         t = mTable.get(id)
+        if t is None:
+            return (
+                {"message_to_user": f"No table found with id {id}"},
+                404,
+                default_headers,
+            )
 
         pref = t.get_preferred_terminology()
 

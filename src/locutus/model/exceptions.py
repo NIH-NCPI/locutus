@@ -1,9 +1,8 @@
 import logging
 
-from flask import session
-
 import locutus
-from flask_session import Session
+
+logger = logging.getLogger(__name__)
 
 
 class APIError(Exception):
@@ -27,7 +26,7 @@ class CodeAlreadyPresent(APIError):
         self.existing_coding = existing_coding
         self.terminology_id = terminology_id
         message = f"The code({self.code}) is already present in the terminology({terminology_id}). The existing display is ({self.existing_coding.display})."
-        logging.error(message)
+        logger.error(message)
         super().__init__(message, status_code=400)
 
 
@@ -38,7 +37,7 @@ class CodeNotPresent(APIError):
         code_index = locutus.get_code_index(code)
         # More info on code format(code vs code_index) can be found in get_code_index
         message = f"The code {self.code}, or possibly:{code_index}, is not present in the terminology({self.terminology_id})."
-        logging.error(message)
+        logger.error(message)
         super().__init__(message, status_code=404)
 
 
@@ -51,7 +50,7 @@ class InvalidValueError(APIError):
         self.value = value
         self.valid_values = valid_values
         message = f"Value({self.value}) is not valid. The value should be one of:({self.valid_values})"
-        logging.error(message)
+        logger.error(message)
         super().__init__(message, status_code=400)
 
 
@@ -63,7 +62,7 @@ class LackingUserID(APIError):
     def __init__(self, editor):
         self.editor = editor
         message = f"This action requires an editor or session! Current editor or user_id: ({self.editor})"
-        logging.error(message)
+        logger.error(message)
         super().__init__(message, status_code=400)
 
 
@@ -75,5 +74,5 @@ class LackingRequiredParameter(APIError):
     def __init__(self, param):
         self.param = param
         message = f"This action requires the parameter: '{self.param}'"
-        logging.error(message)
+        logger.error(message)
         super().__init__(message, status_code=400)

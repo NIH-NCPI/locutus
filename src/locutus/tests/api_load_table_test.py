@@ -1,14 +1,7 @@
-from copy import deepcopy
-
-import pytest
-
 from locutus.model.table import Table
 
 from . import client
-from .test_datadictionary import basic_datadictionary
-from .test_study import basic_study
-from .test_table import basic_table
-from .test_terminology import ftd_concept_relationships, sample_terminology
+from .test_terminology import ftd_concept_relationships
 
 mini_table_body = {
     "name": "mini table",
@@ -53,7 +46,6 @@ mini_table_body = {
 
 
 def test_loading_table(client, ftd_concept_relationships):
-    global mini_table_body
     response = client.post(
         "/api/LoadTable",
         json=mini_table_body,
@@ -84,8 +76,6 @@ def test_loading_table(client, ftd_concept_relationships):
 
 
 def test_loading_table_put(client, ftd_concept_relationships):
-    global mini_table_body
-
     original_table = Table(
         name="FTD Table 01",
         url="http://ftd.unit.tests/basic_table/01",

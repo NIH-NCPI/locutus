@@ -1,6 +1,7 @@
-mongo_container := "locutus-mongo"
-mongo_port := "27017"
-mongo_uri := "mongodb://localhost:" + mongo_port
+mongo_container := "locmongo"
+mongo_port := env_var_or_default("MONGODB_PORT", "27017")
+dbname := "test"
+mongo_uri := "mongodb://localhost:" + mongo_port + "/"+ dbname
 
 # Start (or resume) a local MongoDB container for development
 mongo:
@@ -11,11 +12,11 @@ mongo:
 
 # Run the unit tests against the local MongoDB container
 test: mongo
-    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}}/test pytest
+    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} uv run pytest
 
 # Run the Flask app against the local MongoDB container
 run: mongo
-    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}}/locutus FLASK_APP=src/locutus/app.py flask run --debug
+    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} FLASK_APP=src/locutus/app.py uv run flask run --debug
 
 # Stop the local MongoDB container
 mongo-stop:
@@ -26,9 +27,16 @@ mongo-reset:
     docker rm -f {{mongo_container}} 2>/dev/null || true
     just mongo
 
+provision:
+  uv run --with git+https://github.com/carrollaboratory/locutus-utils locutils -db "{{mongo_uri}}" -s all
+
 # Install dependencies for local development
 install:
-    pip install ".[dev]"
+    uv sync --extra dev
+
+#Upgrade dependencies to latest versions
+upgrade:
+    uv sync --upgrade
 
 # Lint the code
 lint:

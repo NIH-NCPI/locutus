@@ -1,14 +1,10 @@
-import json
-
 import pytest
 
-from locutus.model.exceptions import InvalidValueError
-from locutus.model.global_id import GlobalID
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology
 from locutus.model.variable import Variable
 
-from .test_terminology import ftd_concept_relationships, sample_terminology
+from .test_terminology import sample_terminology
 
 
 @pytest.fixture
@@ -46,7 +42,8 @@ def basic_table(sample_terminology):
 
     t = Terminology.get(table.terminology.reference_id())
     # t.global_id().delete()
-    t.delete(hard_delete=True)
+    if t is not None:
+        t.delete(hard_delete=True)
 
     table.delete(hard_delete=True)
 

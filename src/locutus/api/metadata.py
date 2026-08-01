@@ -1,12 +1,15 @@
 import os
+
 from flask_restful import Resource
+
 from locutus._version import __version__
+
 
 class Version(Resource):
     def get(self):
         """Retrieve the VERSION environment variable. The version is set at
-        deployment. """
+        deployment."""
 
-        version = os.getenv('VERSION') or __version__
+        version = os.getenv("VERSION") or __version__
 
-        return {'version': version}
+        return {"version": version}

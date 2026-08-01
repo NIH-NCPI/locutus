@@ -1,21 +1,19 @@
 import logging
-import sys
 
-import rich
-from flask import request
 from marshmallow import Schema, fields, post_load
 
 import locutus
-from locutus.api import default_headers
-from locutus.model.exceptions import *
+from locutus.model.exceptions import CodeAlreadyPresent
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
 from locutus.model.provenance import Provenance
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
-from locutus.model.variable import InvalidVariableDefinition, Variable
+from locutus.model.variable import Variable
 
 from . import Serializable
+
+logger = logging.getLogger(__name__)
 
 """
 A Table represents a collection of dataset "variables", typically organized
@@ -60,14 +58,16 @@ class Table(Serializable):
         url=None,
         description=None,
         filename=None,
-        variables=[],
+        variables=None,
         terminology=None,
         resource_type="Table",
         editor=None,
     ):
-        logging.info(f"Creating new table: id={id}:_id={_id}")
+        if variables is None:
+            variables = []
+        logger.info(f"Creating new table: id={id}:_id={_id}")
         super().__init__(id=id, _id=_id, collection_type="Table", resource_type="Table")
-        logging.info(f"Table created: id={self.id}")
+        logger.info(f"Table created: id={self.id}")
 
         if locutus.strip_none(code) == "":
             code = locutus.strip_none(name)
@@ -90,7 +90,7 @@ class Table(Serializable):
         # This represents the "shadow" terminology that reflects the variable
         # names and descriptions associated with a given table.
         if terminology:
-            logging.info(f"Table reusing terminology: {terminology['reference']}")
+            logger.info(f"Table reusing terminology: {terminology['reference']}")
             self.terminology = Reference(reference=terminology["reference"])
         else:
             terminology = {
@@ -100,11 +100,11 @@ class Table(Serializable):
                 "codes": [],
             }
 
-            logging.info(f"Instantiating new terminology {terminology}")
+            logger.info(f"Instantiating new terminology {terminology}")
             t = Terminology(**terminology)
-            logging.info(f"Saving Table {name}")
+            logger.info(f"Saving Table {name}")
             t.save()
-            logging.info("Saved Completed")
+            logger.info("Saved Completed")
             print(
                 f"Creating Shadow Terminology for table: {self.name} -- Terminology ID: {t.id}"
             )
@@ -142,7 +142,6 @@ class Table(Serializable):
             raise KeyError(msg)
 
     def rename_var(self, original_varname, new_varname, new_description, editor):
-        status = 200
         # Ensure codes are not placeholders at this point.
         original_varname = locutus.normalize_ftd_placeholders(original_varname)
 
@@ -253,19 +252,20 @@ class Table(Serializable):
             # create an empty one if not. This may need to be moved into the
             # variable itself.
 
-            if v["data_type"] == "ENUMERATION":
-                if "enumerations" not in v or len(v["enumerations"]) < 1:
-                    # Create an empty terminology and create a reference to that
-                    # terminology
-                    t = Terminology(
-                        name=v["name"],
-                        description=v.get("description"),
-                        url=f"{self.url}/{v['name']}",
-                    )
-                    t.save()
+            if v["data_type"] == "ENUMERATION" and (
+                "enumerations" not in v or len(v["enumerations"]) < 1
+            ):
+                # Create an empty terminology and create a reference to that
+                # terminology
+                t = Terminology(
+                    name=v["name"],
+                    description=v.get("description"),
+                    url=f"{self.url}/{v['name']}",
+                )
+                t.save()
 
-                    reference = f"Terminology/{t.id}"
-                    v["enumerations"] = {"reference": reference}
+                reference = f"Terminology/{t.id}"
+                v["enumerations"] = {"reference": reference}
 
             v = Variable.deserialize(variable)
             self._insert_variable(v)
@@ -276,7 +276,7 @@ class Table(Serializable):
             self.terminology.dereference().add_code(
                 code=v.code, display=v.name, editor=editor
             )
-        except CodeAlreadyPresent as e:
+        except CodeAlreadyPresent:
             pass
 
     def build_harmony_row(
@@ -394,7 +394,7 @@ class Table(Serializable):
             return pref
 
         except Exception as e:
-            print(f"An error occurred while retrieving preferences: {str(e)}")
+            print(f"An error occurred while retrieving preferences: {e!s}")
             raise
 
     def add_or_update_pref(self, api_preference, code=None):
@@ -404,7 +404,7 @@ class Table(Serializable):
             )
 
         except Exception as e:
-            print(f"An error occurred while updating preferences: {str(e)}")
+            print(f"An error occurred while updating preferences: {e!s}")
             raise
 
     def remove_pref(self, code=None):
@@ -412,7 +412,7 @@ class Table(Serializable):
             message = self.terminology.dereference().remove_pref(code=code)
             return message
         except Exception as e:
-            print(f"An error occurred while updating preferences: {str(e)}")
+            print(f"An error occurred while updating preferences: {e!s}")
             raise
 
     def get_preferred_terminology(self):
@@ -466,7 +466,7 @@ class Table(Serializable):
             )
 
         except Exception as e:
-            print(f"An error occurred while updating preferences: {str(e)}")
+            print(f"An error occurred while updating preferences: {e!s}")
             raise
 
     def remove_preferred_terminology(self):
@@ -490,7 +490,7 @@ class Table(Serializable):
             self.terminology.dereference().remove_preferred_terminology()
 
         except Exception as e:
-            print(f"An error occurred while updating preferences: {str(e)}")
+            print(f"An error occurred while updating preferences: {e!s}")
             raise
 
     class _Schema(Schema):
