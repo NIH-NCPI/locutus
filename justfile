@@ -14,6 +14,18 @@ mongo:
 test: mongo
     LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} uv run pytest
 
+# Run the unit tests with coverage and write a markdown report to docs/coverage.md (gitignored)
+test-coverage: mongo
+    LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} uv run pytest --cov=src/locutus  -q
+    { \
+        echo "# Test Coverage Report"; \
+        echo; \
+        echo "Generated: $(date -u +'%Y-%m-%d %H:%M UTC')"; \
+        echo; \
+        uv run coverage report --format=markdown --sort=cover; \
+    } > docs/coverage.md
+    echo "Coverage report written to docs/coverage.md"
+
 # Run the Flask app against the local MongoDB container
 run: mongo
     LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} FLASK_APP=src/locutus/app.py uv run flask run --debug
