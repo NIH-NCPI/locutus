@@ -10,7 +10,7 @@ from locutus.model.table import Table as mTable
 
 
 class TableOntologyAPISearchPreferences(Resource):
-    def get(self, id, code=None):
+    def get(self, id: str, code: str | None = None):
         t = mTable.get(id)
 
         try:
@@ -23,7 +23,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
         return json.loads(json_util.dumps(prefs)), 200, default_headers
 
-    def post(self, id, code=None):
+    def post(self, id: str, code: str | None = None):
         """Create or add an `api_preference` for a specific Table or code."""
         body = request.get_json()
         t = mTable.get(id)
@@ -40,7 +40,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
-    def put(self, id, code=None):
+    def put(self, id: str, code: str | None = None):
         """Update an `api_preference` for a specific Table or code."""
         body = request.get_json()
         t = mTable.get(id)
@@ -57,7 +57,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
-    def delete(self, id, code=None):
+    def delete(self, id: str, code: str | None = None):
         """Remove an `api_preference` from a specific Table or code."""
         t = mTable.get(id)
 
@@ -100,7 +100,7 @@ class TablePreferredTerminology(Resource):
 
         return (json.loads(json_util.dumps(pref)), 200, default_headers)
 
-    def put(self, id):
+    def put(self, id: str):
         """
         Creates one or more preferred terminologies to a specific Terminology.
         This will replace what already exists. Provinance exists for this.
@@ -153,7 +153,7 @@ class TablePreferredTerminology(Resource):
         response = {"id": t.id, "references": preferred_terminologies}
         return (response, 200, default_headers)
 
-    def delete(self, id):
+    def delete(self, id: str):
         t = mTable.get(id)
 
         t.remove_preferred_terminology()

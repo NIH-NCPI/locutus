@@ -9,7 +9,7 @@ from locutus.model.terminology import Terminology
 
 
 class TableProvenance(Resource):
-    def get(self, id):
+    def get(self, id: str):
         table = Table.get(id)
         term = table.terminology.dereference()
 
@@ -20,7 +20,7 @@ class TableProvenance(Resource):
 
 
 class TableVarProvenance(Resource):
-    def get(self, id, code):
+    def get(self, id: str, code: str):
         table = Table.get(id)
         term = table.terminology.dereference()
 
@@ -33,7 +33,7 @@ class TableVarProvenance(Resource):
 
 
 class TerminologyProvenance(Resource):
-    def get(self, id):
+    def get(self, id: str):
         term = Terminology.get(id)
 
         prov = term.get_provenance(code="self")
@@ -46,7 +46,7 @@ class TerminologyProvenance(Resource):
 
 
 class TerminologyCodeProvenance(Resource):
-    def get(self, id, code):
+    def get(self, id: str, code: str):
         term = Terminology.get(id)
         prov = term.get_provenance(code=code)
         response = {

@@ -14,7 +14,7 @@ from locutus.model.table import Table as mTable
 
 
 class TableRenameCode(Resource):
-    def patch(self, id):
+    def patch(self, id: str):
         body = request.get_json()
         varname_updates = body.get("variable")
         description_updates = body.get("description")
@@ -71,7 +71,7 @@ class TableRenameCode(Resource):
 
 
 class TableEdit(Resource):
-    def put(self, id, code):
+    def put(self, id: str, code: str):
         """Add a new variable to an existing table"""
 
         table = mTable.get(id)
@@ -91,7 +91,7 @@ class TableEdit(Resource):
         table.save()
         return json.loads(json_util.dumps(table.dump())), 201, default_headers
 
-    def delete(self, id, code):
+    def delete(self, id: str, code: str):
         """Delete a Table Variable"""
 
         table = mTable.get(id)
@@ -142,10 +142,10 @@ class Tables(Resource):
 
 
 class Table(Resource):
-    def get(self, id):
+    def get(self, id: str):
         return json.loads(json_util.dumps(mTable.get(id, return_instance=False)))
 
-    def put(self, id):
+    def put(self, id: str):
         tbl = request.get_json()
         try:
             editor = get_editor(body=tbl, editor=None)
@@ -164,7 +164,7 @@ class Table(Resource):
         t.save()
         return json.loads(json_util.dumps(t.dump())), 200, default_headers
 
-    def delete(self, id):
+    def delete(self, id: str):
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)
@@ -193,7 +193,7 @@ class Table(Resource):
 
 
 class HarmonyTableCSV(Resource):
-    def get(self, id):
+    def get(self, id: str):
         data_format = request.args.get("format", "Whistle")
         file_format = request.args.get("file-format", "JSON")
 
