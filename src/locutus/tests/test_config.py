@@ -3,7 +3,7 @@ import os
 import pytest
 
 
-@pytest.mark.run(order=1)
+@pytest.mark.order(1)
 def test_os_env():
     uri = os.environ.get("MONGO_URI", "")
     # Extract DB name: gets "test" from "mongodb://localhost:27017/test?authSource=admin"

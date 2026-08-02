@@ -51,7 +51,7 @@ dev = [
 test = [
     "pytest",
     "pytest-env",
-    "pytest-ordering"
+    "pytest-order>=1.5.0"
 ]
 cloud = [
     "python-json-logger", # Only installed when explicitly requested
