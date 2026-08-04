@@ -11,7 +11,7 @@ from locutus.model.terminology import Terminology as Term
 
 
 class TerminologyEdit(Resource):
-    def put(self, id, code):
+    def put(self, id: str, code: str):
         """Add a new code to an existing terminology."""
         body = request.get_json()
         display = body.get("display")
@@ -40,7 +40,7 @@ class TerminologyEdit(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-    def delete(self, id, code):
+    def delete(self, id: str, code: str):
         """Remove a code from an existing terminology."""
         t = Term.get(id)
         body = request.get_json()
@@ -58,7 +58,7 @@ class TerminologyEdit(Resource):
 
 
 class TerminologyRenameCode(Resource):
-    def patch(self, id):
+    def patch(self, id: str):
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)
@@ -157,7 +157,7 @@ class Terminologies(Resource):
 
 
 class Terminology(Resource):
-    def get(self, id):
+    def get(self, id: str):
         response = Term.get(id, return_instance=True)
 
         if response is not None:
@@ -169,7 +169,7 @@ class Terminology(Resource):
 
         return (response, 404, default_headers)
 
-    def put(self, id):
+    def put(self, id: str):
         term = request.get_json()
         if "id" not in term:
             term["id"] = id
@@ -181,7 +181,7 @@ class Terminology(Resource):
         return json.loads(json_util.dumps(t.realize_as_dict())), 200, default_headers
 
     # @cross_origin()
-    def delete(self, id):
+    def delete(self, id: str):
         t = Term.get(id, return_instance=True)
 
         if t:

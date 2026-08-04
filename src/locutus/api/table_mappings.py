@@ -55,7 +55,7 @@ class TableMappings(Resource):
             return e.to_dict(), e.status_code, default_headers
 
     @classmethod
-    def delete(cls, id):
+    def delete(cls, id: str):
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)
@@ -78,7 +78,7 @@ class TableMappings(Resource):
         return (response, 200, default_headers)
 
     @classmethod
-    def get(cls, id):
+    def get(cls, id: str):
         response = cls.get_mappings(id)
         if response is not None:
             return (response, 200, default_headers)
@@ -86,7 +86,7 @@ class TableMappings(Resource):
 
 
 class TableMapping(Resource):
-    def get(self, id, code):
+    def get(self, id: str, code: str):
 
         user_input_param = request.args.get("user_input", default=None)
         editor_param = request.args.get("user", default=None)
@@ -121,7 +121,7 @@ class TableMapping(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-    def delete(self, id, code):
+    def delete(self, id: str, code: str):
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)
@@ -140,7 +140,7 @@ class TableMapping(Resource):
         return (response, 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
-    def put(self, id, code):
+    def put(self, id: str, code: str):
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)

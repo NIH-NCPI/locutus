@@ -37,6 +37,7 @@ dependencies = ["marshmallow",
     dev = [
     "pytest",
     "pytest-order>=1.5.0",
+    "pytest-cov",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +46,7 @@ dev = [
     "pytest",
     "pytest-env",
     "pytest-order>=1.5.0",
+    "pytest-cov",
     "ruff",
     "basedpyright"
 ]

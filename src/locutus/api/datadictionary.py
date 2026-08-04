@@ -50,7 +50,7 @@ class DataDictionaries(Resource):
 
 
 class DataDictionary(Resource):
-    def get(self, id):
+    def get(self, id: str):
         t = DD.get(id, return_instance=False)
         if t is not None:
             return json.loads(json_util.dumps(t)), 200, default_headers
@@ -58,7 +58,7 @@ class DataDictionary(Resource):
             return f"No DataDictionary with id, {id}, was found", 404, default_headers
 
     @cross_origin(allow_headers=["Content-Type"])
-    def put(self, id):
+    def put(self, id: str):
         dd = request.get_json()
         if "id" not in dd:
             dd["id"] = id
@@ -70,7 +70,7 @@ class DataDictionary(Resource):
         d.save()
         return json.loads(json_util.dumps(d.dump())), 201, default_headers
 
-    def delete(self, id):
+    def delete(self, id: str):
         dd = DD.get(id)
         d = dd.dump()
 
@@ -83,7 +83,7 @@ class DataDictionary(Resource):
 
 class DataDictionaryTable(Resource):
     @cross_origin()
-    def delete(self, id, table_id):
+    def delete(self, id: str, table_id: str):
         d = DD.get(id)
 
         refs_removed = d.remove_table(table_id)
@@ -96,7 +96,7 @@ class DataDictionaryTable(Resource):
 
 
 class DataDictionaryHarmony(Resource):
-    def get(self, id):
+    def get(self, id: str):
         data_format = request.args.get("format", "Whistle")
         file_format = request.args.get("file-format", "JSON")
 

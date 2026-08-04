@@ -54,7 +54,7 @@ class Studies(Resource):
 
 
 class Study(Resource):
-    def get(self, id):
+    def get(self, id: str):
         study = mStudyTerm.get(id)
         if study is None:
             return (
@@ -64,7 +64,7 @@ class Study(Resource):
             )
         return json.loads(json_util.dumps(study.dump())), 200, default_headers
 
-    def put(self, id):
+    def put(self, id: str):
         sty = request.get_json()
         if "id" not in sty:
             sty["id"] = id
@@ -76,7 +76,7 @@ class Study(Resource):
         study.save()
         return json.loads(json_util.dumps(study.dump())), 201, default_headers
 
-    def delete(self, id):
+    def delete(self, id: str):
         study = mStudyTerm.get(id)
         t = study.dump()
         study.delete()
@@ -85,7 +85,7 @@ class Study(Resource):
 
 
 class StudyEdit(Resource):
-    def delete(self, id, dd_id):
+    def delete(self, id: str, dd_id: str):
         study = mStudyTerm.get(id)
         count = study.remove_dd(dd_id)
         if count < 1:
@@ -99,7 +99,7 @@ class StudyEdit(Resource):
 
 
 class StudyHarmony(Resource):
-    def get(self, id):
+    def get(self, id: str):
         data_format = request.args.get("format", "Whistle")
         file_format = request.args.get("file-format", "JSON")
 

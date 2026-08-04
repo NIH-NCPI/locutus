@@ -175,7 +175,7 @@ class TableLoader(Resource):
 
 
 class TableLoader2(Resource):
-    def put(self, id):
+    def put(self, id: str):
         tblData = request.get_json()
 
         tbl = mTable.get(id)
