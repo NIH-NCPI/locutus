@@ -27,7 +27,7 @@ class TerminologyUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
 
-    def get(self, id, code, mapped_code, input_type):
+    def get(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -62,7 +62,7 @@ class TerminologyUserInput(Resource, UserInput):
 
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
 
-    def put(self, id, code, mapped_code, input_type):
+    def put(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Update the user input
 
@@ -132,7 +132,7 @@ class TableUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
 
-    def get(self, id, code, mapped_code, input_type):
+    def get(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
         Does not filter down by editor.
@@ -174,7 +174,7 @@ class TableUserInput(Resource, UserInput):
 
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
 
-    def put(self, id, code, mapped_code, input_type):
+    def put(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Update the user input
 

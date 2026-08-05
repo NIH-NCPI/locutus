@@ -41,7 +41,7 @@ class OntologyAPISearchPreferences(Resource):
 
         return (pref, 200, default_headers)
 
-    def post(self, id, code=None):
+    def post(self, id: str, code: str | None = None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
         t = Term.get(id)
@@ -64,7 +64,7 @@ class OntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
-    def put(self, id, code=None):
+    def put(self, id: str, code: str | None = None):
         """Update an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
         t = Term.get(id)
@@ -81,7 +81,7 @@ class OntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
-    def delete(self, id, code=None):
+    def delete(self, id: str, code: str | None = None):
         """Remove an `api_preference` from a specific Terminology or Code."""
         t = Term.get(id)
 
@@ -144,7 +144,7 @@ class PreferredTerminology(Resource):
 
         return (pref, 200, default_headers)
 
-    def put(self, id):
+    def put(self, id: str):
         """
         Creates one or more preferred terminologies to a specific Terminology.
         This will replace what already exists. Provinance exists for this.
@@ -197,7 +197,7 @@ class PreferredTerminology(Resource):
         response = {"id": t.id, "references": preferred_terminologies}
         return (response, 200, default_headers)
 
-    def delete(self, id):
+    def delete(self, id: str):
         """Remove a `terminology_preference` from a specific Terminology."""
 
         t = Term.get(id)

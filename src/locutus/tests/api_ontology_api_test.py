@@ -39,3 +39,8 @@ def test_ontoapi_get_with_id(client, ontology_apis):
 
     apis = response.json
     assert len(apis) == 1
+
+
+def test_ontoapi_get_with_id_not_found(client, ontology_apis):
+    response = client.get("/api/OntologyAPI/not-a-real-api")
+    assert response.status_code == 404

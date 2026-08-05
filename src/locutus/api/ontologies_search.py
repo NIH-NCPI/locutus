@@ -10,7 +10,7 @@ from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 
 
 class OntologyAPIs(Resource):
-    def get(self, api_id=None):
+    def get(self, api_id: str | None = None):
         """
         Retrieve details of all OntologyAPIs or a specific OntologyAPI by ID.
         Args:

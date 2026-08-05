@@ -59,7 +59,7 @@ class TerminologyMappings(Resource):
             return e.to_dict(), e.status_code, default_headers
 
     @classmethod
-    def delete(cls, id):
+    def delete(cls, id: str):
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)
@@ -75,7 +75,7 @@ class TerminologyMappings(Resource):
         return (json.loads(json_util.dumps(response)), 200, default_headers)
 
     @classmethod
-    def get(cls, id):
+    def get(cls, id: str):
         response = cls.get_mappings(id)
         if response is not None:
             return (json.loads(json_util.dumps(response)), 200, default_headers)

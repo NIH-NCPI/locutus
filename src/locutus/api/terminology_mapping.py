@@ -28,7 +28,7 @@ from locutus.model.terminology_mapping import MappingRelationshipModel
 
 class TerminologyMapping(Resource):
     @cross_origin()
-    def get(self, id, code):
+    def get(self, id: str, code: str):
         """
         Retrieves terminology mappings for a given code, optionally including user input details.
         """
@@ -65,7 +65,7 @@ class TerminologyMapping(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
-    def delete(self, id, code):
+    def delete(self, id: str, code: str):
         """Soft deletes all mappings for the identified terminology code."""
         body = request.get_json()
         try:
@@ -83,7 +83,7 @@ class TerminologyMapping(Resource):
         return (json.loads(json_util.dumps(response)), 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
-    def put(self, id, code):
+    def put(self, id: str, code: str):
         body = request.get_json()
 
         # Ensure codes are not placeholders at this point.
@@ -121,7 +121,7 @@ class TerminologyMapping(Resource):
 
 
 class MappingRelationship(Resource):
-    def put(self, id, code, mapped_code):
+    def put(self, id: str, code: str, mapped_code: str):
         body = request.get_json()
 
         mapping_relationship = body.get("mapping_relationship")
