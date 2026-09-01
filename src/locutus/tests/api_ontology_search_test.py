@@ -13,10 +13,10 @@ ONTOLOGY_API_CACHE_KEY = ("OntologyAPI", True)
 @pytest.fixture
 def seeded_ontology_apis():
     # OntologyAPICollection is a singleton that caches the "OntologyAPI"
-    # collection on first use and never refreshes -- see issues/021. Popping
-    # its cache entry before and after this fixture forces a fresh read of
-    # what we seed here, and stops this test from poisoning the cache for
-    # whatever test happens to run next.
+    # collection and only re-fetches once its TTL elapses (issues/021) --
+    # too slow for a test. Popping its cache entry before and after this
+    # fixture forces an immediate fresh read of what we seed here, and stops
+    # this test from poisoning the cache for whatever test runs next.
     ResourceSingletonBase._instances.pop(ONTOLOGY_API_CACHE_KEY, None)
 
     doc_ref = locutus.persistence().collection("OntologyAPI").document()
