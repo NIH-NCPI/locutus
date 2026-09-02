@@ -1,10 +1,18 @@
+from typing import Any
+
 from marshmallow import Schema, fields, post_load
 
 from locutus.model.datadictionary import DataDictionary
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
+from locutus.model.harmony_export import (
+    HarmonyBase,
+    HarmonyFormat,
+    HarmonyOutputFormat,
+    basic_date,
+)
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
 from locutus.model.reference import Reference
 from locutus.model.table import Table
+from locutus.model.visibility import Visibility
 
 from . import Serializable
 
@@ -41,13 +49,13 @@ This will be references to the data-dictionaries associated with the study
 
 
 def build_combined_harmony(
-    study_ids="",
-    dd_ids="",
-    table_ids="",
-    harmony_format=HarmonyFormat.Whistle,
-    harmony_output_format=HarmonyOutputFormat.JSON,
-    version=None,
-):
+    study_ids: str = "",
+    dd_ids: str = "",
+    table_ids: str = "",
+    harmony_format: HarmonyFormat = HarmonyFormat.Whistle,
+    harmony_output_format: HarmonyOutputFormat = HarmonyOutputFormat.JSON,
+    version: str | None = None,
+) -> list:
     """Build a harmony file based on piecemeal components
 
     study_ids, dd_ids, table_ids all must be strings. Multiple IDs can be
@@ -102,15 +110,18 @@ class Study(Serializable):
 
     def __init__(
         self,
-        id=None,
-        _id=None,
-        name=None,
-        description=None,
-        identifier_prefix="",
-        title=None,
-        url="",
-        datadictionary=None,
-        resource_type=None,
+        id: str | None = None,
+        _id: Any = None,
+        name: str | None = None,
+        description: str | None = None,
+        identifier_prefix: str = "",
+        title: str | None = None,
+        url: str = "",
+        datadictionary: list[dict] | None = None,
+        resource_type: str | None = None,
+        owner_id: str | None = None,
+        visibility: Visibility = Visibility.Registered,
+        access: dict | None = None,
     ):
         super().__init__(id=id, _id=_id, collection_type="Study", resource_type="Study")
         self.name = name
@@ -119,13 +130,25 @@ class Study(Serializable):
         self.title = title
         self.url = url
 
+        # Access-control fields (Auth Requirements M4). Not yet populated
+        # from a real creator/institution snapshot -- no route handler has
+        # an authenticated identity to stamp until the auth decorators
+        # (M6) land. A document without these (any doc created before this
+        # change) reads as Visibility.Registered, per M4's "existing
+        # documents" note -- any authenticated user, same as it always was.
+        self.owner_id = owner_id
+        self.visibility = visibility
+        self.access = (
+            access if access is not None else {"institutions": {}, "users": {}}
+        )
+
         self.datadictionary = []
         if datadictionary is not None:
             self.datadictionary = [Reference(dd["reference"]) for dd in datadictionary]
 
         super().identify()
 
-    def remove_dd(self, id):
+    def remove_dd(self, id: str) -> int:
         matching_references = []
 
         treference = f"DataDictionary/{id}"
@@ -140,16 +163,16 @@ class Study(Serializable):
 
         return len(matching_references)
 
-    def keys(self):
+    def keys(self) -> list[str | None]:
         return [self.title, self.url, self.name]
 
     def as_harmony(
         self,
-        harmony_exporter=None,
-        harmony_format=HarmonyFormat.Whistle,
-        harmony_output_format=HarmonyOutputFormat.JSON,
-        version=None,
-    ):
+        harmony_exporter: HarmonyBase | None = None,
+        harmony_format: HarmonyFormat = HarmonyFormat.Whistle,
+        harmony_output_format: HarmonyOutputFormat = HarmonyOutputFormat.JSON,
+        version: str | None = None,
+    ) -> list:
 
         if version is None:
             version = basic_date()
@@ -179,10 +202,13 @@ class Study(Serializable):
         title = fields.Str(required=True)
         url = fields.URL()
         resource_type = fields.Str()
+        owner_id = fields.Str(allow_none=True)
+        visibility = fields.Str()
+        access = fields.Dict()
 
         # For now, we'll just cache the reference ID
         datadictionary = fields.List(fields.Nested(Reference._Schema))
 
         @post_load
-        def build_terminology(self, data, **kwargs):
+        def build_terminology(self, data: dict, **kwargs) -> "Study":
             return Study(**data)

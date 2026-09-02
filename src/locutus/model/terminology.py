@@ -1,5 +1,7 @@
 import logging
+from datetime import datetime
 from enum import StrEnum  # Adds 3.11 requirement or 3.6+ with StrEnum library
+from typing import Any, Literal, overload
 
 from marshmallow import Schema, fields, post_load
 
@@ -11,9 +13,11 @@ from locutus.api import (
     generate_paired_string,
 )
 from locutus.model.coding import Coding
+from locutus.model.provenance import Provenance
 from locutus.model.reference import Reference
 from locutus.model.simple_reference import SimpleReference
 from locutus.model.user_input import MappingConversation, MappingVote
+from locutus.model.visibility import Visibility
 
 from .serializable import Serializable
 
@@ -53,16 +57,19 @@ class Terminology(Serializable):
 
     def __init__(
         self,
-        id=None,
-        _id=None,
-        name=None,
-        url=None,
-        description=None,
-        codes=None,
-        resource_type=None,
-        preferred_terminologies=None,
-        api_preferences=None,
-        editor=None,
+        id: str | None = None,
+        _id: Any = None,
+        name: str | None = None,
+        url: str | None = None,
+        description: str | None = None,
+        codes: list | None = None,
+        resource_type: str | None = None,
+        preferred_terminologies: list | None = None,
+        api_preferences: dict | None = None,
+        editor: str | None = None,
+        owner_id: str | None = None,
+        visibility: Visibility = Visibility.Registered,
+        access: dict | None = None,
     ):
         if preferred_terminologies is None:
             preferred_terminologies = []
@@ -78,6 +85,14 @@ class Terminology(Serializable):
 
         self.api_preferences = api_preferences
         self.preferred_terminologies = preferred_terminologies
+
+        # Access-control fields (Auth Requirements M4) -- see the same note
+        # in model/study.py.
+        self.owner_id = owner_id
+        self.visibility = visibility
+        self.access = (
+            access if access is not None else {"institutions": {}, "users": {}}
+        )
 
         super().identify()
 
@@ -130,7 +145,7 @@ class Terminology(Serializable):
             # Be sure to capture the references we just created
             self.save()
 
-    def find_match(self, return_instance=True):
+    def find_match(self, return_instance: bool = True):
         if (
             self.url is not None
             and self.url.strip() != ""
@@ -143,7 +158,7 @@ class Terminology(Serializable):
 
         raise ValueError("Terminology.find_match() requires both a url and name.")
 
-    def delete(self, hard_delete=True):
+    def delete(self, hard_delete: bool = True) -> dict:
         t = self.realize_as_dict()
         super().delete(hard_delete=hard_delete)
 
@@ -179,10 +194,10 @@ class Terminology(Serializable):
 
         return t
 
-    def keys(self):
+    def keys(self) -> list[str | None]:
         return [self.url, self.name]
 
-    def build_code_dict(self):
+    def build_code_dict(self) -> dict[str, Coding]:
         codings = {}
 
         for cref in self.codes:
@@ -204,13 +219,13 @@ class Terminology(Serializable):
 
     def add_code(
         self,
-        code,
-        display,
-        description=None,
-        terminology_id=None,
-        editor=None,
-        exists_ok=True,
-    ):
+        code: str,
+        display: str,
+        description: str | None = None,
+        terminology_id: str | None = None,
+        editor: str | None = None,
+        exists_ok: bool = True,
+    ) -> None:
         coding = None
         new_to_codes = True
         if type(code) is str:
@@ -284,7 +299,7 @@ class Terminology(Serializable):
                 target=code,
             )
 
-    def remove_code(self, code, editor):
+    def remove_code(self, code: str, editor: str | None) -> None:
         # Ensure codes are not placeholders at this point.
         code = locutus.normalize_ftd_placeholders(code)
 
@@ -314,8 +329,13 @@ class Terminology(Serializable):
             raise KeyError(msg)
 
     def rename_code(
-        self, original_code, new_code, new_display, editor, new_description=None
-    ):
+        self,
+        original_code: str,
+        new_code: str,
+        new_display: str | None,
+        editor: str | None,
+        new_description: str | None = None,
+    ) -> bool:
         print(
             f"Renaming Code, {original_code} to {new_code} with new display: {new_display} and new description: {new_description}"
         )
@@ -386,7 +406,7 @@ class Terminology(Serializable):
                     return True
         return False
 
-    def has_code(self, code):
+    def has_code(self, code: str) -> bool:
         """Check if a code exists in the terminology.
 
         Args:
@@ -402,7 +422,7 @@ class Terminology(Serializable):
 
         return any(entry.dereference().code == code for entry in self.codes)
 
-    def delete_mappings(self, editor, code=None):
+    def delete_mappings(self, editor: str | None, code: str | None = None) -> None:
         """
         Soft deletes mappings from a terminology document setting the mapping
         valid field to false.
@@ -457,7 +477,7 @@ class Terminology(Serializable):
                 editor=editor,
             )
 
-    def mappings(self, code=None):
+    def mappings(self, code: str | None = None) -> dict:
         codes = {}
 
         if code is not None:
@@ -468,11 +488,25 @@ class Terminology(Serializable):
                 codes[code] = coding.mappings
         else:
             for coderef in self.codes:
-                code = coderef.dereference()
-                codes[code.code] = code.mappings
+                coding = coderef.dereference()
+                codes[coding.code] = coding.mappings
         return codes
 
-    def get_coding(self, code, return_instance=True, as_reference=False):
+    @overload
+    def get_coding(
+        self,
+        code: str,
+        return_instance: Literal[True] = True,
+        as_reference: bool = False,
+    ) -> Coding | None: ...
+    @overload
+    def get_coding(
+        self, code: str, return_instance: Literal[False], as_reference: bool = False
+    ) -> SimpleReference | None: ...
+
+    def get_coding(
+        self, code: str, return_instance: bool = True, as_reference: bool = False
+    ):
         for item in self.codes:
             coding = item.dereference()
             if coding.code == code:
@@ -482,7 +516,7 @@ class Terminology(Serializable):
 
         return None
 
-    def get_provenance(self, code=None):
+    def get_provenance(self, code: str | None = None) -> dict:
         prov = {}
 
         if code is None or code == "self":
@@ -520,8 +554,13 @@ class Terminology(Serializable):
         return prov
 
     def add_provenance(
-        self, change_type, editor, target=None, timestamp=None, **kwargs
-    ):
+        self,
+        change_type: Provenance.ChangeType,
+        editor: str | None,
+        target: str | None = None,
+        timestamp: datetime | None = None,
+        **kwargs,
+    ) -> None:
         if target is None or target == "self":
             locutus.model.provenance.Provenance.add_terminology_provenance(
                 terminology_id=self.id,
@@ -562,7 +601,7 @@ class Terminology(Serializable):
 
     # def add_provenance(self, code, change_type, old_value, new_value, editor, note="via locutus frontend", timestamp=None):
 
-    def set_mapping(self, code, codings, editor):
+    def set_mapping(self, code: str, codings: list, editor: str | None) -> None:
         locutus.get_code_index(code)
 
         # Ensure code is not a placeholder at this point.
@@ -595,19 +634,19 @@ class Terminology(Serializable):
         self.save()
         # tmref.document(code_index).set(doc)
 
-    def get_api_preferences(self):
+    def get_api_preferences(self) -> dict:
         return {"api_preference": self.api_preferences}
 
-    def add_api_preferences(self, api, preferences):
+    def add_api_preferences(self, api: str, preferences: list) -> None:
         if len(preferences) > 0:
             self.api_preferences[api] = preferences
             # self.api_preferences.set_preference(api, preferences)
 
-    def remove_api_preferences(self):
+    def remove_api_preferences(self) -> None:
         self.api_preferences = {}
         self.save()
 
-    def get_preference(self, code=None):
+    def get_preference(self, code: str | None = None) -> dict:
         prefs = {}
 
         term_prefs = self.get_api_preferences()
@@ -625,21 +664,21 @@ class Terminology(Serializable):
 
         return prefs
 
-    def add_or_update_pref(self, api_preference, code=None):
+    def add_or_update_pref(self, api_preference: dict, code: str | None = None) -> None:
         if code is None or code == "self":
             self.remove_api_preferences()
-            for api in api_preference:
-                self.add_api_preferences(api, api_preference[api])
+            for api, preferences in api_preference.items():
+                self.add_api_preferences(api, preferences)
             self.save()
         else:
             coding = self.get_coding(code)
             if coding:
                 coding.remove_api_preferences()
-                for api in api_preference:
-                    coding.add_api_preferences(api, api_preference[api])
+                for api, preferences in api_preference.items():
+                    coding.add_api_preferences(api, preferences)
                 coding.save()
 
-    def remove_pref(self, code=None):
+    def remove_pref(self, code: str | None = None) -> str:
         if code is None or code == "self":
             if len(self.api_preferences) > 0:
                 message = (
@@ -664,7 +703,7 @@ class Terminology(Serializable):
         logger.debug(message)
         return message
 
-    def get_preferred_terminology(self):
+    def get_preferred_terminology(self) -> dict:
         """
         Retrieves all references from the 'preferred_terminology' sub-collection
 
@@ -686,7 +725,9 @@ class Terminology(Serializable):
 
         return {"references": self.preferred_terminologies}
 
-    def replace_preferred_terminology(self, editor, preferred_terminology):
+    def replace_preferred_terminology(
+        self, editor: str | None, preferred_terminology: list
+    ) -> None:
         """
         Creates or replaces a document in the 'preferred_terminology' sub-collection
 
@@ -716,7 +757,7 @@ class Terminology(Serializable):
             editor=editor,
         )
 
-    def remove_preferred_terminology(self, editor=None):
+    def remove_preferred_terminology(self, editor: str | None = None) -> str:
         if len(self.preferred_terminologies) > 0:
             message = f"Successfully deleted preferences for '{self.id}'."
             self.add_provenance(
@@ -747,12 +788,15 @@ class Terminology(Serializable):
             keys=fields.Str(), values=fields.List(fields.Str())
         )
         preferred_terminologies = fields.List(fields.Nested(Reference._Schema))
+        owner_id = fields.Str(allow_none=True)
+        visibility = fields.Str()
+        access = fields.Dict()
 
         @post_load
-        def build_terminology(self, data, **kwargs):
+        def build_terminology(self, data: dict, **kwargs) -> "Terminology":
             return Terminology(**data)
 
-    def realize_as_dict(self):
+    def realize_as_dict(self) -> dict:
         this_term = self.dump()
         this_term["codes"] = []
 
@@ -764,7 +808,9 @@ class Terminology(Serializable):
 
 class MappingUserInputModel:
     @staticmethod
-    def generate_mapping_user_input(id, code, mapped_code, user_id):
+    def generate_mapping_user_input(
+        id: str, code: str, mapped_code: str, user_id: str
+    ) -> dict:
         """Mappings may have user_input data stored seperate from the mapping itself.
         This function collects and formats the user_input data for a given mapping,
         then creates the user_input object to be included in a CodingMapping.
@@ -811,7 +857,7 @@ class MappingUserInputModel:
         }
 
     @staticmethod
-    def get_mapping_votes_counts(mapping_votes):
+    def get_mapping_votes_counts(mapping_votes: dict) -> dict:
         """Counts up and down votes for a given mapping"""
         return {
             "up": sum(1 for vote in mapping_votes.values() if vote.get("vote") == "up"),

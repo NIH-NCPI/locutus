@@ -1,15 +1,30 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, Any, cast
 
 from marshmallow import Schema, fields, post_load
 
 import locutus
 from locutus.model.exceptions import CodeAlreadyPresent
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
+from locutus.model.harmony_export import (
+    HarmonyBase,
+    HarmonyFormat,
+    HarmonyOutputFormat,
+    basic_date,
+)
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
 from locutus.model.provenance import Provenance
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
 from locutus.model.variable import Variable
+from locutus.model.visibility import Visibility
+
+if TYPE_CHECKING:
+    # Coding/CodingMapping are only needed for annotations here -- a real
+    # top-level import creates a circular import (table -> coding ->
+    # lookups -> terminology -> coding, initialized mid-way through).
+    from locutus.model.coding import Coding, CodingMapping
 
 from . import Serializable
 
@@ -51,17 +66,20 @@ class Table(Serializable):
 
     def __init__(
         self,
-        id=None,
-        _id=None,
-        code="",
-        name=None,
-        url=None,
-        description=None,
-        filename=None,
-        variables=None,
-        terminology=None,
-        resource_type="Table",
-        editor=None,
+        id: str | None = None,
+        _id: Any = None,
+        code: str = "",
+        name: str | None = None,
+        url: str | None = None,
+        description: str | None = None,
+        filename: str | None = None,
+        variables: list[dict] | None = None,
+        terminology: dict | None = None,
+        resource_type: str = "Table",
+        editor: str | None = None,
+        owner_id: str | None = None,
+        visibility: Visibility = Visibility.Registered,
+        access: dict | None = None,
     ):
         if variables is None:
             variables = []
@@ -80,6 +98,14 @@ class Table(Serializable):
         self.url = url
         self.variables = []
         self._terminology = None
+
+        # Access-control fields (Auth Requirements M4) -- see the same note
+        # in model/study.py.
+        self.owner_id = owner_id
+        self.visibility = visibility
+        self.access = (
+            access if access is not None else {"institutions": {}, "users": {}}
+        )
 
         # For the time being, since old tables don't have them, we must create
         # the shadow terminologies on the fly. If we do this, we need to save
@@ -120,7 +146,7 @@ class Table(Serializable):
         if added_terminology:
             self.save()
 
-    def remove_variable(self, varname, editor):
+    def remove_variable(self, varname: str, editor: str | None) -> None:
         success = False
         varname = locutus.normalize_ftd_placeholders(varname)
 
@@ -141,7 +167,13 @@ class Table(Serializable):
             print(msg)
             raise KeyError(msg)
 
-    def rename_var(self, original_varname, new_varname, new_description, editor):
+    def rename_var(
+        self,
+        original_varname: str,
+        new_varname: str,
+        new_description: str | None,
+        editor: str | None,
+    ) -> bool:
         # Ensure codes are not placeholders at this point.
         original_varname = locutus.normalize_ftd_placeholders(original_varname)
 
@@ -214,7 +246,7 @@ class Table(Serializable):
                 return True
         return False
 
-    def get_variable(self, code_or_var):
+    def get_variable(self, code_or_var: str) -> Variable | None:
         # We'll preference the code, but if none match at the code level, then
         # we match on name, or return None
 
@@ -232,7 +264,7 @@ class Table(Serializable):
                     break
         return var_of_interest
 
-    def _insert_variable(self, variable):
+    def _insert_variable(self, variable: Variable) -> bool | None:
         """If aa variable with the same name exists, replace it. Else append"""
 
         for idx, var in enumerate(self.variables):
@@ -241,7 +273,7 @@ class Table(Serializable):
                 return True
         self.variables.append(variable)
 
-    def add_variable(self, variable, editor=None):
+    def add_variable(self, variable: dict, editor: str | None = None) -> None:
         v = variable
 
         # Ensure the name is not a ftd_placeholder
@@ -270,7 +302,11 @@ class Table(Serializable):
             v = Variable.deserialize(variable)
             self._insert_variable(v)
         else:
-            self._insert_variable(variable)
+            # Dead in practice -- every real caller passes a dict, so this
+            # branch would already have crashed on `v["name"] = ...` above
+            # before reaching here. See issues/033.
+            v = cast(Variable, variable)
+            self._insert_variable(v)
 
         try:
             self.terminology.dereference().add_code(
@@ -280,13 +316,21 @@ class Table(Serializable):
             pass
 
     def build_harmony_row(
-        self, local_coding, mapped_coding, harmony_exporter, **kwargs
+        self,
+        local_coding: Coding,
+        mapped_coding: CodingMapping,
+        harmony_exporter: HarmonyBase,
+        **kwargs,
     ):
+        # id is always set by Serializable.identify() before any instance
+        # method can run; name is required at the schema/API boundary
+        # (fields.Str(required=True)) even though the attribute itself
+        # allows None for a Table built directly in Python.
         return harmony_exporter.add_row(
-            table_id=self.id,
+            table_id=cast(str, self.id),
             source_text=local_coding.code,
             source_description=local_coding.display,
-            source_domain=self.name,
+            source_domain=cast(str, self.name),
             parent_varname="",  # I'm not sure if we can get this ATM
             source_system=local_coding.system,
             mapping_relationship=mapped_coding.mapping_relationship,
@@ -299,15 +343,15 @@ class Table(Serializable):
 
     def harmonize_mappings(
         self,
-        codings,
-        mappings,
-        harmony_mappings,
-        var_name=None,
-        harmony_exporter=None,
+        codings: dict,
+        mappings: dict,
+        harmony_mappings: list,
+        harmony_exporter: HarmonyBase,
+        var_name: str | None = None,
         **kwargs,
-    ):
+    ) -> None:
 
-        for code in mappings:
+        for code, mapped_codings in mappings.items():
             if code not in codings:
                 allowed_codes = "'" + "','".join(codings.keys()) + "'"
                 print(
@@ -315,8 +359,6 @@ class Table(Serializable):
                 )
             else:
                 coding = codings[code]
-
-                mapped_codings = mappings[code]
 
                 for mc in mapped_codings:
                     harmony_row = self.build_harmony_row(
@@ -327,11 +369,11 @@ class Table(Serializable):
 
     def as_harmony(
         self,
-        harmony_exporter=None,
-        harmony_format=HarmonyFormat.Whistle,
-        harmony_output_format=HarmonyOutputFormat.JSON,
+        harmony_exporter: HarmonyBase | None = None,
+        harmony_format: HarmonyFormat = HarmonyFormat.Whistle,
+        harmony_output_format: HarmonyOutputFormat = HarmonyOutputFormat.JSON,
         **kwargs,
-    ):
+    ) -> list:
 
         if kwargs.get("version") is None:
             kwargs["version"] = basic_date()
@@ -372,10 +414,10 @@ class Table(Serializable):
                 )
         return harmony_mappings
 
-    def keys(self):
+    def keys(self) -> list[str | None]:
         return [self.url, self.name]
 
-    def get_preference(self, code=None):
+    def get_preference(self, code: str | None = None):
         """Retrieve preferences from the terminology or fall back to table
         preferences if none are found.
 
@@ -397,7 +439,7 @@ class Table(Serializable):
             print(f"An error occurred while retrieving preferences: {e!s}")
             raise
 
-    def add_or_update_pref(self, api_preference, code=None):
+    def add_or_update_pref(self, api_preference, code: str | None = None) -> None:
         try:
             self.terminology.dereference().add_or_update_pref(
                 api_preference=api_preference, code=code
@@ -407,7 +449,7 @@ class Table(Serializable):
             print(f"An error occurred while updating preferences: {e!s}")
             raise
 
-    def remove_pref(self, code=None):
+    def remove_pref(self, code: str | None = None):
         try:
             message = self.terminology.dereference().remove_pref(code=code)
             return message
@@ -443,7 +485,9 @@ class Table(Serializable):
             print(f"An error occurred while retrieving preferred terminology: {e}")
             raise
 
-    def replace_preferred_terminology(self, editor, preferred_terminology):
+    def replace_preferred_terminology(
+        self, editor: str | None, preferred_terminology: list
+    ) -> None:
         """
         Creates or replaces a document in the 'preferred_terminology' sub-collection
 
@@ -503,12 +547,15 @@ class Table(Serializable):
         variables = fields.List(fields.Nested(Variable._Schema))
         resource_type = fields.Str()
         terminology = fields.Nested(Reference._Schema)
+        owner_id = fields.Str(allow_none=True)
+        visibility = fields.Str()
+        access = fields.Dict()
 
         @post_load
-        def build_terminology(self, data, **kwargs):
+        def build_terminology(self, data: dict, **kwargs) -> Table:
             return Table(**data)
 
-    def dump(self):
+    def dump(self) -> dict:
         content = self.__class__._get_schema().dump(self)
         content["variables"] = [v.dump() for v in self.variables]
 

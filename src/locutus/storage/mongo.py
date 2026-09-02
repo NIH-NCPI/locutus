@@ -2,10 +2,12 @@
 import logging
 import os
 import re
-from typing import ClassVar
+from datetime import UTC, datetime
+from typing import ClassVar, cast
 from urllib.parse import unquote, urlparse
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from pymongo import MongoClient
 
 logger = logging.getLogger(__name__)
@@ -46,25 +48,26 @@ class DocumentReference:
         self._parent_path = parent_path
 
     def get(self):
-        # Try to find by _id first (MongoDB native way)
-        print(f"[DEBUG] Looking for document with _id: {self._doc_id}")
-        doc = self._collection.find_one({"_id": ObjectId(self._doc_id)})
+        # Try to find by _id first (MongoDB native way). A doc_id that
+        # isn't a valid ObjectId (a custom/nanoid-style id, or simply a
+        # nonexistent one) falls through to the id-field lookup below
+        # instead of raising -- this method must return a "doesn't exist"
+        # snapshot for a bad id, not crash.
+        try:
+            doc = self._collection.find_one({"_id": ObjectId(self._doc_id)})
+        except InvalidId:
+            doc = None
+
         if not doc:
             # If not found, try to find by id field (Firestore compatibility)
-            print(f"[DEBUG] Not found by _id, trying id field: {self._doc_id}")
             doc = self._collection.find_one({"id": str(self._doc_id)})
 
         if doc:
             # Ensure compatibility with Firestore and MongoDB
-            print(
-                f"[DEBUG] Found document: {doc.get('_id', 'no-id')} / {doc.get('name', 'no-name')}"
-            )
             # Remove all database-specific fields (starting with _)
             doc = {k: v for k, v in doc.items()}  # if not k.startswith('_')}
             if "id" not in doc:
                 doc["id"] = doc["_id"]
-        else:
-            print(f"[DEBUG] Document not found: {self._doc_id}")
         return DocumentSnapshot(self._doc_id, doc, collection=self._collection)
 
     def set(self, data):
@@ -85,9 +88,11 @@ class DocumentReference:
         return data["_id"]
 
     def update(self, fields):
-        # Merges fields into existing doc
+        # Merges fields into existing doc. _id is stored as an ObjectId, so
+        # the query must wrap doc_id the same way .get()/.delete() do below --
+        # matching on the bare string would silently match nothing.
         self._collection.update_one(
-            {"_id": self._doc_id}, {"$set": fields}, upsert=False
+            {"_id": ObjectId(self._doc_id)}, {"$set": fields}, upsert=False
         )
 
     def delete(self):
@@ -183,7 +188,9 @@ class FirestoreCompatibleClient:
     from locutus.model import resource_types, simple_types
 
     allowed_collections: ClassVar[set] = set(
-        list(resource_types.keys()) + simple_types + ["OntologyAPI"]
+        list(resource_types.keys())
+        + simple_types
+        + ["OntologyAPI", "User", "Institution", "ApiToken"]
     )
 
     def __init__(self, mongo_uri=None, missing_ok=False):
@@ -223,6 +230,68 @@ class FirestoreCompatibleClient:
 
             raise KeyError(msg)
         return CollectionReference(self.db[collection_name])
+
+    # ── Auth abstraction-layer methods ──────────────────────────────────
+    # Named query/mutation helpers for auth code (locutus/auth.py) to call,
+    # so auth logic never touches pymongo/Firestore directly and keeps
+    # working unmodified on both backends.
+
+    def get_user(self, user_id):
+        """Fetch a user document by id, or None if it doesn't exist."""
+        snapshot = self.collection("User").document(user_id).get()
+        return snapshot.to_dict() if snapshot.exists else None
+
+    def get_resource(self, resource_type, resource_id):
+        """Fetch any resource document (ownerId, access, visibility) by its
+        collection name and id, or None if it doesn't exist. Used by the
+        access decorators without needing the full model class."""
+        snapshot = self.collection(resource_type).document(resource_id).get()
+        return snapshot.to_dict() if snapshot.exists else None
+
+    def get_api_token(self, token_hash):
+        """Fetch an API token document by its hash, or None if not found."""
+        return self.collection("ApiToken").find_one({"tokenHash": token_hash})
+
+    def create_api_token(self, token_doc):
+        """Insert a new API token document, returning its generated id."""
+        return self.collection("ApiToken").document().set(token_doc)
+
+    def list_api_tokens(self, user_id):
+        """List a user's API tokens, never including the token hash."""
+        # return_instance=False makes find() yield plain dicts, but its
+        # signature doesn't say so -- cast rather than widen a shared method
+        # nothing else here depends on.
+        tokens = cast(
+            "list[dict]",
+            list(
+                self.collection("ApiToken").find(
+                    {"userId": user_id}, return_instance=False
+                )
+            ),
+        )
+        return [
+            {k: v for k, v in token.items() if k != "tokenHash"} for token in tokens
+        ]
+
+    def delete_api_token(self, token_id, user_id):
+        """Delete a token if it belongs to user_id.
+
+        Returns True if deleted, False if the token doesn't exist or
+        belongs to someone else -- callers use this to distinguish "already
+        gone" from "not yours" without a second lookup.
+        """
+        snapshot = self.collection("ApiToken").document(token_id).get()
+        if not snapshot.exists or snapshot.to_dict().get("userId") != user_id:
+            return False
+        snapshot.delete()
+        return True
+
+    def update_token_last_used(self, token_id):
+        """Best-effort update of a token's lastUsedAt timestamp. Callers
+        should not block a request waiting on this."""
+        self.collection("ApiToken").document(token_id).update(
+            {"lastUsedAt": datetime.now(UTC)}
+        )
 
 
 # Maintain singleton client instance
