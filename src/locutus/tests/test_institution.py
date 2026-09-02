@@ -16,6 +16,7 @@ def test_institution_save_and_get_round_trip():
             member_ids=["u1", "u2"],
             allowed_emails=["a@vumc.org"],
         ).save()
+        assert inst.id is not None
 
         fetched = Institution.get(inst.id)
         assert fetched is not None
@@ -35,6 +36,7 @@ def test_institution_defaults_are_empty_lists():
 
     try:
         inst = Institution(name="CHOP").save()
+        assert inst.id is not None
         fetched = Institution.get(inst.id)
         assert fetched is not None
         assert fetched.member_ids == []
@@ -85,6 +87,7 @@ def test_institution_delete():
 
     try:
         inst = Institution(name="VUMC").save()
+        assert inst.id is not None
         assert Institution.get(inst.id) is not None
 
         inst.delete()
