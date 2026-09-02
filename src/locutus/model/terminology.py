@@ -148,12 +148,20 @@ class Terminology(Serializable):
         super().delete(hard_delete=hard_delete)
 
         # User Input
-        for cnv in MappingConversation.get(
+        conversations = MappingConversation.get(
             terminology_id=self.id, return_instance=True
-        ):
+        )
+        if type(conversations) is MappingConversation:
+            conversations = [conversations]
+
+        for cnv in conversations:
             cnv.delete(hard_delete=hard_delete)
 
-        for vote in MappingVote.get(terminology_id=self.id, return_instance=True):
+        votes = MappingVote.get(terminology_id=self.id, return_instance=True)
+        if type(votes) is MappingVote:
+            votes = [votes]
+
+        for vote in votes:
             vote.delete(hard_delete=hard_delete)
 
         # Delete all provenance

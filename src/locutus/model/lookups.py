@@ -29,18 +29,35 @@ class ResourceSingletonBase:
 
     _instances: ClassVar[dict] = {}
 
+    # How long a cached read is trusted before the next access re-fetches it.
+    # Keeps the common case (many reads, e.g. one per search request) cheap
+    # while bounding how long an admin-side DB edit can stay invisible to a
+    # running server -- see issues/021.
+    _cache_ttl: ClassVar[timedelta] = timedelta(minutes=5)
+
     # Set in __new__ only (this class deliberately has no __init__, since
     # cached singleton instances shouldn't be re-initialized on every "call").
     db: Any
     termref: Any
     _cached_resource: Any
+    _cached_at: datetime
 
     def __new__(cls, resource_name, is_collection=False):
-        """Ensure only one instance of each terminology or collection is created."""
-        if (resource_name, is_collection) not in cls._instances:
-            instance = super().__new__(cls)
-            cls._instances[(resource_name, is_collection)] = instance
-            instance.db = locutus.persistence()  # Initialize database client
+        """Ensure only one instance of each terminology or collection is created,
+        refreshing its cached data once _cache_ttl has elapsed since the last fetch.
+        """
+        key = (resource_name, is_collection)
+        instance = cls._instances.get(key)
+        stale = instance is None or (
+            datetime.now(UTC) - instance._cached_at > cls._cache_ttl
+        )
+
+        if stale:
+            if instance is None:
+                instance = super().__new__(cls)
+                cls._instances[key] = instance
+                instance.db = locutus.persistence()  # Initialize database client
+
             if is_collection:
                 # Cache the entire collection
                 instance.termref = instance.db.collection(resource_name).stream()
@@ -56,7 +73,9 @@ class ResourceSingletonBase:
                         instance._cached_resource.realize_as_dict()
                     )
 
-        return cls._instances[(resource_name, is_collection)]
+            instance._cached_at = datetime.now(UTC)
+
+        return cls._instances[key]
 
     def get_cached_resource(self):
         """Access the cached terminology document."""
