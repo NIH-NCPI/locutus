@@ -1,8 +1,16 @@
+from typing import Any
+
 from marshmallow import Schema, fields, post_load
 
-from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat, basic_date
+from locutus.model.harmony_export import (
+    HarmonyBase,
+    HarmonyFormat,
+    HarmonyOutputFormat,
+    basic_date,
+)
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
 from locutus.model.reference import Reference
+from locutus.model.visibility import Visibility
 
 from .serializable import Serializable
 
@@ -32,12 +40,15 @@ class DataDictionary(Serializable):
 
     def __init__(
         self,
-        id=None,
-        _id=None,
-        name=None,
-        description=None,
-        tables=None,
-        resource_type=None,
+        id: str | None = None,
+        _id: Any = None,
+        name: str | None = None,
+        description: str | None = None,
+        tables: list[dict] | None = None,
+        resource_type: str | None = None,
+        owner_id: str | None = None,
+        visibility: Visibility = Visibility.Registered,
+        access: dict | None = None,
     ):
         super().__init__(
             id,
@@ -49,6 +60,14 @@ class DataDictionary(Serializable):
         self.name = name
         self.description = description
 
+        # Access-control fields (Auth Requirements M4) -- see the same note
+        # in model/study.py.
+        self.owner_id = owner_id
+        self.visibility = visibility
+        self.access = (
+            access if access is not None else {"institutions": {}, "users": {}}
+        )
+
         self.tables = []
         super().identify()
 
@@ -56,7 +75,7 @@ class DataDictionary(Serializable):
             for t in tables:
                 self.tables.append(Reference(reference=t["reference"]))
 
-    def remove_table(self, table_id):
+    def remove_table(self, table_id: str) -> int:
         matching_references = []
 
         treference = f"Table/{table_id}"
@@ -71,16 +90,16 @@ class DataDictionary(Serializable):
 
         return len(matching_references)
 
-    def keys(self):
+    def keys(self) -> list[str | None]:
         return [self.name]
 
     def as_harmony(
         self,
-        harmony_exporter=None,
-        harmony_format=HarmonyFormat.Whistle,
-        harmony_output_format=HarmonyOutputFormat.JSON,
+        harmony_exporter: HarmonyBase | None = None,
+        harmony_format: HarmonyFormat = HarmonyFormat.Whistle,
+        harmony_output_format: HarmonyOutputFormat = HarmonyOutputFormat.JSON,
         **kwargs,
-    ):
+    ) -> list:
 
         if kwargs.get("version") is None:
             kwargs["version"] = basic_date()
@@ -105,10 +124,13 @@ class DataDictionary(Serializable):
         id = fields.Str()
         name = fields.Str(required=True)
         description = fields.Str()
+        owner_id = fields.Str(allow_none=True)
+        visibility = fields.Str()
+        access = fields.Dict()
 
         tables = fields.List(fields.Nested(Reference._Schema))
         resource_type = fields.Str()
 
         @post_load
-        def build_terminology(self, data, **kwargs):
+        def build_terminology(self, data: dict, **kwargs) -> "DataDictionary":
             return DataDictionary(**data)
