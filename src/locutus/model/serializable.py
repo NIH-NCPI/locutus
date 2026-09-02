@@ -19,7 +19,9 @@ class Serializable:
     def to_dict(self) -> dict:
         raise NotImplementedError
 
-    def __init__(self, id=None, _id=None, collection_type=None, resource_type=None):
+    def __init__(
+        self, id: str | None = None, _id=None, collection_type=None, resource_type=None
+    ):
         self.id = id
         # For Simple objects, we won't have an actual ID, we'll keep both, but here,
         # we are requiring an ID is present for all Serializable. _id will be created
