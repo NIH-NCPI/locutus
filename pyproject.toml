@@ -31,7 +31,8 @@ dependencies = ["marshmallow",
                 "rich",
                 "search-dragon@git+https://github.com/NIH-NCPI/search-dragon.git",
                 "firebase-admin",
-                "pymongo"
+                "pymongo",
+                "google-auth"
                 ]
 [dependency-groups]
     dev = [
