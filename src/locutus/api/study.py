@@ -1,22 +1,29 @@
 import json
 
 from bson import json_util
-from flask import request
+from flask import g, request
 from flask_restful import Resource
 
 from locutus.api import default_headers
+from locutus.auth import (
+    filter_readable,
+    new_resource_access_fields,
+    require_auth,
+    require_read_access,
+    require_write_access,
+    require_write_access_or_create,
+)
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
 from locutus.model.study import Study as mStudyTerm
 
 
 class Studies(Resource):
+    @require_auth
     def get(self):
-        return (
-            json.loads(json_util.dumps(mStudyTerm.get(return_instance=False))),
-            200,
-            default_headers,
-        )
+        studies = filter_readable(mStudyTerm.get(return_instance=False), g.current_user)
+        return (json.loads(json_util.dumps(studies)), 200, default_headers)
 
+    @require_auth
     def post(self):
         sty = request.get_json()
         if "resource_type" in sty:
@@ -36,6 +43,10 @@ class Studies(Resource):
         if return_code > 399:
             return msg, return_code, default_headers
 
+        # owner_id/access are always derived from the authenticated caller,
+        # never trusted from the request body (M4).
+        sty.update(new_resource_access_fields(g.current_user))
+
         study = mStudyTerm(**sty)
         study.save()
         return json.loads(json_util.dumps(study.dump())), 201, default_headers
@@ -54,16 +65,14 @@ class Studies(Resource):
 
 
 class Study(Resource):
+    @require_read_access("Study", "id")
     def get(self, id: str):
+        # require_read_access already confirmed this id exists.
         study = mStudyTerm.get(id)
-        if study is None:
-            return (
-                f"There is no Study, {id}.",
-                404,
-                default_headers,
-            )
+        assert study is not None
         return json.loads(json_util.dumps(study.dump())), 200, default_headers
 
+    @require_write_access_or_create("Study", "id")
     def put(self, id: str):
         sty = request.get_json()
         if "id" not in sty:
@@ -72,12 +81,29 @@ class Study(Resource):
         if "resource_type" in sty:
             del sty["resource_type"]
 
+        # PUT fully replaces the object from the request body, so
+        # owner_id/access must be resolved explicitly rather than trusted
+        # from the client either way: preserve the existing resource's
+        # values on an update, or stamp fresh ones from the authenticated
+        # caller if this PUT is actually creating a new study at this id
+        # (require_write_access_or_create already confirmed either is
+        # allowed before this handler runs).
+        existing = mStudyTerm.get(id, return_instance=False)
+        if existing is not None:
+            sty["owner_id"] = existing.get("owner_id")
+            sty["access"] = existing.get("access")
+        else:
+            sty.update(new_resource_access_fields(g.current_user))
+
         study = mStudyTerm(**sty)
         study.save()
         return json.loads(json_util.dumps(study.dump())), 201, default_headers
 
+    @require_write_access("Study", "id")
     def delete(self, id: str):
+        # require_write_access already confirmed this id exists.
         study = mStudyTerm.get(id)
+        assert study is not None
         t = study.dump()
         study.delete()
 
@@ -85,8 +111,11 @@ class Study(Resource):
 
 
 class StudyEdit(Resource):
+    @require_write_access("Study", "id")
     def delete(self, id: str, dd_id: str):
+        # require_write_access already confirmed this id exists.
         study = mStudyTerm.get(id)
+        assert study is not None
         count = study.remove_dd(dd_id)
         if count < 1:
             return (

@@ -2,24 +2,22 @@ from flask import request
 from flask_restful import Resource
 
 from locutus.api import default_headers, get_editor
+from locutus.auth import require_read_access, require_write_access
 from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology as Term
 
 
 class OntologyAPISearchPreferences(Resource):
+    @require_read_access("Terminology", "id")
     def get(self, id: str, code: str | None = None):
 
         # Optional parameter
         table_id = request.args.get("table_id", default=None)
 
+        # require_read_access already confirmed this id exists.
         t = Term.get(id)
-        if t is None:
-            return (
-                {"message_to_user": f"No terminology found with id {id}"},
-                404,
-                default_headers,
-            )
+        assert t is not None
         pref = t.get_preference(code=code)
 
         # get the prefs from the table if none exist for the terminology
@@ -41,10 +39,13 @@ class OntologyAPISearchPreferences(Resource):
 
         return (pref, 200, default_headers)
 
+    @require_write_access("Terminology", "id")
     def post(self, id: str, code: str | None = None):
         """Create or add an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
+        # require_write_access already confirmed this id exists.
         t = Term.get(id)
+        assert t is not None
         if "api_preference" not in body:
             return {"message": "api_preference is required"}, 400
 
@@ -64,10 +65,13 @@ class OntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
+    @require_write_access("Terminology", "id")
     def put(self, id: str, code: str | None = None):
         """Update an `api_preference` for a specific Terminology or Code."""
         body = request.get_json()
+        # require_write_access already confirmed this id exists.
         t = Term.get(id)
+        assert t is not None
         if "api_preference" not in body:
             return {"message": "api_preference is required"}, 400
 
@@ -81,9 +85,12 @@ class OntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
+    @require_write_access("Terminology", "id")
     def delete(self, id: str, code: str | None = None):
         """Remove an `api_preference` from a specific Terminology or Code."""
+        # require_write_access already confirmed this id exists.
         t = Term.get(id)
+        assert t is not None
 
         message = t.remove_pref(code=code)
 
@@ -96,6 +103,7 @@ class OntologyAPISearchPreferences(Resource):
 
 
 class PreferredTerminology(Resource):
+    @require_read_access("Terminology", "id")
     def get(self, id: str):
         """
         Retrieve the preferred terminology for a specific Terminology
@@ -118,13 +126,9 @@ class PreferredTerminology(Resource):
         # Optional parameter
         table_id = request.args.get("table_id", default=None)
 
+        # require_read_access already confirmed this id exists.
         t = Term.get(id)
-        if t is None:
-            return (
-                {"message_to_user": f"No terminology found with id {id}"},
-                404,
-                default_headers,
-            )
+        assert t is not None
 
         pref = t.get_preferred_terminology()
 
@@ -144,6 +148,7 @@ class PreferredTerminology(Resource):
 
         return (pref, 200, default_headers)
 
+    @require_write_access("Terminology", "id")
     def put(self, id: str):
         """
         Creates one or more preferred terminologies to a specific Terminology.
@@ -171,7 +176,9 @@ class PreferredTerminology(Resource):
             if editor is None:
                 raise LackingUserID(editor)
 
+            # require_write_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
 
             if not isinstance(body, dict) or not isinstance(
                 body.get("preferred_terminologies", []), list
@@ -197,10 +204,13 @@ class PreferredTerminology(Resource):
         response = {"id": t.id, "references": preferred_terminologies}
         return (response, 200, default_headers)
 
+    @require_write_access("Terminology", "id")
     def delete(self, id: str):
         """Remove a `terminology_preference` from a specific Terminology."""
 
+        # require_write_access already confirmed this id exists.
         t = Term.get(id)
+        assert t is not None
 
         t.remove_preferred_terminology()
 

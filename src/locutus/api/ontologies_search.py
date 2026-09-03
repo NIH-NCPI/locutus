@@ -5,11 +5,13 @@ from flask import request
 from flask_restful import Resource
 
 from locutus.api import default_headers
+from locutus.auth import require_auth
 from locutus.model.exceptions import APIError, LackingRequiredParameter
 from locutus.model.ontologies_search import OntologyAPI, OntologyAPISearchModel
 
 
 class OntologyAPIs(Resource):
+    @require_auth
     def get(self, api_id: str | None = None):
         """
         Retrieve details of all OntologyAPIs or a specific OntologyAPI by ID.
@@ -35,6 +37,7 @@ class OntologyAPISearch(Resource):
     Runs the generic search
     """
 
+    @require_auth
     def get(self):
 
         try:

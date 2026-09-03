@@ -10,6 +10,7 @@ from locutus import (
 )
 from locutus.api import default_headers, get_editor
 from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.auth import require_read_access, require_write_access
 from locutus.model.coding import CodingMapping
 from locutus.model.exceptions import (
     APIError,
@@ -28,6 +29,7 @@ from locutus.model.terminology_mapping import MappingRelationshipModel
 
 class TerminologyMapping(Resource):
     @cross_origin()
+    @require_read_access("Terminology", "id")
     def get(self, id: str, code: str):
         """
         Retrieves terminology mappings for a given code, optionally including user input details.
@@ -44,7 +46,9 @@ class TerminologyMapping(Resource):
             if user_input_param is not None and editor is None:
                 raise LackingUserID(editor)
 
+            # require_read_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
 
             mappings = t.mappings(code)
             response = {"code": code, "mappings": []}
@@ -52,6 +56,9 @@ class TerminologyMapping(Resource):
             # We should recieve a dictionary with a single key
             for codingmapping in mappings.get(code, []):
                 if user_input_param:
+                    # user_input_param truthy + no LackingUserID raised
+                    # above together guarantee editor is set.
+                    assert editor is not None
                     user_input_data = MappingUserInputModel.generate_mapping_user_input(
                         id, code, codingmapping.code, editor
                     )
@@ -65,6 +72,7 @@ class TerminologyMapping(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
+    @require_write_access("Terminology", "id")
     def delete(self, id: str, code: str):
         """Soft deletes all mappings for the identified terminology code."""
         body = request.get_json()
@@ -73,7 +81,9 @@ class TerminologyMapping(Resource):
             if editor is None:
                 raise LackingUserID(editor)
 
+            # require_write_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
             t.delete_mappings(editor=editor, code=code)
 
             response = TerminologyMappings.get_mappings(id)
@@ -83,6 +93,7 @@ class TerminologyMapping(Resource):
         return (json.loads(json_util.dumps(response)), 200, default_headers)
 
     @cross_origin(allow_headers=["Content-Type"])
+    @require_write_access("Terminology", "id")
     def put(self, id: str, code: str):
         body = request.get_json()
 
@@ -105,7 +116,9 @@ class TerminologyMapping(Resource):
 
             codingmapping = [CodingMapping(**x) for x in mappings]
 
+            # require_write_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
 
             # Raise error if the code is not in the terminology
             if not t.has_code(code):
@@ -113,7 +126,7 @@ class TerminologyMapping(Resource):
 
             t.set_mapping(code, codingmapping, editor=editor)
 
-            response = TerminologyMappings.get_mappings(t.id)
+            response = TerminologyMappings.get_mappings(id)
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
@@ -121,6 +134,7 @@ class TerminologyMapping(Resource):
 
 
 class MappingRelationship(Resource):
+    @require_write_access("Terminology", "id")
     def put(self, id: str, code: str, mapped_code: str):
         body = request.get_json()
 
@@ -136,8 +150,11 @@ class MappingRelationship(Resource):
             if editor is None:
                 raise LackingUserID(editor)
 
-            # Raise error if the code is not in the terminology
+            # require_write_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
+
+            # Raise error if the code is not in the terminology
             if not t.has_code(code):
                 raise CodeNotPresent(code, id)
 
