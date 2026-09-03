@@ -1,16 +1,25 @@
 import json
 
 from bson import json_util
-from flask import request
+from flask import g, request
 from flask_cors import cross_origin
 from flask_restful import Resource
 
 from locutus.api import default_headers, get_editor
+from locutus.auth import (
+    filter_readable,
+    new_resource_access_fields,
+    require_auth,
+    require_read_access,
+    require_write_access,
+    require_write_access_or_create,
+)
 from locutus.model.exceptions import APIError, LackingUserID
 from locutus.model.terminology import Terminology as Term
 
 
 class TerminologyEdit(Resource):
+    @require_write_access("Terminology", "id")
     def put(self, id: str, code: str):
         """Add a new code to an existing terminology."""
         body = request.get_json()
@@ -22,7 +31,9 @@ class TerminologyEdit(Resource):
             if editor is None:
                 raise LackingUserID(editor)
 
+            # require_write_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
             t.add_code(
                 code=code,
                 display=display,
@@ -40,9 +51,12 @@ class TerminologyEdit(Resource):
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
 
+    @require_write_access("Terminology", "id")
     def delete(self, id: str, code: str):
         """Remove a code from an existing terminology."""
+        # require_write_access already confirmed this id exists.
         t = Term.get(id)
+        assert t is not None
         body = request.get_json()
         try:
             editor = get_editor(body=body, editor=None)
@@ -58,6 +72,7 @@ class TerminologyEdit(Resource):
 
 
 class TerminologyRenameCode(Resource):
+    @require_write_access("Terminology", "id")
     def patch(self, id: str):
         body = request.get_json()
         try:
@@ -68,7 +83,9 @@ class TerminologyRenameCode(Resource):
             display_updates = body.get("display")
             description_updates = body.get("description")
 
+            # require_write_access already confirmed this id exists.
             t = Term.get(id)
+            assert t is not None
 
         except APIError as e:
             return e.to_dict(), e.status_code, default_headers
@@ -127,8 +144,9 @@ class TerminologyRenameCode(Resource):
 
 
 class Terminologies(Resource):
+    @require_auth
     def get(self):
-        terminologies = Term.get(return_instance=False)
+        terminologies = filter_readable(Term.get(return_instance=False), g.current_user)
 
         return (
             json.loads(json_util.dumps(terminologies)),
@@ -137,6 +155,7 @@ class Terminologies(Resource):
         )
 
     @cross_origin(allow_headers=["Content-Type"])
+    @require_auth
     def post(self):
         term = request.get_json()
         body = request.get_json()
@@ -148,6 +167,9 @@ class Terminologies(Resource):
                 del term["resource_type"]
 
             term["editor"] = editor
+            # owner_id/access are always derived from the authenticated
+            # caller, never trusted from the request body (M4).
+            term.update(new_resource_access_fields(g.current_user))
             t = Term(**term)
             t.save()
 
@@ -157,18 +179,18 @@ class Terminologies(Resource):
 
 
 class Terminology(Resource):
+    @require_read_access("Terminology", "id")
     def get(self, id: str):
+        # require_read_access already confirmed this id exists.
         response = Term.get(id, return_instance=True)
+        assert response is not None
+        return (
+            json.loads(json_util.dumps(response.realize_as_dict())),
+            200,
+            default_headers,
+        )
 
-        if response is not None:
-            return (
-                json.loads(json_util.dumps(response.realize_as_dict())),
-                200,
-                default_headers,
-            )
-
-        return (response, 404, default_headers)
-
+    @require_write_access_or_create("Terminology", "id")
     def put(self, id: str):
         term = request.get_json()
         if "id" not in term:
@@ -176,15 +198,31 @@ class Terminology(Resource):
 
         if "resource_type" in term:
             del term["resource_type"]
+
+        # PUT fully replaces the object from the request body, so
+        # owner_id/access must be resolved explicitly rather than trusted
+        # from the client either way: preserve the existing resource's
+        # values on an update, or stamp fresh ones from the authenticated
+        # caller if this PUT is actually creating a new terminology at this
+        # id (require_write_access_or_create already confirmed either is
+        # allowed before this handler runs).
+        existing = Term.get(id, return_instance=False)
+        if existing is not None:
+            term["owner_id"] = existing.get("owner_id")
+            term["access"] = existing.get("access")
+        else:
+            term.update(new_resource_access_fields(g.current_user))
+
         t = Term(**term)
         t.save()
         return json.loads(json_util.dumps(t.realize_as_dict())), 200, default_headers
 
     # @cross_origin()
+    @require_write_access("Terminology", "id")
     def delete(self, id: str):
+        # require_write_access already confirmed this id exists.
         t = Term.get(id, return_instance=True)
-
-        if t:
-            t = t.delete()
+        assert t is not None
+        t = t.delete()
 
         return json.loads(json_util.dumps(t)), 200, default_headers

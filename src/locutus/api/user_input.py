@@ -5,6 +5,7 @@ from flask import request
 from flask_restful import Resource
 
 from locutus.api import default_headers, get_editor
+from locutus.auth import require_read_access, require_write_access
 from locutus.model.exceptions import APIError, CodeNotPresent, LackingUserID
 from locutus.model.table import Table
 from locutus.model.terminology import Terminology as Term
@@ -27,6 +28,7 @@ class TerminologyUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
 
+    @require_read_access("Terminology", "id")
     def get(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
@@ -62,6 +64,7 @@ class TerminologyUserInput(Resource, UserInput):
 
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
 
+    @require_write_access("Terminology", "id")
     def put(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Update the user input
@@ -86,8 +89,9 @@ class TerminologyUserInput(Resource, UserInput):
 
         if editor is None:
             raise LackingUserID(editor)
-        # Raise error if the code is not in the terminology
+        # require_write_access already confirmed this id exists.
         t = Term.get(id)
+        assert t is not None
         try:
             if not t.has_code(code):
                 raise CodeNotPresent(code, id)
@@ -132,6 +136,7 @@ class TableUserInput(Resource, UserInput):
         self.resource_type = resource_type
         self.collection_type = collection_type
 
+    @require_read_access("Table", "id")
     def get(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Retrieves user input for the identified Resource/id/collection/code/type.
@@ -160,7 +165,9 @@ class TableUserInput(Resource, UserInput):
             ]
         }
         """
+        # require_read_access already confirmed this id exists.
         table = Table.get(id)
+        assert table is not None
         term = table.terminology.dereference()
 
         user_input = UserInput.get_user_input(
@@ -174,6 +181,7 @@ class TableUserInput(Resource, UserInput):
 
         return (json.loads(json_util.dumps(user_input)), 200, default_headers)
 
+    @require_write_access("Table", "id")
     def put(self, id: str, code: str, mapped_code: str, input_type: str):
         """
         Update the user input
@@ -199,8 +207,9 @@ class TableUserInput(Resource, UserInput):
         if editor is None:
             raise LackingUserID(editor)
 
-        # Raise error if the code is not in the terminology
+        # require_write_access already confirmed this id exists.
         table = Table.get(id)
+        assert table is not None
         term = table.terminology.dereference()
 
         try:

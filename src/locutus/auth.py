@@ -144,6 +144,31 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
     return None
 
 
+def filter_readable(resources: list[dict], current_user: CurrentUser) -> list[dict]:
+    """Filters a list of raw resource docs down to ones current_user can
+    read. For "list everything" endpoints (Tables.get, Studies.get, etc.)
+    that have no single id to gate on with require_read_access -- centralized
+    here, rather than duplicated per handler, specifically so that a future
+    change (e.g. full discoverability across institutions) is one change to
+    this function instead of editing every list handler."""
+    return [r for r in resources if get_permission(r, current_user) is not None]
+
+
+def new_resource_access_fields(current_user: CurrentUser) -> dict:
+    """owner_id/access fields (M4) for a resource being created right now.
+    Always call this for the actual values rather than trusting anything a
+    client sent for these fields in the request body -- a caller could
+    otherwise hand themselves ownership or editor access on behalf of an
+    institution they don't belong to."""
+    return {
+        "owner_id": current_user["user_id"],
+        "access": {
+            "institutions": dict.fromkeys(current_user["institutionIds"], "editor"),
+            "users": {},
+        },
+    }
+
+
 @overload
 def require_auth[Route: _RouteBound](f: Route) -> Route: ...
 @overload
@@ -206,7 +231,7 @@ def require_admin[Route: _RouteBound](func: Route) -> Route:
 
 
 def _require_resource_access[Route: _RouteBound](
-    resource_type: str, id_param: str, need_write: bool
+    resource_type: str, id_param: str, need_write: bool, allow_create: bool = False
 ) -> Callable[[Route], Route]:
     def decorator(func: Route) -> Route:
         @wraps(func)
@@ -218,16 +243,19 @@ def _require_resource_access[Route: _RouteBound](
             resource_id = kwargs.get(id_param)
             resource = locutus.persistence().get_resource(resource_type, resource_id)
             if resource is None:
-                return (
-                    {"message": f"{resource_type} not found: {resource_id}"},
-                    404,
-                    default_headers,
+                if not allow_create:
+                    return (
+                        {"message": f"{resource_type} not found: {resource_id}"},
+                        404,
+                        default_headers,
+                    )
+            else:
+                permission = get_permission(resource, user)
+                allowed = (
+                    permission == "editor" if need_write else permission is not None
                 )
-
-            permission = get_permission(resource, user)
-            allowed = permission == "editor" if need_write else permission is not None
-            if not allowed:
-                return {"message": "Forbidden"}, 403, default_headers
+                if not allowed:
+                    return {"message": "Forbidden"}, 403, default_headers
 
             g.current_user = user
             return func(*args, **kwargs)
@@ -255,3 +283,17 @@ def require_write_access[Route: _RouteBound](
     """Same as require_read_access, but 403s unless current_user is the
     owner or has editor access via their institution/user grant."""
     return _require_resource_access(resource_type, id_param, need_write=True)
+
+
+def require_write_access_or_create[Route: _RouteBound](
+    resource_type: str, id_param: str
+) -> Callable[[Route], Route]:
+    """Like require_write_access, but a resource that doesn't yet exist is
+    let through rather than 404ing -- for PUT-as-upsert endpoints that can
+    create a resource at a caller-chosen id (Table/Study/Terminology's
+    PUT-by-id all do this). The handler is responsible for stamping
+    ownership itself, via new_resource_access_fields(), when it turns out
+    to be a create rather than an update."""
+    return _require_resource_access(
+        resource_type, id_param, need_write=True, allow_create=True
+    )

@@ -1,22 +1,31 @@
-from . import client
+from . import _Owner, client
 from .test_datadictionary import basic_datadictionary
 from .test_study import basic_study
 from .test_table import basic_table
 from .test_terminology import sample_terminology
 
 
-def test_dd_get(client, basic_study, basic_datadictionary):
+def test_dd_get_requires_auth(client):
     response = client.get("/api/DataDictionary")
-    assert response.status_code == 200
-    dds = response.json
-    assert len(dds) >= 1
+    assert response.status_code == 401
 
-    response = client.get(f"/api/DataDictionary/{basic_datadictionary.id}")
-    assert response.status_code == 200
-    dd = response.json
 
-    assert dd["id"] == basic_datadictionary.id
-    assert dd["name"] == basic_datadictionary.name
-    assert len(dd["tables"]) == len(basic_datadictionary.tables)
+def test_dd_get(client, basic_study, basic_datadictionary):
+    test_owner = _Owner(client)
+    try:
+        response = client.get("/api/DataDictionary")
+        assert response.status_code == 200
+        dds = response.json
+        assert len(dds) >= 1
 
-    assert dd["tables"][0] == basic_datadictionary.tables[0].dump()
+        response = client.get(f"/api/DataDictionary/{basic_datadictionary.id}")
+        assert response.status_code == 200
+        dd = response.json
+
+        assert dd["id"] == basic_datadictionary.id
+        assert dd["name"] == basic_datadictionary.name
+        assert len(dd["tables"]) == len(basic_datadictionary.tables)
+
+        assert dd["tables"][0] == basic_datadictionary.tables[0].dump()
+    finally:
+        test_owner.cleanup()

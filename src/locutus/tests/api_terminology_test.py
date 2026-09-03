@@ -2,255 +2,359 @@ from locutus.model import GlobalID
 from locutus.model.coding import Coding
 from locutus.model.terminology import Terminology
 
-from . import client
+from . import _Owner, client
 from .test_terminology import ftd_concept_relationships, sample_terminology
 
 
+def test_terminology_get_requires_auth(client):
+    response = client.get("/api/Terminology")
+    assert response.status_code == 401
+
+
 def test_terminology_get(client, ftd_concept_relationships, sample_terminology):
-    terms = client.get("/api/Terminology", content_type="application/json").json
+    test_owner = _Owner(client)
+    try:
+        terms = client.get("/api/Terminology", content_type="application/json").json
 
-    assert len(terms) >= 2
+        assert len(terms) >= 2
 
-    term = client.get("/api/Terminology/ftd-concept-map-relationship")
-    assert term.status_code == 200
-    term = term.json
-    assert term["id"] == "ftd-concept-map-relationship"
-    assert len(term["codes"]) == 3
-    assert term["codes"][0]["code"] == "equivalent"
-    assert term["codes"][1]["display"] == "Source Is Narrower Than Target"
-    assert (
-        term["codes"][1]["description"]
-        == "The source concept is narrower in meaning than the target concept."
-    )
-    assert term["codes"][2]["system"] == "http://hl7.org/fhir/concept-map-relationship"
+        term = client.get("/api/Terminology/ftd-concept-map-relationship")
+        assert term.status_code == 200
+        term = term.json
+        assert term["id"] == "ftd-concept-map-relationship"
+        assert len(term["codes"]) == 3
+        assert term["codes"][0]["code"] == "equivalent"
+        assert term["codes"][1]["display"] == "Source Is Narrower Than Target"
+        assert (
+            term["codes"][1]["description"]
+            == "The source concept is narrower in meaning than the target concept."
+        )
+        assert (
+            term["codes"][2]["system"] == "http://hl7.org/fhir/concept-map-relationship"
+        )
 
-    term = client.get("/api/Terminology/ontology-one").json
-    assert term["id"] == "ontology-one"
-    assert term["name"] == "Ontology One"
-    assert len(term["codes"]) == 2
+        term = client.get("/api/Terminology/ontology-one").json
+        assert term["id"] == "ontology-one"
+        assert term["name"] == "Ontology One"
+        assert len(term["codes"]) == 2
+    finally:
+        test_owner.cleanup()
 
 
 def test_terminology_rename(client):
-    term_body = {
-        "id": "ontology-two",
-        "name": "Ontology Two",
-        "url": "http://example.com/ont1",
-        "description": "A sample oncology terminology",
-        "codes": [
-            {"code": "C1", "display": "Code One", "description": "Description for C1"},
-            {"code": "C2", "display": "Code Two", "description": "'Description for C2"},
-        ],
-        "editor": "test-user",
-    }
+    test_owner = _Owner(client)
+    try:
+        term_body = {
+            "id": "ontology-two",
+            "name": "Ontology Two",
+            "url": "http://example.com/ont1",
+            "description": "A sample oncology terminology",
+            "codes": [
+                {
+                    "code": "C1",
+                    "display": "Code One",
+                    "description": "Description for C1",
+                },
+                {
+                    "code": "C2",
+                    "display": "Code Two",
+                    "description": "'Description for C2",
+                },
+            ],
+            "editor": "test-user",
+        }
 
-    response = client.post(
-        "/api/Terminology", json=term_body, headers={"Content-Type": "application/json"}
-    )
-    assert response.status_code == 201
+        response = client.post(
+            "/api/Terminology",
+            json=term_body,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
 
-    response = client.patch(
-        "/api/Terminology/ontology-two/rename",
-        json={"editor": "unit-test", "code": {"C1": "Code01"}},
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 201
+        response = client.patch(
+            "/api/Terminology/ontology-two/rename",
+            json={"editor": "unit-test", "code": {"C1": "Code01"}},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
 
-    term_obj = Terminology.get("ontology-two")
-    assert term_obj is not None
-    term = term_obj.realize_as_dict()
-    assert term["codes"][0]["code"] == "Code01"
+        term_obj = Terminology.get("ontology-two")
+        assert term_obj is not None
+        term = term_obj.realize_as_dict()
+        assert term["codes"][0]["code"] == "Code01"
 
-    response = client.patch(
-        "/api/Terminology/ontology-two/rename",
-        json={
-            "editor": "unit-test",
-            "display": {"C2": "second code"},
-            "description": {"C2": "second desc"},
-        },
-        headers={"Content-Type": "application/json"},
-    )
+        response = client.patch(
+            "/api/Terminology/ontology-two/rename",
+            json={
+                "editor": "unit-test",
+                "display": {"C2": "second code"},
+                "description": {"C2": "second desc"},
+            },
+            headers={"Content-Type": "application/json"},
+        )
 
-    assert response.status_code == 201
+        assert response.status_code == 201
 
-    term = Terminology.get("ontology-two")
-    assert term is not None
-    assert term.codes[1].dereference().display == "second code"
-    assert term.codes[1].dereference().description == "second desc"
+        term = Terminology.get("ontology-two")
+        assert term is not None
+        assert term.codes[1].dereference().display == "second code"
+        assert term.codes[1].dereference().description == "second desc"
 
-    term.delete(hard_delete=True)
+        term.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()
 
 
 def test_terminology_delete(client):
-    term_body = {
-        "name": "Ontology Two",
-        "url": "http://example.com/ont1",
-        "description": "A sample oncology terminology",
-        "codes": [
-            {"code": "C1", "display": "Code One", "description": "Description for C1"},
-            {"code": "C2", "display": "Code Two", "description": "'Description for C2"},
-        ],
-        "editor": "test-user",
-    }
+    test_owner = _Owner(client)
+    try:
+        term_body = {
+            "name": "Ontology Two",
+            "url": "http://example.com/ont1",
+            "description": "A sample oncology terminology",
+            "codes": [
+                {
+                    "code": "C1",
+                    "display": "Code One",
+                    "description": "Description for C1",
+                },
+                {
+                    "code": "C2",
+                    "display": "Code Two",
+                    "description": "'Description for C2",
+                },
+            ],
+            "editor": "test-user",
+        }
 
-    response = client.post(
-        "/api/Terminology", json=term_body, headers={"Content-Type": "application/json"}
-    )
-    assert response.status_code == 201
+        response = client.post(
+            "/api/Terminology",
+            json=term_body,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
 
-    term = response.json
-    term_id = term["id"]
+        term = response.json
+        term_id = term["id"]
 
-    client.get(f"/api/Terminology/{term_id}")
-    response = client.delete(f"/api/Terminology/{term_id}")
-    assert response.status_code == 200
+        client.get(f"/api/Terminology/{term_id}")
+        response = client.delete(f"/api/Terminology/{term_id}")
+        assert response.status_code == 200
 
-    response = client.get(f"/api/Terminology/{term_id}")
+        response = client.get(f"/api/Terminology/{term_id}")
 
-    assert response.status_code == 404
+        assert response.status_code == 404
 
-    gid = GlobalID(
-        resource_type="Terminology", key="http://example.com/ont1:Ontology Two"
-    )
-    gid.delete()
+        gid = GlobalID(
+            resource_type="Terminology", key="http://example.com/ont1:Ontology Two"
+        )
+        gid.delete()
+    finally:
+        test_owner.cleanup()
 
 
 def test_terminology_put(client):
-    term_body = {
-        "id": "ontology-three",
-        "name": "Ontology Three",
-        "url": "http://example.com/ont3",
-        "description": "A sample oncology terminology",
-        "codes": [
-            {"code": "C1", "display": "Code One", "description": "Description for C1"},
-            {"code": "C2", "display": "Code Two", "description": "'Description for C2"},
-        ],
-        "editor": "test-user",
-    }
+    test_owner = _Owner(client)
+    try:
+        term_body = {
+            "id": "ontology-three",
+            "name": "Ontology Three",
+            "url": "http://example.com/ont3",
+            "description": "A sample oncology terminology",
+            "codes": [
+                {
+                    "code": "C1",
+                    "display": "Code One",
+                    "description": "Description for C1",
+                },
+                {
+                    "code": "C2",
+                    "display": "Code Two",
+                    "description": "'Description for C2",
+                },
+            ],
+            "editor": "test-user",
+        }
 
-    response = client.put(
-        "/api/Terminology/ontology-three",
-        json=term_body,
-        headers={"Content-Type": "application/json"},
-    )
+        response = client.put(
+            "/api/Terminology/ontology-three",
+            json=term_body,
+            headers={"Content-Type": "application/json"},
+        )
 
-    assert response.status_code == 200
+        assert response.status_code == 200
 
-    term = response.json
+        term = response.json
 
-    assert term["id"] == "ontology-three"
-    term_id = term["id"]
-    assert len(term["codes"]) == 2
+        assert term["id"] == "ontology-three"
+        term_id = term["id"]
+        assert len(term["codes"]) == 2
 
-    get_term = client.get(f"/api/Terminology/{term_id}")
-    term = get_term.json
-    assert len(term["codes"]) == 2
-    assert term["codes"][0]["code"] == "C1"
-    assert term["codes"][1]["display"] == "Code Two"
+        get_term = client.get(f"/api/Terminology/{term_id}")
+        term = get_term.json
+        assert len(term["codes"]) == 2
+        assert term["codes"][0]["code"] == "C1"
+        assert term["codes"][1]["display"] == "Code Two"
 
-    term = Terminology.get(term_id)
-    term.delete(hard_delete=True)
+        term = Terminology.get(term_id)
+        assert term is not None
+        term.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()
 
 
 def test_terminology_add_and_delete_code(client):
-    term_body = {
-        "id": "ontology-three",
-        "name": "Ontology Three",
-        "url": "http://example.com/ont3",
-        "description": "A sample oncology terminology",
-        "codes": [
-            {"code": "C1", "display": "Code One", "description": "Description for C1"},
-            {"code": "C2", "display": "Code Two", "description": "'Description for C2"},
-        ],
-        "editor": "test-user",
-    }
+    test_owner = _Owner(client)
+    try:
+        term_body = {
+            "id": "ontology-three",
+            "name": "Ontology Three",
+            "url": "http://example.com/ont3",
+            "description": "A sample oncology terminology",
+            "codes": [
+                {
+                    "code": "C1",
+                    "display": "Code One",
+                    "description": "Description for C1",
+                },
+                {
+                    "code": "C2",
+                    "display": "Code Two",
+                    "description": "'Description for C2",
+                },
+            ],
+            "editor": "test-user",
+        }
 
-    response = client.put(
-        "/api/Terminology/ontology-three",
-        json=term_body,
-        headers={"Content-Type": "application/json"},
-    )
+        response = client.put(
+            "/api/Terminology/ontology-three",
+            json=term_body,
+            headers={"Content-Type": "application/json"},
+        )
 
-    assert response.status_code == 200
+        assert response.status_code == 200
 
-    term = response.json
-    assert term["id"] == "ontology-three"
-    term_id = term["id"]
-    assert len(term["codes"]) == 2
+        term = response.json
+        assert term["id"] == "ontology-three"
+        term_id = term["id"]
+        assert len(term["codes"]) == 2
 
-    new_code = {
-        "code": "C3",
-        "display": "Code Three",
-        "description": "Great Description",
-        "editor": "unit-test",
-    }
-    response = client.put(
-        f"/api/Terminology/ontology-three/code/{new_code['code']}",
-        json=new_code,
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 201
+        new_code = {
+            "code": "C3",
+            "display": "Code Three",
+            "description": "Great Description",
+            "editor": "unit-test",
+        }
+        response = client.put(
+            f"/api/Terminology/ontology-three/code/{new_code['code']}",
+            json=new_code,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
 
-    term = client.get(f"/api/Terminology/{term_id}").json
-    assert len(term["codes"]) == 3
-    assert term["codes"][2]["code"] == "C3"
-    assert term["codes"][2]["display"] == "Code Three"
+        term = client.get(f"/api/Terminology/{term_id}").json
+        assert len(term["codes"]) == 3
+        assert term["codes"][2]["code"] == "C3"
+        assert term["codes"][2]["display"] == "Code Three"
 
-    new_coding_id = term["codes"][2]["id"]
+        new_coding_id = term["codes"][2]["id"]
 
-    response = client.put(
-        f"/api/Terminology/ontology-three/code/{new_code['code']}",
-        json=new_code,
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 400
-    assert response.json["message"][0:31] == "The code(C3) is already present"
+        response = client.put(
+            f"/api/Terminology/ontology-three/code/{new_code['code']}",
+            json=new_code,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+        assert response.json["message"][0:31] == "The code(C3) is already present"
 
-    response = client.delete(
-        f"/api/Terminology/ontology-three/code/{new_code['code']}",
-        json={"editor": "unit-test"},
-    )
-    assert response.status_code == 200
-    term = client.get(f"/api/Terminology/{term_id}").json
-    assert len(term["codes"]) == 2
+        response = client.delete(
+            f"/api/Terminology/ontology-three/code/{new_code['code']}",
+            json={"editor": "unit-test"},
+        )
+        assert response.status_code == 200
+        term = client.get(f"/api/Terminology/{term_id}").json
+        assert len(term["codes"]) == 2
 
-    coding = Coding.get(new_coding_id)
-    assert isinstance(coding, Coding)
-    coding.delete()
+        coding = Coding.get(new_coding_id)
+        assert isinstance(coding, Coding)
+        coding.delete()
 
-    term = Terminology.get(term_id)
-    term.delete(hard_delete=True)
+        term = Terminology.get(term_id)
+        assert term is not None
+        term.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()
 
 
 def test_terminology_post(client):
-    term_body = {
-        "name": "Ontology Two",
-        "url": "http://example.com/ont1",
-        "description": "A sample oncology terminology",
-        "codes": [
-            {"code": "C1", "display": "Code One", "description": "Description for C1"},
-            {"code": "C2", "display": "Code Two", "description": "'Description for C2"},
-        ],
-        "editor": "test-user",
-    }
+    test_owner = _Owner(client)
+    try:
+        term_body = {
+            "name": "Ontology Two",
+            "url": "http://example.com/ont1",
+            "description": "A sample oncology terminology",
+            "codes": [
+                {
+                    "code": "C1",
+                    "display": "Code One",
+                    "description": "Description for C1",
+                },
+                {
+                    "code": "C2",
+                    "display": "Code Two",
+                    "description": "'Description for C2",
+                },
+            ],
+            "editor": "test-user",
+        }
 
-    response = client.post(
-        "/api/Terminology", json=term_body, headers={"Content-Type": "application/json"}
-    )
-    assert response.status_code == 201
+        response = client.post(
+            "/api/Terminology",
+            json=term_body,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
 
-    term = response.json
-    term_id = term["id"]
-    assert len(term["codes"]) == 2
+        term = response.json
+        term_id = term["id"]
+        assert len(term["codes"]) == 2
+        # The creator is stamped as owner automatically (M4) -- never
+        # trusted from the request body.
+        assert term["owner_id"] == test_owner.user.id
 
-    client.get(f"/api/Terminology/{term_id}")
-    assert len(term["codes"]) == 2
-    assert term["codes"][0]["code"] == "C1"
-    assert term["codes"][1]["display"] == "Code Two"
+        client.get(f"/api/Terminology/{term_id}")
+        assert len(term["codes"]) == 2
+        assert term["codes"][0]["code"] == "C1"
+        assert term["codes"][1]["display"] == "Code Two"
 
-    term = Terminology.get(term_id)
-    term.delete(hard_delete=True)
+        term = Terminology.get(term_id)
+        assert term is not None
+        term.delete(hard_delete=True)
 
-    gid = GlobalID(
-        resource_type="Terminology", key="http://example.com/ont1:Ontology Two"
-    )
-    gid.delete()
+        gid = GlobalID(
+            resource_type="Terminology", key="http://example.com/ont1:Ontology Two"
+        )
+        gid.delete()
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_write_requires_write_access(
+    client, ftd_concept_relationships, sample_terminology
+):
+    """sample_terminology's default owner_id is None -- a real, different,
+    logged-in user only gets Registered-visibility viewer access, not
+    editor, so a write must 403."""
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}",
+            json={"id": sample_terminology.id, "name": sample_terminology.name},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+
+        response = client.delete(f"/api/Terminology/{sample_terminology.id}")
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()

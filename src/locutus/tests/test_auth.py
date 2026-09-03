@@ -17,12 +17,15 @@ from flask import Flask, g
 import locutus
 from locutus.auth import (
     CurrentUser,
+    filter_readable,
     get_permission,
     hash_token,
+    new_resource_access_fields,
     require_admin,
     require_auth,
     require_read_access,
     require_write_access,
+    require_write_access_or_create,
 )
 from locutus.model.study import Study
 from locutus.model.user import User
@@ -125,6 +128,45 @@ def test_missing_visibility_key_treated_as_registered():
     assert get_permission(resource, _user()) == "viewer"
 
 
+# ── filter_readable() / new_resource_access_fields() ────────────────────
+
+
+def test_filter_readable_keeps_only_accessible_resources():
+    owned = _resource(owner_id="u1")
+    institution_match = _resource(
+        owner_id="someone-else",
+        visibility=Visibility.Institution,
+        institutions={"vumc": "editor"},
+    )
+    no_access = _resource(owner_id="someone-else", visibility=Visibility.Restricted)
+
+    result = filter_readable(
+        [owned, institution_match, no_access], _user(institution_ids=["vumc"])
+    )
+    assert result == [owned, institution_match]
+
+
+def test_filter_readable_empty_list():
+    assert filter_readable([], _user()) == []
+
+
+def test_new_resource_access_fields_stamps_caller_as_owner_and_editor():
+    user = _user(user_id="u1", institution_ids=["vumc", "chop"])
+    fields = new_resource_access_fields(user)
+    assert fields == {
+        "owner_id": "u1",
+        "access": {
+            "institutions": {"vumc": "editor", "chop": "editor"},
+            "users": {},
+        },
+    }
+
+
+def test_new_resource_access_fields_with_no_institutions():
+    fields = new_resource_access_fields(_user(user_id="u1", institution_ids=[]))
+    assert fields["access"]["institutions"] == {}
+
+
 # ── Decorators, end-to-end against real routes and real documents ───────
 
 
@@ -156,6 +198,11 @@ def auth_app():
     @app.route("/probe/write/<id>")
     @require_write_access("Study", "id")
     def probe_write(id):
+        return {"ok": True}, 200
+
+    @app.route("/probe/write-or-create/<id>")
+    @require_write_access_or_create("Study", "id")
+    def probe_write_or_create(id):
         return {"ok": True}, 200
 
     with app.test_client() as client:
@@ -419,6 +466,64 @@ def test_require_write_access_allows_institution_editor(auth_app, basic_user):
             sess["user_id"] = basic_user.id
 
         response = auth_app.get(f"/probe/write/{study.id}")
+        assert response.status_code == 200
+    finally:
+        study.delete(hard_delete=True)
+
+
+def test_require_write_access_or_create_allows_missing_resource(auth_app, basic_user):
+    """The whole point of this decorator: a nonexistent id is let through
+    (as a create) rather than 404ing, unlike plain require_write_access."""
+    assert basic_user.id is not None
+    with auth_app.session_transaction() as sess:
+        sess["user_id"] = basic_user.id
+
+    response = auth_app.get("/probe/write-or-create/does-not-exist-yet")
+    assert response.status_code == 200
+
+
+def test_require_write_access_or_create_403s_existing_resource_without_access(
+    auth_app, basic_user
+):
+    assert basic_user.id is not None
+    study = Study(
+        name="No Access Upsert Study",
+        url="http://ftd.unit.tests/no-access-upsert-study/",
+        title="No Access Upsert Study",
+        description="",
+        owner_id="someone-else",
+        visibility=Visibility.Registered,
+    )
+    study.save()
+    try:
+        with auth_app.session_transaction() as sess:
+            sess["user_id"] = basic_user.id
+
+        # Registered visibility gives "viewer", not "editor" -- an update
+        # (unlike a create) still needs real write access.
+        response = auth_app.get(f"/probe/write-or-create/{study.id}")
+        assert response.status_code == 403
+    finally:
+        study.delete(hard_delete=True)
+
+
+def test_require_write_access_or_create_allows_existing_resource_with_access(
+    auth_app, basic_user
+):
+    assert basic_user.id is not None
+    study = Study(
+        name="Owned Upsert Study",
+        url="http://ftd.unit.tests/owned-upsert-study/",
+        title="Owned Upsert Study",
+        description="",
+        owner_id=basic_user.id,
+    )
+    study.save()
+    try:
+        with auth_app.session_transaction() as sess:
+            sess["user_id"] = basic_user.id
+
+        response = auth_app.get(f"/probe/write-or-create/{study.id}")
         assert response.status_code == 200
     finally:
         study.delete(hard_delete=True)

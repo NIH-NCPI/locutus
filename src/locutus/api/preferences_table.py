@@ -5,13 +5,17 @@ from flask import request
 from flask_restful import Resource
 
 from locutus.api import default_headers, get_editor
+from locutus.auth import require_read_access, require_write_access
 from locutus.model.exceptions import APIError, LackingUserID
 from locutus.model.table import Table as mTable
 
 
 class TableOntologyAPISearchPreferences(Resource):
+    @require_read_access("Table", "id")
     def get(self, id: str, code: str | None = None):
+        # require_read_access already confirmed this id exists.
         t = mTable.get(id)
+        assert t is not None
 
         try:
             prefs = t.get_preference(code=code)
@@ -23,10 +27,13 @@ class TableOntologyAPISearchPreferences(Resource):
 
         return json.loads(json_util.dumps(prefs)), 200, default_headers
 
+    @require_write_access("Table", "id")
     def post(self, id: str, code: str | None = None):
         """Create or add an `api_preference` for a specific Table or code."""
         body = request.get_json()
+        # require_write_access already confirmed this id exists.
         t = mTable.get(id)
+        assert t is not None
         if "api_preference" not in body:
             return {"message": "api_preference is required"}, 400
 
@@ -40,10 +47,13 @@ class TableOntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
+    @require_write_access("Table", "id")
     def put(self, id: str, code: str | None = None):
         """Update an `api_preference` for a specific Table or code."""
         body = request.get_json()
+        # require_write_access already confirmed this id exists.
         t = mTable.get(id)
+        assert t is not None
         if "api_preference" not in body:
             return {"message": "api_preference is required"}, 400
 
@@ -57,9 +67,12 @@ class TableOntologyAPISearchPreferences(Resource):
 
         return (response, 200, default_headers)
 
+    @require_write_access("Table", "id")
     def delete(self, id: str, code: str | None = None):
         """Remove an `api_preference` from a specific Table or code."""
+        # require_write_access already confirmed this id exists.
         t = mTable.get(id)
+        assert t is not None
 
         message = t.remove_pref(code=code)
 
@@ -69,6 +82,7 @@ class TableOntologyAPISearchPreferences(Resource):
 
 
 class TablePreferredTerminology(Resource):
+    @require_read_access("Table", "id")
     def get(self, id: str):
         """
         Retrieve the preferred terminology for a specific Terminology
@@ -88,18 +102,15 @@ class TablePreferredTerminology(Resource):
             ]
         }
         """
+        # require_read_access already confirmed this id exists.
         t = mTable.get(id)
-        if t is None:
-            return (
-                {"message_to_user": f"No table found with id {id}"},
-                404,
-                default_headers,
-            )
+        assert t is not None
 
         pref = t.get_preferred_terminology()
 
         return (json.loads(json_util.dumps(pref)), 200, default_headers)
 
+    @require_write_access("Table", "id")
     def put(self, id: str):
         """
         Creates one or more preferred terminologies to a specific Terminology.
@@ -127,7 +138,9 @@ class TablePreferredTerminology(Resource):
             if editor is None:
                 raise LackingUserID(editor)
 
+            # require_write_access already confirmed this id exists.
             t = mTable.get(id)
+            assert t is not None
 
             if not isinstance(body, dict) or not isinstance(
                 body.get("preferred_terminologies", []), list
@@ -153,8 +166,11 @@ class TablePreferredTerminology(Resource):
         response = {"id": t.id, "references": preferred_terminologies}
         return (response, 200, default_headers)
 
+    @require_write_access("Table", "id")
     def delete(self, id: str):
+        # require_write_access already confirmed this id exists.
         t = mTable.get(id)
+        assert t is not None
 
         t.remove_preferred_terminology()
 
