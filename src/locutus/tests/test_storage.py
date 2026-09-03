@@ -116,3 +116,70 @@ def test_update_token_last_used_actually_persists():
         assert fetched["lastUsedAt"] is not None
     finally:
         _clear("ApiToken")
+
+
+def test_set_backfills_id_for_a_fresh_document_with_no_id_supplied():
+    """Pins the storage/mongo.py fix: insert_one() mutates its input dict
+    in place with the generated _id, but that happens *after* the insert
+    -- so a document saved without an "id" key used to end up persisted
+    with id=None (or no id key at all) forever, only "fixed" in the
+    in-memory dict .set() happened to return."""
+    _clear("User")
+
+    try:
+        doc_id = str(
+            locutus.persistence()
+            .collection("User")
+            .document()
+            .set({"email": "no-id-supplied@example.com"})
+        )
+
+        fetched = locutus.persistence().get_user(doc_id)
+        assert fetched is not None
+        assert fetched["id"] == doc_id
+    finally:
+        _clear("User")
+
+
+def test_find_one_backfills_id_from_underscore_id():
+    """CollectionReference.find_one() must backfill "id" from "_id" the
+    same way DocumentSnapshot.to_dict() already does, for a document that
+    genuinely has no "id" field stored at all."""
+    _clear("ApiToken")
+
+    try:
+        doc_id = str(
+            locutus.persistence()
+            .collection("ApiToken")
+            .document()
+            .set({"userId": "u1", "tokenHash": "find-one-backfill-test"})
+        )
+
+        fetched = locutus.persistence().get_api_token("find-one-backfill-test")
+        assert fetched is not None
+        assert fetched["id"] == doc_id
+    finally:
+        _clear("ApiToken")
+
+
+def test_document_with_custom_string_id_supports_set_get_update_delete():
+    """A human-readable singleton key (e.g. a Config/bootstrap doc) isn't a
+    real ObjectId. set()/get()/update()/delete() all used to assume any
+    explicitly-supplied doc_id either was one or should become one, and
+    crashed with bson.errors.InvalidId otherwise."""
+    doc_ref = locutus.persistence().collection("Config").document("test-singleton")
+
+    try:
+        returned_id = doc_ref.set({"greeting": "hello"})
+        assert returned_id == "test-singleton"
+
+        fetched = doc_ref.get()
+        assert fetched.exists
+        assert fetched.to_dict()["greeting"] == "hello"
+
+        doc_ref.update({"greeting": "goodbye"})
+        assert doc_ref.get().to_dict()["greeting"] == "goodbye"
+    finally:
+        doc_ref.delete()
+
+    assert not doc_ref.get().exists
