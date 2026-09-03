@@ -27,12 +27,18 @@ class User:
         display_name: str | None = None,
         institution_ids: list[str] | None = None,
         role: Role = Role.User,
+        google_sub: str | None = None,
     ):
         self.id = id
         self.email = email
         self.display_name = display_name
         self.institution_ids = institution_ids if institution_ids is not None else []
         self.role = role
+        # Google's stable subject identifier (the "sub" claim) -- unlike
+        # email, this never changes for a given Google account, so it's the
+        # right long-term join key. Optional/backfillable since it doesn't
+        # exist for any user created before Google login did.
+        self.google_sub = google_sub
 
     def is_admin(self) -> bool:
         return self.role == User.Role.Admin
@@ -44,6 +50,7 @@ class User:
             "displayName": self.display_name,
             "institutionIds": self.institution_ids,
             "role": self.role,
+            "googleSub": self.google_sub,
         }
 
     @classmethod
@@ -54,6 +61,7 @@ class User:
             display_name=data.get("displayName"),
             institution_ids=data.get("institutionIds", []),
             role=data.get("role", User.Role.User),
+            google_sub=data.get("googleSub"),
         )
 
     def save(self) -> "User":
@@ -76,4 +84,11 @@ class User:
     @classmethod
     def find_by_email(cls, email: str) -> "User | None":
         match = locutus.persistence().collection("User").find_one({"email": email})
+        return cls.from_dict(match) if match is not None else None
+
+    @classmethod
+    def find_by_google_sub(cls, google_sub: str) -> "User | None":
+        match = (
+            locutus.persistence().collection("User").find_one({"googleSub": google_sub})
+        )
         return cls.from_dict(match) if match is not None else None

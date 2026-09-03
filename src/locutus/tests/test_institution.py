@@ -20,6 +20,9 @@ def test_institution_save_and_get_round_trip():
 
         fetched = Institution.get(inst.id)
         assert fetched is not None
+        # Pins storage/mongo.py's set()-backfill fix -- see the same
+        # assertion in test_user.py for why this matters.
+        assert fetched.id == inst.id
         assert fetched.name == "VUMC"
         assert fetched.member_ids == ["u1", "u2"]
         assert fetched.allowed_emails == ["a@vumc.org"]

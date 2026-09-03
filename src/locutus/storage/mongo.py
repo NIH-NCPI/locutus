@@ -41,6 +41,17 @@ class DocumentSnapshot:
         self._collection.delete_one({"_id": ObjectId(self.id)})
 
 
+def _try_object_id(doc_id):
+    """ObjectId(doc_id) if doc_id looks like one, else None. A custom/
+    business id -- a nanoid-style resource id, or a fixed human-readable
+    key like a singleton config doc's "bootstrap" -- isn't a real ObjectId
+    and has to be matched via the "id" field instead of "_id"."""
+    try:
+        return ObjectId(doc_id)
+    except InvalidId:
+        return None
+
+
 class DocumentReference:
     def __init__(self, collection, doc_id, parent_path=""):
         self._collection = collection
@@ -49,14 +60,11 @@ class DocumentReference:
 
     def get(self):
         # Try to find by _id first (MongoDB native way). A doc_id that
-        # isn't a valid ObjectId (a custom/nanoid-style id, or simply a
-        # nonexistent one) falls through to the id-field lookup below
+        # isn't a valid ObjectId falls through to the id-field lookup below
         # instead of raising -- this method must return a "doesn't exist"
         # snapshot for a bad id, not crash.
-        try:
-            doc = self._collection.find_one({"_id": ObjectId(self._doc_id)})
-        except InvalidId:
-            doc = None
+        object_id = _try_object_id(self._doc_id)
+        doc = self._collection.find_one({"_id": object_id}) if object_id else None
 
         if not doc:
             # If not found, try to find by id field (Firestore compatibility)
@@ -74,32 +82,55 @@ class DocumentReference:
         # Overwrites the entire document (upsert = True)
         # Use the id field for consistency, and also set _id for MongoDB compatibility
         if self._doc_id:
-            data["_id"] = ObjectId(self._doc_id)
+            object_id = _try_object_id(self._doc_id)
             if "id" not in data:
                 data["id"] = self._doc_id
-            self._collection.replace_one(
-                {"_id": ObjectId(self._doc_id)}, data, upsert=True
-            )
+            if object_id is not None:
+                data["_id"] = object_id
+                self._collection.replace_one({"_id": object_id}, data, upsert=True)
+            else:
+                # A custom/business id, not a real ObjectId -- match and
+                # upsert by the "id" field; Mongo assigns its own _id.
+                self._collection.replace_one({"id": self._doc_id}, data, upsert=True)
+                return self._doc_id
         else:
+            # insert_one mutates `data` in place, injecting the generated
+            # _id -- but if the caller didn't already put a real "id" in
+            # data (e.g. it was missing, or explicitly None), the doc as
+            # actually inserted has no usable "id". Patching `data` after
+            # the fact only fixes this function's return value, not what's
+            # in the database -- backfill it there too.
+            needs_id_backfill = not data.get("id")
             _id = self._collection.insert_one(data)
             data["_id"] = str(_id.inserted_id)
             data["id"] = data["_id"]
+            if needs_id_backfill:
+                self._collection.update_one(
+                    {"_id": _id.inserted_id}, {"$set": {"id": data["id"]}}
+                )
 
         return data["_id"]
 
     def update(self, fields):
         # Merges fields into existing doc. _id is stored as an ObjectId, so
-        # the query must wrap doc_id the same way .get()/.delete() do below --
-        # matching on the bare string would silently match nothing.
-        self._collection.update_one(
-            {"_id": ObjectId(self._doc_id)}, {"$set": fields}, upsert=False
-        )
+        # the query must match it the same way .get()/.set()/.delete() do --
+        # a custom/business id falls back to matching on "id" instead.
+        object_id = _try_object_id(self._doc_id)
+        if object_id is not None:
+            self._collection.update_one(
+                {"_id": object_id}, {"$set": fields}, upsert=False
+            )
+        else:
+            self._collection.update_one(
+                {"id": self._doc_id}, {"$set": fields}, upsert=False
+            )
 
     def delete(self):
         # Try to delete by _id first, then by id field for compatibility
-        result = self._collection.delete_one({"_id": ObjectId(self._doc_id)})
-        if result.deleted_count == 0:
-            result = self._collection.delete_one({"id": ObjectId(self._doc_id)})
+        object_id = _try_object_id(self._doc_id)
+        result = self._collection.delete_one({"_id": object_id}) if object_id else None
+        if result is None or result.deleted_count == 0:
+            result = self._collection.delete_one({"id": self._doc_id})
         return result
 
     def collection(self, subcollection_name):
@@ -157,7 +188,11 @@ class CollectionReference:
             query = {}
         doc = self._collection.find_one(query)
         if doc:
-            # Remove all database-specific fields (starting with _)
+            # Backfill "id" from "_id" for documents that predate the set()
+            # backfill fix above, matching DocumentSnapshot.to_dict()'s
+            # existing convention -- then remove database-specific fields.
+            if "id" not in doc:
+                doc["id"] = str(doc["_id"])
             return {k: v for k, v in doc.items() if not k.startswith("_")}
         return None
 
@@ -190,7 +225,7 @@ class FirestoreCompatibleClient:
     allowed_collections: ClassVar[set] = set(
         list(resource_types.keys())
         + simple_types
-        + ["OntologyAPI", "User", "Institution", "ApiToken"]
+        + ["OntologyAPI", "User", "Institution", "ApiToken", "Config"]
     )
 
     def __init__(self, mongo_uri=None, missing_ok=False):

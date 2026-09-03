@@ -21,6 +21,10 @@ def test_user_save_and_get_round_trip():
 
         fetched = User.get(user.id)
         assert fetched is not None
+        # Pins storage/mongo.py's set()-backfill fix: a freshly auto-
+        # generated id must actually be persisted, not just returned in
+        # memory -- otherwise the stored doc's "id" field is null.
+        assert fetched.id == user.id
         assert fetched.email == "a@example.com"
         assert fetched.display_name == "A User"
         assert fetched.institution_ids == ["vumc"]
