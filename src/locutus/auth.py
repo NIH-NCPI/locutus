@@ -25,7 +25,7 @@ from locutus.model.visibility import Visibility
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_PREFIX = "lct_"
+TOKEN_PREFIX = "lct_"
 _BEARER_PREFIX = "Bearer "
 
 _RouteBound = Callable[..., ResponseReturnValue]
@@ -101,7 +101,7 @@ def _resolve_identity() -> tuple[CurrentUser | None, bool]:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith(_BEARER_PREFIX):
         token = auth_header[len(_BEARER_PREFIX) :]
-        if token.startswith(_TOKEN_PREFIX):
+        if token.startswith(TOKEN_PREFIX):
             return _resolve_via_token(token), True
 
     return _resolve_via_session(), False
