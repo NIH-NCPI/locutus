@@ -6,6 +6,7 @@ from flask_cors import CORS, cross_origin
 from flask_restful import Api
 
 from locutus import setup_logging
+from locutus.api.auth import GoogleLogin
 from locutus.api.combined_harmony import CombinedHarmony
 from locutus.api.datadictionary import (
     DataDictionaries,
@@ -96,6 +97,7 @@ def create_app(config_filename=None):
         "/api/session/status",
         resource_class_kwargs={"session_manager": session_manager},
     )
+    api.add_resource(GoogleLogin, "/api/auth/google")
 
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 
