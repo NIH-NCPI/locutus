@@ -50,6 +50,7 @@ from locutus.api.terminology import (
 )
 from locutus.api.terminology_mapping import MappingRelationship, TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
+from locutus.api.tokens import AdminApiTokenItem, ApiTokenItem, ApiTokens
 from locutus.api.user_input import TableUserInput, TerminologyUserInput
 from locutus.api.user_prefs import UserPrefOntoFilters
 from locutus.model.lookups import FTDOntologyLookup
@@ -98,6 +99,10 @@ def create_app(config_filename=None):
         resource_class_kwargs={"session_manager": session_manager},
     )
     api.add_resource(GoogleLogin, "/api/auth/google")
+
+    api.add_resource(ApiTokens, "/api/tokens")
+    api.add_resource(ApiTokenItem, "/api/tokens/<string:id>")
+    api.add_resource(AdminApiTokenItem, "/api/admin/tokens/<string:id>")
 
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 
