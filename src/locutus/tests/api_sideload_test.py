@@ -2,7 +2,7 @@ import pytest
 
 from locutus.model.table import Table
 
-from . import client
+from . import _Owner, client
 from .test_table import basic_table
 from .test_terminology import sample_terminology
 
@@ -22,22 +22,58 @@ def _row(table_id, **overrides):
     return row
 
 
-def test_sideload_post_happy_path(client, sample_terminology, basic_table):
+def test_sideload_post_requires_auth(client, sample_terminology, basic_table):
     response = client.post(
         "/api/SideLoad",
         json={"csvContents": [_row(basic_table.id)]},
         headers={"Content-Type": "application/json"},
     )
-    assert response.status_code == 200
-    # Documents current behavior: SetMappings has no return statement, so a
-    # successful sideload responds with a JSON null body.
-    assert response.json is None
+    assert response.status_code == 401
 
-    table = Table.get(basic_table.id)
-    term = table.terminology.dereference()
-    mappings = term.mappings("string_var")["string_var"]
-    assert len(mappings) == 1
-    assert mappings[0].code == "MAPPED_CODE"
+
+def test_sideload_post_happy_path(client, sample_terminology, basic_table):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = client.post(
+            "/api/SideLoad",
+            json={"csvContents": [_row(basic_table.id)]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 200
+        assert response.json["mappings_applied"] == 1
+
+        table = Table.get(basic_table.id)
+        assert table is not None
+        term = table.terminology.dereference()
+        mappings = term.mappings("string_var")["string_var"]
+        assert len(mappings) == 1
+        assert mappings[0].code == "MAPPED_CODE"
+    finally:
+        test_owner.cleanup()
+
+
+def test_sideload_post_requires_write_access(client, sample_terminology, basic_table):
+    # basic_table's default owner_id is None (Registered visibility) -- a
+    # real, different, logged-in user only gets viewer access, so the whole
+    # batch is rejected before any write, per M12.
+    test_owner = _Owner(client)
+    try:
+        response = client.post(
+            "/api/SideLoad",
+            json={"csvContents": [_row(basic_table.id)]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+        assert response.json["table_ids"] == [basic_table.id]
+
+        table = Table.get(basic_table.id)
+        assert table is not None
+        term = table.terminology.dereference()
+        mappings = term.mappings("string_var")["string_var"]
+        assert mappings == []
+    finally:
+        test_owner.cleanup()
 
 
 def test_sideload_post_missing_csv_contents_raises(client):
@@ -45,10 +81,14 @@ def test_sideload_post_missing_csv_contents_raises(client):
     # directly; a body without that key raises an unhandled KeyError instead
     # of the LackingRequiredParameter/APIError the surrounding except clauses
     # are set up to catch.
-    with pytest.raises(KeyError):
-        client.post(
-            "/api/SideLoad", json={}, headers={"Content-Type": "application/json"}
-        )
+    test_owner = _Owner(client)
+    try:
+        with pytest.raises(KeyError):
+            client.post(
+                "/api/SideLoad", json={}, headers={"Content-Type": "application/json"}
+            )
+    finally:
+        test_owner.cleanup()
 
 
 def test_sideload_post_missing_mapping_relationship_key_raises(
@@ -60,34 +100,48 @@ def test_sideload_post_missing_mapping_relationship_key_raises(
     # 'mapping_relationship' key entirely (as opposed to present-but-blank,
     # which is what a real CSV upload would produce) ends up with
     # mapping_relationship=None and crashes.
-    row = _row(basic_table.id)
-    del row["mapping_relationship"]
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        row = _row(basic_table.id)
+        del row["mapping_relationship"]
 
-    with pytest.raises(TypeError):
-        client.post(
-            "/api/SideLoad",
-            json={"csvContents": [row]},
-            headers={"Content-Type": "application/json"},
-        )
+        with pytest.raises(TypeError):
+            client.post(
+                "/api/SideLoad",
+                json={"csvContents": [row]},
+                headers={"Content-Type": "application/json"},
+            )
+    finally:
+        test_owner.cleanup()
 
 
 def test_sideload_post_missing_provenance_returns_400(
     client, sample_terminology, basic_table
 ):
-    row = _row(basic_table.id, provenance="")
-    response = client.post(
-        "/api/SideLoad",
-        json={"csvContents": [row]},
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 400
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        row = _row(basic_table.id, provenance="")
+        response = client.post(
+            "/api/SideLoad",
+            json={"csvContents": [row]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
 
 
 def test_sideload_post_table_not_found_returns_400(client):
-    row = _row("not-a-real-table")
-    response = client.post(
-        "/api/SideLoad",
-        json={"csvContents": [row]},
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 400
+    test_owner = _Owner(client)
+    try:
+        row = _row("not-a-real-table")
+        response = client.post(
+            "/api/SideLoad",
+            json={"csvContents": [row]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()

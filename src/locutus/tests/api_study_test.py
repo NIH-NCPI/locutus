@@ -1,5 +1,3 @@
-import pytest
-
 from locutus.model.study import Study
 
 from . import _Owner, client
@@ -246,22 +244,39 @@ def test_study_edit_requires_write_access(client, sample_terminology, basic_stud
         test_owner.cleanup()
 
 
-def test_study_harmony_default(client, sample_terminology, basic_study):
+def test_study_harmony_requires_auth(client, sample_terminology, basic_study):
     response = client.get(f"/api/Study/{basic_study.id}/harmony")
-    assert response.status_code == 200
-    assert response.json == []
+    assert response.status_code == 401
+
+
+def test_study_harmony_default(client, sample_terminology, basic_study):
+    test_owner = _Owner(client)
+    try:
+        response = client.get(f"/api/Study/{basic_study.id}/harmony")
+        assert response.status_code == 200
+        assert response.json == []
+    finally:
+        test_owner.cleanup()
 
 
 def test_study_harmony_invalid_format(client, sample_terminology, basic_study):
-    response = client.get(
-        f"/api/Study/{basic_study.id}/harmony", query_string={"format": "not-a-format"}
-    )
-    assert response.status_code == 400
+    test_owner = _Owner(client)
+    try:
+        response = client.get(
+            f"/api/Study/{basic_study.id}/harmony",
+            query_string={"format": "not-a-format"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
 
 
-def test_study_harmony_missing_study_raises(client):
-    # Documents current behavior: StudyHarmony is out of scope for Phase 5
-    # (M11 aggregate endpoint, same as HarmonyTableCSV) and still does not
-    # check for a None result before calling .as_harmony() on it.
-    with pytest.raises(AttributeError):
-        client.get("/api/Study/not-there/harmony")
+def test_study_harmony_missing_study_returns_404(client):
+    # require_read_access now 404s before the handler (which never itself
+    # checked for None) can even run.
+    test_owner = _Owner(client)
+    try:
+        response = client.get("/api/Study/not-there/harmony")
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()

@@ -1,6 +1,6 @@
 from locutus.model.table import Table
 
-from . import client
+from . import _Owner, client
 from .test_terminology import ftd_concept_relationships
 
 mini_table_body = {
@@ -45,69 +45,114 @@ mini_table_body = {
 }
 
 
-def test_loading_table(client, ftd_concept_relationships):
+def test_load_table_post_requires_auth(client):
     response = client.post(
         "/api/LoadTable",
         json=mini_table_body,
         headers={"Content-Type": "application/json"},
     )
-    assert response.status_code == 201
-    table = response.json
+    assert response.status_code == 401
 
-    assert table["name"] == mini_table_body["name"]
-    assert len(table["variables"]) == len(mini_table_body["csvContents"])
 
-    t = Table.get(table["id"])
-    assert t.name == mini_table_body["name"]
+def test_loading_table(client, ftd_concept_relationships):
+    test_owner = _Owner(client)
+    try:
+        response = client.post(
+            "/api/LoadTable",
+            json=mini_table_body,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
+        table = response.json
 
-    term = t.terminology.dereference()
-    assert len(term.codes) == len(mini_table_body["csvContents"])
+        assert table["name"] == mini_table_body["name"]
+        assert len(table["variables"]) == len(mini_table_body["csvContents"])
+        # The creator is stamped as owner automatically (M4) -- never
+        # trusted from the request body.
+        assert table["owner_id"] == test_owner.user.id
 
-    # cleanup
-    # term.global_id().delete()
-    term.delete(hard_delete=True)
+        t = Table.get(table["id"])
+        assert t is not None
+        assert t.name == mini_table_body["name"]
 
-    enum = t.variables[1].enumerations.dereference()
-    # enum.global_id().delete()
-    enum.delete(hard_delete=True)
+        term = t.terminology.dereference()
+        assert len(term.codes) == len(mini_table_body["csvContents"])
 
-    # t.global_id().delete()
-    t.delete(hard_delete=True)
+        # cleanup
+        # term.global_id().delete()
+        term.delete(hard_delete=True)
+
+        enum = t.variables[1].enumerations.dereference()
+        # enum.global_id().delete()
+        enum.delete(hard_delete=True)
+
+        # t.global_id().delete()
+        t.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()
+
+
+def test_load_table_put_requires_write_access(client, ftd_concept_relationships):
+    """A table with no owner_id (Registered visibility) only gives a real,
+    different, logged-in user viewer access, so a write must 403."""
+    test_owner = _Owner(client)
+    original_table = Table(
+        name="FTD Table 01",
+        url="http://ftd.unit.tests/basic_table/01",
+        description="Simple Test Table",
+        editor="unit-test",
+    )
+    original_table.save()
+    try:
+        response = client.put(
+            f"/api/LoadTable/{original_table.id}",
+            json=mini_table_body,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        original_table.delete(hard_delete=True)
+        test_owner.cleanup()
 
 
 def test_loading_table_put(client, ftd_concept_relationships):
+    test_owner = _Owner(client)
     original_table = Table(
         name="FTD Table 01",
         url="http://ftd.unit.tests/basic_table/01",
         description="Simple Test Table",
         editor="unit-test",  # ,variables=[]
     )
-    original_table.save()
+    test_owner.own(original_table)
 
-    response = client.put(
-        f"/api/LoadTable/{original_table.id}",
-        json=mini_table_body,
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 201
-    table = response.json
+    try:
+        response = client.put(
+            f"/api/LoadTable/{original_table.id}",
+            json=mini_table_body,
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
+        table = response.json
 
-    assert table["name"] == "FTD Table 01"
-    assert len(table["variables"]) == len(mini_table_body["csvContents"])
+        assert table["name"] == "FTD Table 01"
+        assert len(table["variables"]) == len(mini_table_body["csvContents"])
 
-    t = Table.get(table["id"])
-    assert t.name == "FTD Table 01"
+        t = Table.get(table["id"])
+        assert t is not None
+        assert t.name == "FTD Table 01"
 
-    term = t.terminology.dereference()
-    assert len(term.codes) == len(mini_table_body["csvContents"])
+        term = t.terminology.dereference()
+        assert len(term.codes) == len(mini_table_body["csvContents"])
 
-    # cleanup
-    # term.global_id().delete()
-    term.delete(hard_delete=True)
+        # cleanup
+        # term.global_id().delete()
+        term.delete(hard_delete=True)
 
-    enum = t.variables[1].enumerations.dereference()
-    # enum.global_id().delete()
-    enum.delete(hard_delete=True)
+        enum = t.variables[1].enumerations.dereference()
+        # enum.global_id().delete()
+        enum.delete(hard_delete=True)
 
-    # t.global_id().delete()
-    t.delete(hard_delete=True)
+        # t.global_id().delete()
+        t.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()

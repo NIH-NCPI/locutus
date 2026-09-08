@@ -128,22 +128,23 @@ class StudyEdit(Resource):
 
 
 class StudyHarmony(Resource):
+    @require_read_access("Study", "id")
     def get(self, id: str):
         data_format = request.args.get("format", "Whistle")
         file_format = request.args.get("file-format", "JSON")
 
         try:
-            if data_format:
-                data_format = HarmonyFormat(data_format)
-            if file_format:
-                file_format = HarmonyOutputFormat(file_format)
+            data_format = HarmonyFormat(data_format)
+            file_format = HarmonyOutputFormat(file_format)
         except ValueError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
         print("Exporting Study Harmony: ")
         print(f"Harmony format: {data_format}")
         print(f"File format: {file_format}")
+        # require_read_access already confirmed this id exists.
         t = mStudyTerm.get(id)
+        assert t is not None
 
         try:
             harmony = t.as_harmony(
