@@ -31,7 +31,7 @@ def GetTerminology(table, source_variable, source_enum):
     return term
 
 
-def SetMappings(mapping_entries):
+def SetMappings(mapping_entries) -> dict:
     """Add mappings to source codes to values from content
 
     Input format-Dict with following columns:
@@ -117,6 +117,10 @@ def SetMappings(mapping_entries):
         term_mappings = mapping_data["mappings"]
 
         term.set_mapping(source_enumeration, term_mappings, prov)
+
+    # Previously fell off the end here with no return statement, so
+    # SideLoad.post's response body was always a bare `null` on success.
+    return {"message": "Mappings applied", "mappings_applied": len(mappings)}
 
 
 def sideload_csv(csvfile):
