@@ -154,6 +154,45 @@ def filter_readable(resources: list[dict], current_user: CurrentUser) -> list[di
     return [r for r in resources if get_permission(r, current_user) is not None]
 
 
+def readable_ids(
+    resource_type: str, ids: list[str], current_user: CurrentUser
+) -> tuple[list[str], list[str]]:
+    """Splits ids into (readable, omitted) against resource_type, per
+    current_user's read access -- for aggregate endpoints (M11, e.g.
+    CombinedHarmony) that must silently skip inaccessible resources rather
+    than 403ing the whole request, while still reporting what was left out.
+    omitted covers both nonexistent ids and ones current_user can't read;
+    the two aren't distinguished, matching every other read-access check in
+    this module -- existence itself isn't revealed to a caller who can't
+    read the resource."""
+    readable = []
+    omitted = []
+    for resource_id in ids:
+        resource = locutus.persistence().get_resource(resource_type, resource_id)
+        if resource is not None and get_permission(resource, current_user) is not None:
+            readable.append(resource_id)
+        else:
+            omitted.append(resource_id)
+    return readable, omitted
+
+
+def forbidden_write_ids(
+    resource_type: str, ids: list[str], current_user: CurrentUser
+) -> list[str]:
+    """Returns which of ids exist but current_user lacks write access to --
+    for batch write endpoints (M12, e.g. SideLoad) that must reject the
+    whole request before writing anything if any referenced resource isn't
+    writable, rather than partially applying the batch. Missing ids are NOT
+    included -- resource-not-found is a separate error path the caller
+    already handles on its own."""
+    forbidden = []
+    for resource_id in ids:
+        resource = locutus.persistence().get_resource(resource_type, resource_id)
+        if resource is not None and get_permission(resource, current_user) != "editor":
+            forbidden.append(resource_id)
+    return forbidden
+
+
 def new_resource_access_fields(current_user: CurrentUser) -> dict:
     """owner_id/access fields (M4) for a resource being created right now.
     Always call this for the actual values rather than trusting anything a
