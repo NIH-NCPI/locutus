@@ -127,19 +127,20 @@ class DataDictionaryTable(Resource):
 
 
 class DataDictionaryHarmony(Resource):
+    @require_read_access("DataDictionary", "id")
     def get(self, id: str):
         data_format = request.args.get("format", "Whistle")
         file_format = request.args.get("file-format", "JSON")
 
         try:
-            if data_format:
-                data_format = HarmonyFormat(data_format)
-            if file_format:
-                file_format = HarmonyOutputFormat(file_format)
+            data_format = HarmonyFormat(data_format)
+            file_format = HarmonyOutputFormat(file_format)
         except ValueError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
+        # require_read_access already confirmed this id exists.
         t = DD.get(id)
+        assert t is not None
 
         try:
             harmony = t.as_harmony(

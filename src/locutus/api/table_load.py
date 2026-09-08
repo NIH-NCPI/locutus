@@ -2,10 +2,11 @@ import json
 
 import rich
 from bson import json_util
-from flask import request
+from flask import g, request
 from flask_restful import Resource
 
 from locutus.api import default_headers, get_editor
+from locutus.auth import new_resource_access_fields, require_auth, require_write_access
 from locutus.model.provenance import Provenance
 from locutus.model.table import Table as mTable
 from locutus.model.terminology import Terminology as Term
@@ -42,6 +43,7 @@ def get_data_type(data_type):
 
 
 class TableLoader(Resource):
+    @require_auth
     def post(self):
         tblData = request.get_json()
 
@@ -58,6 +60,10 @@ class TableLoader(Resource):
         if "resource_type" in tblData:
             del tblData["resource_type"]
 
+        # owner_id/access are always derived from the authenticated caller,
+        # never trusted from the request body (M4).
+        tbl.update(new_resource_access_fields(g.current_user))
+
         t = mTable(**tbl)
         t.save()
         editor = get_editor(body=tblData, editor=None)
@@ -73,7 +79,10 @@ class TableLoader(Resource):
 
     @classmethod
     def load_table(cls, id, filename, csvContents, editor):
+        # Both callers already guarantee this id exists: TableLoader.post
+        # just created it, and TableLoader2.put is behind require_write_access.
         tbl = mTable.get(id)
+        assert tbl is not None
 
         if len(tbl.variables) > 0:
             return (
@@ -175,10 +184,13 @@ class TableLoader(Resource):
 
 
 class TableLoader2(Resource):
+    @require_write_access("Table", "id")
     def put(self, id: str):
         tblData = request.get_json()
 
+        # require_write_access already confirmed this id exists.
         tbl = mTable.get(id)
+        assert tbl is not None
         editor = get_editor(body=tblData, editor=None)
 
         # check if csvContents exist. Otherwise, return error

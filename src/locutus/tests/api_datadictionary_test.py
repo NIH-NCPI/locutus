@@ -1,5 +1,3 @@
-import pytest
-
 from locutus.model.datadictionary import DataDictionary
 from locutus.model.reference import Reference
 from locutus.model.study import Study
@@ -167,24 +165,39 @@ def test_dd_table_delete_missing_dd_returns_404(client):
         test_owner.cleanup()
 
 
-def test_dd_harmony_default(client, basic_study, basic_datadictionary):
+def test_dd_harmony_requires_auth(client, basic_study, basic_datadictionary):
     response = client.get(f"/api/DataDictionary/{basic_datadictionary.id}/harmony")
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
+    assert response.status_code == 401
+
+
+def test_dd_harmony_default(client, basic_study, basic_datadictionary):
+    test_owner = _Owner(client)
+    try:
+        response = client.get(f"/api/DataDictionary/{basic_datadictionary.id}/harmony")
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+    finally:
+        test_owner.cleanup()
 
 
 def test_dd_harmony_invalid_format(client, basic_study, basic_datadictionary):
-    response = client.get(
-        f"/api/DataDictionary/{basic_datadictionary.id}/harmony",
-        query_string={"format": "not-a-format"},
-    )
-    assert response.status_code == 400
+    test_owner = _Owner(client)
+    try:
+        response = client.get(
+            f"/api/DataDictionary/{basic_datadictionary.id}/harmony",
+            query_string={"format": "not-a-format"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
 
 
-def test_dd_harmony_missing_dd_raises(client):
-    # Documents current behavior: DataDictionaryHarmony is out of scope for
-    # Phase 5 (M11 aggregate endpoint, same as HarmonyTableCSV/StudyHarmony)
-    # and still does not check for a None result before calling
-    # .as_harmony() on it.
-    with pytest.raises(AttributeError):
-        client.get("/api/DataDictionary/not-there/harmony")
+def test_dd_harmony_missing_dd_returns_404(client):
+    # require_read_access now 404s before the handler (which never itself
+    # checked for None) can even run.
+    test_owner = _Owner(client)
+    try:
+        response = client.get("/api/DataDictionary/not-there/harmony")
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()

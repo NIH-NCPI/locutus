@@ -238,19 +238,20 @@ class Table(Resource):
 
 
 class HarmonyTableCSV(Resource):
+    @require_read_access("Table", "id")
     def get(self, id: str):
         data_format = request.args.get("format", "Whistle")
         file_format = request.args.get("file-format", "JSON")
 
         try:
-            if data_format:
-                data_format = HarmonyFormat(data_format)
-            if file_format:
-                file_format = HarmonyOutputFormat(file_format)
+            data_format = HarmonyFormat(data_format)
+            file_format = HarmonyOutputFormat(file_format)
         except ValueError as e:
             return {"message_to_user": str(e)}, 400, default_headers
 
+        # require_read_access already confirmed this id exists.
         t = mTable.get(id)
+        assert t is not None
 
         try:
             print(f"Harmony Format: {data_format}")

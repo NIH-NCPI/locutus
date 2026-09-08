@@ -434,14 +434,39 @@ def test_table_rename_code_variable_not_found(client, sample_terminology, basic_
         test_owner.cleanup()
 
 
-def test_harmony_table_csv_default(client, sample_terminology, basic_table):
+def test_harmony_table_csv_requires_auth(client, sample_terminology, basic_table):
     response = client.get(f"/api/Table/{basic_table.id}/harmony")
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
+    assert response.status_code == 401
+
+
+def test_harmony_table_csv_default(client, sample_terminology, basic_table):
+    test_owner = _Owner(client)
+    try:
+        response = client.get(f"/api/Table/{basic_table.id}/harmony")
+        assert response.status_code == 200
+        assert isinstance(response.json, list)
+    finally:
+        test_owner.cleanup()
 
 
 def test_harmony_table_csv_invalid_format(client, sample_terminology, basic_table):
-    response = client.get(
-        f"/api/Table/{basic_table.id}/harmony", query_string={"format": "not-a-format"}
-    )
-    assert response.status_code == 400
+    test_owner = _Owner(client)
+    try:
+        response = client.get(
+            f"/api/Table/{basic_table.id}/harmony",
+            query_string={"format": "not-a-format"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_harmony_table_csv_missing_table_returns_404(client):
+    # require_read_access now 404s before the handler (which never itself
+    # checked for None) can even run.
+    test_owner = _Owner(client)
+    try:
+        response = client.get("/api/Table/not-there/harmony")
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
