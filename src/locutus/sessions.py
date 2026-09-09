@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 class SessionManager:
     """
-    Manages session handling including: initiation, termination,
-    and configuration based on user affiliation.
+    Configures Flask-Session (MongoDB-backed) and manages session
+    termination/status. Session creation itself happens via GoogleLogin
+    (api/auth.py) -- this class no longer starts sessions on a caller's say-so.
     """
 
     def __init__(self, app: Flask):
@@ -53,45 +54,6 @@ class SessionManager:
         self.app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # Option: 'Strict'
 
         Session(self.app)
-
-    def initiate_session(self, user_id: str, affiliation: str | None = None):
-        """
-        Initiates a session for a user and sets the session timeout based on
-        their affiliation. If the affiliation is not provided, it defaults to 'basic'.
-
-        Args:
-            user_id (str): The unique identifier of the user.
-            affiliation (str, optional): The user's affiliation, which influences
-              session timeout.
-
-        Returns:
-            A dictionary with a success message and HTTP status code 200.
-        """
-        if not affiliation:
-            affiliation = "basic"
-        logger.info(f"Setting the session user_id to {user_id}")
-        logger.info(f"Setting the session affiliation to {affiliation}")
-        session["user_id"] = user_id
-        session["affiliation"] = affiliation
-
-        # Adjust session timeout based on affiliation.
-        self.set_timeout_based_on_affiliation(affiliation)
-
-        return {
-            "message": f"Session started for user {user_id} with the {affiliation} affiliation "
-        }, 200
-
-    def set_timeout_based_on_affiliation(self, affiliation: str) -> None:
-        # Dynamically adjust timeout based on affiliation
-        if affiliation == "premium":
-            timeout_hours = 24
-        elif affiliation == "basic":
-            timeout_hours = 16
-        else:
-            # If no affiliation is recognized
-            timeout_hours = 8
-        logger.info(f"Session timeout is being set for {timeout_hours} hours.")
-        self.app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=timeout_hours)
 
     def terminate_session(self):
         user_id = session["user_id"]

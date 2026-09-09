@@ -201,9 +201,4 @@ depending on how it's deployed:
   assumed for every dev setup (e.g. testing against a deployed dev server
   by IP, or a non-`localhost` hostname). If login appears to succeed but
   the session doesn't stick on subsequent requests, check this first.
-- **`POST /api/session/start` still exists but should not be used.** It
-  predates the Google login work and starts a session for whatever
-  `user_id` the caller sends, with no credential check at all. It's being
-  left in place only because nothing has removed it yet -- don't wire the
-  new login flow to it.
 - **No whoami endpoint** -- see [Section 3](#3-checking-whos-logged-in--rehydrating-after-a-reload) above.

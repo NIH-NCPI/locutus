@@ -38,7 +38,7 @@ from locutus.api.provenance import (
     TerminologyCodeProvenance,
     TerminologyProvenance,
 )
-from locutus.api.sessions import SessionStart, SessionStatus, SessionTerminate
+from locutus.api.sessions import SessionStatus, SessionTerminate
 from locutus.api.sideload import SideLoad
 from locutus.api.study import (
     Studies,
@@ -102,11 +102,6 @@ def create_app(config_filename=None):
     # GET app version
     api.add_resource(Version, "/api/version")
 
-    api.add_resource(
-        SessionStart,
-        "/api/session/start",
-        resource_class_kwargs={"session_manager": session_manager},
-    )
     api.add_resource(
         SessionTerminate,
         "/api/session/terminate",
