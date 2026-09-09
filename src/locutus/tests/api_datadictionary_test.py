@@ -201,3 +201,203 @@ def test_dd_harmony_missing_dd_returns_404(client):
         assert response.status_code == 404
     finally:
         test_owner.cleanup()
+
+
+def test_dd_institution_access_requires_auth(client, basic_study, basic_datadictionary):
+    response = client.put(
+        f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc"
+    )
+    assert response.status_code == 401
+
+
+def test_dd_institution_access_put_default_role(
+    client, basic_study, basic_datadictionary
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 200
+        assert response.json["access"]["institutions"]["vumc"] == "editor"
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_institution_access_put_explicit_role(
+    client, basic_study, basic_datadictionary
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc",
+            json={"role": "viewer"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 200
+        assert response.json["access"]["institutions"]["vumc"] == "viewer"
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_institution_access_put_invalid_role(
+    client, basic_study, basic_datadictionary
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc",
+            json={"role": "owner"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_institution_access_requires_write_access(
+    client, basic_study, basic_datadictionary
+):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_institution_access_delete(client, basic_study, basic_datadictionary):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc"
+        )
+
+        response = client.delete(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 200
+        assert "vumc" not in response.json["access"]["institutions"]
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_institution_access_delete_not_present(
+    client, basic_study, basic_datadictionary
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        response = client.delete(
+            f"/api/DataDictionary/{basic_datadictionary.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_institution_access_missing_dd_returns_404(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.put("/api/DataDictionary/not-there/access/institutions/vumc")
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_visibility_requires_auth(client, basic_study, basic_datadictionary):
+    response = client.put(f"/api/DataDictionary/{basic_datadictionary.id}/visibility")
+    assert response.status_code == 401
+
+
+def test_dd_visibility_put_by_owner(client, basic_study, basic_datadictionary):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        for visibility in ("Institution", "Registered", "Public"):
+            response = client.put(
+                f"/api/DataDictionary/{basic_datadictionary.id}/visibility",
+                json={"visibility": visibility},
+                headers={"Content-Type": "application/json"},
+            )
+            assert response.status_code == 200
+            assert response.json["visibility"] == visibility
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_visibility_put_invalid_value(client, basic_study, basic_datadictionary):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_datadictionary)
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/visibility",
+            json={"visibility": "Restricted"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_visibility_requires_owner_not_just_editor(
+    client, basic_study, basic_datadictionary
+):
+    # An institution-granted editor (not the literal owner) can write to
+    # the data dictionary via require_write_access, but S2 is stricter
+    # than that -- only the owner may change visibility.
+    test_owner = _Owner(client)
+    editor = _Owner(
+        client,
+        email="dd-institution-editor@example.com",
+        institution_ids=["vumc"],
+    )
+    try:
+        test_owner.own(basic_datadictionary)
+        basic_datadictionary.access = {"institutions": {"vumc": "editor"}, "users": {}}
+        basic_datadictionary.save()
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = editor.user.id
+
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        editor.cleanup()
+        test_owner.cleanup()
+
+
+def test_dd_visibility_requires_write_access(client, basic_study, basic_datadictionary):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            f"/api/DataDictionary/{basic_datadictionary.id}/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_dd_visibility_missing_dd_returns_404(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            "/api/DataDictionary/not-there/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()

@@ -470,3 +470,201 @@ def test_harmony_table_csv_missing_table_returns_404(client):
         assert response.status_code == 404
     finally:
         test_owner.cleanup()
+
+
+def test_table_institution_access_requires_auth(
+    client, sample_terminology, basic_table
+):
+    response = client.put(f"/api/Table/{basic_table.id}/access/institutions/vumc")
+    assert response.status_code == 401
+
+
+def test_table_institution_access_put_default_role(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = client.put(f"/api/Table/{basic_table.id}/access/institutions/vumc")
+        assert response.status_code == 200
+        assert response.json["access"]["institutions"]["vumc"] == "editor"
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_institution_access_put_explicit_role(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = client.put(
+            f"/api/Table/{basic_table.id}/access/institutions/vumc",
+            json={"role": "viewer"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 200
+        assert response.json["access"]["institutions"]["vumc"] == "viewer"
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_institution_access_put_invalid_role(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = client.put(
+            f"/api/Table/{basic_table.id}/access/institutions/vumc",
+            json={"role": "owner"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_institution_access_requires_write_access(
+    client, sample_terminology, basic_table
+):
+    # basic_table's default owner_id is None (Registered visibility) -- a
+    # real, different, logged-in user only gets viewer access.
+    test_owner = _Owner(client)
+    try:
+        response = client.put(f"/api/Table/{basic_table.id}/access/institutions/vumc")
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_institution_access_delete(client, sample_terminology, basic_table):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        client.put(f"/api/Table/{basic_table.id}/access/institutions/vumc")
+
+        response = client.delete(
+            f"/api/Table/{basic_table.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 200
+        assert "vumc" not in response.json["access"]["institutions"]
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_institution_access_delete_not_present(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = client.delete(
+            f"/api/Table/{basic_table.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_institution_access_missing_table_returns_404(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.put("/api/Table/not-there/access/institutions/vumc")
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_visibility_requires_auth(client, sample_terminology, basic_table):
+    response = client.put(f"/api/Table/{basic_table.id}/visibility")
+    assert response.status_code == 401
+
+
+def test_table_visibility_put_by_owner(client, sample_terminology, basic_table):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        for visibility in ("Institution", "Registered", "Public"):
+            response = client.put(
+                f"/api/Table/{basic_table.id}/visibility",
+                json={"visibility": visibility},
+                headers={"Content-Type": "application/json"},
+            )
+            assert response.status_code == 200
+            assert response.json["visibility"] == visibility
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_visibility_put_invalid_value(client, sample_terminology, basic_table):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = client.put(
+            f"/api/Table/{basic_table.id}/visibility",
+            json={"visibility": "Restricted"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_visibility_requires_owner_not_just_editor(
+    client, sample_terminology, basic_table
+):
+    # An institution-granted editor (not the literal owner) can write to
+    # the table via require_write_access, but S2 is stricter than that --
+    # only the owner may change visibility.
+    test_owner = _Owner(client)
+    editor = _Owner(
+        client,
+        email="table-institution-editor@example.com",
+        institution_ids=["vumc"],
+    )
+    try:
+        test_owner.own(basic_table)
+        basic_table.access = {"institutions": {"vumc": "editor"}, "users": {}}
+        basic_table.save()
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = editor.user.id
+
+        response = client.put(
+            f"/api/Table/{basic_table.id}/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        editor.cleanup()
+        test_owner.cleanup()
+
+
+def test_table_visibility_requires_write_access(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            f"/api/Table/{basic_table.id}/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_visibility_missing_table_returns_404(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            "/api/Table/not-there/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
