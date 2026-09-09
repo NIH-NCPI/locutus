@@ -208,6 +208,76 @@ def new_resource_access_fields(current_user: CurrentUser) -> dict:
     }
 
 
+VALID_INSTITUTION_ROLES = ("editor", "viewer")
+
+
+def set_institution_access(
+    resource_type: str, resource_id: str, institution_id: str, role: str
+) -> dict:
+    """Adds or updates institution_id's role in a resource's
+    access.institutions map (S1). Any editor -- not just the owner -- can
+    call this; it's meant to sit behind the same require_write_access gate
+    as any other edit to the resource. Returns the updated resource dict."""
+    resource = locutus.persistence().get_resource(resource_type, resource_id)
+    assert resource is not None  # caller's require_write_access already confirmed this
+    access = resource.get("access") or {"institutions": {}, "users": {}}
+    institutions = access.get("institutions") or {}
+    institutions[institution_id] = role
+    access["institutions"] = institutions
+    resource["access"] = access
+    locutus.persistence().collection(resource_type).document(resource_id).update(
+        {"access": access}
+    )
+    return resource
+
+
+def remove_institution_access(
+    resource_type: str, resource_id: str, institution_id: str
+) -> bool:
+    """Removes institution_id from a resource's access.institutions map, if
+    present (S1). Returns whether it was actually present, so the caller
+    can 404 vs. 200 -- matching the existing remove-from-list precedent
+    elsewhere in this codebase (e.g. StudyEdit.delete/remove_dd)."""
+    resource = locutus.persistence().get_resource(resource_type, resource_id)
+    assert resource is not None  # caller's require_write_access already confirmed this
+    access = resource.get("access") or {}
+    institutions = access.get("institutions") or {}
+    if institution_id not in institutions:
+        return False
+    del institutions[institution_id]
+    access["institutions"] = institutions
+    locutus.persistence().collection(resource_type).document(resource_id).update(
+        {"access": access}
+    )
+    return True
+
+
+VALID_VISIBILITY_TOGGLES = (
+    Visibility.Institution,
+    Visibility.Registered,
+    Visibility.Public,
+)
+
+
+def set_visibility(
+    resource_type: str, resource_id: str, visibility: Visibility
+) -> dict:
+    """Sets a resource's visibility (S2). Owner-only -- unlike institution
+    access above, callers must check ownership themselves before calling
+    this; require_write_access alone (any editor) isn't a strict enough
+    gate for changing who can see a resource at all. Restricted isn't a
+    valid target here -- it's driven by explicit per-user grants (C2, not
+    yet built), not a plain toggle value. Returns the updated resource
+    dict."""
+    resource = locutus.persistence().get_resource(resource_type, resource_id)
+    assert resource is not None  # caller's require_write_access already confirmed this
+    resource["visibility"] = visibility
+    locutus.persistence().collection(resource_type).document(resource_id).update(
+        {"visibility": visibility}
+    )
+    return resource
+
+
 @overload
 def require_auth[Route: _RouteBound](f: Route) -> Route: ...
 @overload

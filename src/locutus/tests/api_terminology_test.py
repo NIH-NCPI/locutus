@@ -358,3 +358,193 @@ def test_terminology_write_requires_write_access(
         assert response.status_code == 403
     finally:
         test_owner.cleanup()
+
+
+def test_terminology_institution_access_requires_auth(client, sample_terminology):
+    response = client.put(
+        f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc"
+    )
+    assert response.status_code == 401
+
+
+def test_terminology_institution_access_put_default_role(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 200
+        assert response.json["access"]["institutions"]["vumc"] == "editor"
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_institution_access_put_explicit_role(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc",
+            json={"role": "viewer"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 200
+        assert response.json["access"]["institutions"]["vumc"] == "viewer"
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_institution_access_put_invalid_role(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc",
+            json={"role": "owner"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_institution_access_requires_write_access(
+    client, sample_terminology
+):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_institution_access_delete(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        client.put(f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc")
+
+        response = client.delete(
+            f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 200
+        assert "vumc" not in response.json["access"]["institutions"]
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_institution_access_delete_not_present(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        response = client.delete(
+            f"/api/Terminology/{sample_terminology.id}/access/institutions/vumc"
+        )
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_institution_access_missing_terminology_returns_404(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.put("/api/Terminology/not-there/access/institutions/vumc")
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_visibility_requires_auth(client, sample_terminology):
+    response = client.put(f"/api/Terminology/{sample_terminology.id}/visibility")
+    assert response.status_code == 401
+
+
+def test_terminology_visibility_put_by_owner(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        for visibility in ("Institution", "Registered", "Public"):
+            response = client.put(
+                f"/api/Terminology/{sample_terminology.id}/visibility",
+                json={"visibility": visibility},
+                headers={"Content-Type": "application/json"},
+            )
+            assert response.status_code == 200
+            assert response.json["visibility"] == visibility
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_visibility_put_invalid_value(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(sample_terminology)
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/visibility",
+            json={"visibility": "Restricted"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_visibility_requires_owner_not_just_editor(
+    client, sample_terminology
+):
+    # An institution-granted editor (not the literal owner) can write to
+    # the terminology via require_write_access, but S2 is stricter than
+    # that -- only the owner may change visibility.
+    test_owner = _Owner(client)
+    editor = _Owner(
+        client,
+        email="terminology-institution-editor@example.com",
+        institution_ids=["vumc"],
+    )
+    try:
+        test_owner.own(sample_terminology)
+        sample_terminology.access = {"institutions": {"vumc": "editor"}, "users": {}}
+        sample_terminology.save()
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = editor.user.id
+
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        editor.cleanup()
+        test_owner.cleanup()
+
+
+def test_terminology_visibility_requires_write_access(client, sample_terminology):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            f"/api/Terminology/{sample_terminology.id}/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_terminology_visibility_missing_terminology_returns_404(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.put(
+            "/api/Terminology/not-there/visibility",
+            json={"visibility": "Public"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 404
+    finally:
+        test_owner.cleanup()

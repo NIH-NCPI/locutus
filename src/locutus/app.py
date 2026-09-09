@@ -6,13 +6,21 @@ from flask_cors import CORS, cross_origin
 from flask_restful import Api
 
 from locutus import setup_logging
+from locutus.api.admin import (
+    AdminInstitution,
+    AdminInstitutionAllowlist,
+    AdminInstitutionAllowlistItem,
+    AdminInstitutions,
+)
 from locutus.api.auth import GoogleLogin
 from locutus.api.combined_harmony import CombinedHarmony
 from locutus.api.datadictionary import (
     DataDictionaries,
     DataDictionary,
     DataDictionaryHarmony,
+    DataDictionaryInstitutionAccess,
     DataDictionaryTable,
+    DataDictionaryVisibility,
 )
 from locutus.api.metadata import Version
 from locutus.api.ontologies_search import OntologyAPIs, OntologyAPISearch
@@ -32,13 +40,22 @@ from locutus.api.provenance import (
 )
 from locutus.api.sessions import SessionStart, SessionStatus, SessionTerminate
 from locutus.api.sideload import SideLoad
-from locutus.api.study import Studies, Study, StudyEdit, StudyHarmony
+from locutus.api.study import (
+    Studies,
+    Study,
+    StudyEdit,
+    StudyHarmony,
+    StudyInstitutionAccess,
+    StudyVisibility,
+)
 from locutus.api.table import (
     HarmonyTableCSV,
     Table,
     TableEdit,
+    TableInstitutionAccess,
     TableRenameCode,
     Tables,
+    TableVisibility,
 )
 from locutus.api.table_load import TableLoader, TableLoader2
 from locutus.api.table_mappings import TableMapping, TableMappings
@@ -46,7 +63,9 @@ from locutus.api.terminology import (
     Terminologies,
     Terminology,
     TerminologyEdit,
+    TerminologyInstitutionAccess,
     TerminologyRenameCode,
+    TerminologyVisibility,
 )
 from locutus.api.terminology_mapping import MappingRelationship, TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
@@ -104,6 +123,19 @@ def create_app(config_filename=None):
     api.add_resource(ApiTokenItem, "/api/tokens/<string:id>")
     api.add_resource(AdminApiTokenItem, "/api/admin/tokens/<string:id>")
 
+    # GET (list)/POST (create) institutions, GET one by id (M3, S3)
+    api.add_resource(AdminInstitutions, "/api/admin/institutions")
+    api.add_resource(AdminInstitution, "/api/admin/institutions/<string:id>")
+    # GET (list)/POST (add email(s)) an institution's allowedEmails, DELETE
+    # (remove one email) (S3)
+    api.add_resource(
+        AdminInstitutionAllowlist, "/api/admin/institutions/<string:id>/allowlist"
+    )
+    api.add_resource(
+        AdminInstitutionAllowlistItem,
+        "/api/admin/institutions/<string:id>/allowlist/<string:email>",
+    )
+
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 
     # Terminology GET (all terminologies)/POST (new without an ID)
@@ -150,12 +182,29 @@ def create_app(config_filename=None):
     # code. Body for put will include display in addition to the code (and possibly
     # other stuff in the future. )
     api.add_resource(TerminologyEdit, "/api/Terminology/<string:id>/code/<path:code>")
+
+    # PUT (add/update role)/DELETE (remove) an institution's access.institutions
+    # entry (S1), and PUT to change visibility (S2)
+    api.add_resource(
+        TerminologyInstitutionAccess,
+        "/api/Terminology/<string:id>/access/institutions/<string:institution_id>",
+    )
+    api.add_resource(TerminologyVisibility, "/api/Terminology/<string:id>/visibility")
+
     api.add_resource(
         TableRenameCode,
         "/api/Table/<string:id>/rename",
     )
     api.add_resource(Tables, "/api/Table")
     api.add_resource(Table, "/api/Table/<string:id>")
+
+    # PUT (add/update role)/DELETE (remove) an institution's access.institutions
+    # entry (S1), and PUT to change visibility (S2)
+    api.add_resource(
+        TableInstitutionAccess,
+        "/api/Table/<string:id>/access/institutions/<string:institution_id>",
+    )
+    api.add_resource(TableVisibility, "/api/Table/<string:id>/visibility")
 
     # PUT, DELETE
     api.add_resource(TableEdit, "/api/Table/<string:id>/variable/<path:code>")
@@ -203,8 +252,26 @@ def create_app(config_filename=None):
     api.add_resource(Study, "/api/Study/<string:id>")
     api.add_resource(StudyEdit, "/api/Study/<string:id>/dd/<string:dd_id>")
 
+    # PUT (add/update role)/DELETE (remove) an institution's access.institutions
+    # entry (S1), and PUT to change visibility (S2)
+    api.add_resource(
+        StudyInstitutionAccess,
+        "/api/Study/<string:id>/access/institutions/<string:institution_id>",
+    )
+    api.add_resource(StudyVisibility, "/api/Study/<string:id>/visibility")
+
     api.add_resource(DataDictionaries, "/api/DataDictionary")
     api.add_resource(DataDictionary, "/api/DataDictionary/<string:id>")
+
+    # PUT (add/update role)/DELETE (remove) an institution's access.institutions
+    # entry (S1), and PUT to change visibility (S2)
+    api.add_resource(
+        DataDictionaryInstitutionAccess,
+        "/api/DataDictionary/<string:id>/access/institutions/<string:institution_id>",
+    )
+    api.add_resource(
+        DataDictionaryVisibility, "/api/DataDictionary/<string:id>/visibility"
+    )
 
     # Currently, only DELETE
     api.add_resource(

@@ -19,9 +19,15 @@ class _Owner:
     them, for the duration of one test. Shared across API test files that
     need a real authenticated caller (table/study/terminology/... tests)."""
 
-    def __init__(self, client, email="test-owner@example.com"):
+    def __init__(
+        self,
+        client,
+        email="test-owner@example.com",
+        institution_ids=None,
+        role=User.Role.User,
+    ):
         self.client = client
-        self.user = User(email=email).save()
+        self.user = User(email=email, institution_ids=institution_ids, role=role).save()
         assert self.user.id is not None
         self._token_ids: list[str] = []
         with client.session_transaction() as sess:

@@ -8,15 +8,21 @@ from flask_restful import Resource
 from locutus.api import default_headers
 from locutus.api.study import Studies
 from locutus.auth import (
+    VALID_INSTITUTION_ROLES,
+    VALID_VISIBILITY_TOGGLES,
     filter_readable,
     new_resource_access_fields,
+    remove_institution_access,
     require_auth,
     require_read_access,
     require_write_access,
     require_write_access_or_create,
+    set_institution_access,
+    set_visibility,
 )
 from locutus.model.datadictionary import DataDictionary as DD
 from locutus.model.harmony_export import HarmonyFormat, HarmonyOutputFormat
+from locutus.model.visibility import Visibility
 
 
 class DataDictionaries(Resource):
@@ -124,6 +130,72 @@ class DataDictionaryTable(Resource):
         dd = d.dump()
 
         return json.loads(json_util.dumps(dd)), 200, default_headers
+
+
+class DataDictionaryInstitutionAccess(Resource):
+    """S1: any editor (not just the owner) can add or remove an
+    institution's access to this data dictionary."""
+
+    @require_write_access("DataDictionary", "id")
+    def put(self, id: str, institution_id: str):
+        body = request.get_json(silent=True) or {}
+        role = body.get("role", "editor")
+        if role not in VALID_INSTITUTION_ROLES:
+            return (
+                {"message": f"role must be one of {VALID_INSTITUTION_ROLES}"},
+                400,
+                default_headers,
+            )
+
+        resource = set_institution_access("DataDictionary", id, institution_id, role)
+        return json.loads(json_util.dumps(resource)), 200, default_headers
+
+    @require_write_access("DataDictionary", "id")
+    def delete(self, id: str, institution_id: str):
+        if not remove_institution_access("DataDictionary", id, institution_id):
+            return (
+                {
+                    "message": f"{institution_id} does not have access to this data dictionary"
+                },
+                404,
+                default_headers,
+            )
+
+        # require_write_access already confirmed this id exists.
+        dd = DD.get(id, return_instance=False)
+        assert dd is not None
+        return json.loads(json_util.dumps(dd)), 200, default_headers
+
+
+class DataDictionaryVisibility(Resource):
+    """S2: owner-only toggle of this data dictionary's visibility."""
+
+    @require_write_access("DataDictionary", "id")
+    def put(self, id: str):
+        body = request.get_json(silent=True) or {}
+        visibility = body.get("visibility")
+        if visibility not in [v.value for v in VALID_VISIBILITY_TOGGLES]:
+            return (
+                {
+                    "message": f"visibility must be one of {[v.value for v in VALID_VISIBILITY_TOGGLES]}"
+                },
+                400,
+                default_headers,
+            )
+
+        # require_write_access only confirms editor access -- S2 is
+        # stricter than that: owner only.
+        resource = DD.get(id, return_instance=False)
+        assert resource is not None
+        if resource.get("owner_id") != g.current_user["user_id"]:
+            return (
+                {"message": "Only the owner can change a resource's visibility"},
+                403,
+                default_headers,
+            )
+
+        updated = set_visibility("DataDictionary", id, Visibility(visibility))
+        return json.loads(json_util.dumps(updated)), 200, default_headers
 
 
 class DataDictionaryHarmony(Resource):
