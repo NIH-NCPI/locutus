@@ -88,7 +88,7 @@ def create_app(config_filename=None):
 
     app.before_request(set_request_id)
     app.after_request(add_request_id_header)
-    CORS(app)
+    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
     api = Api(app)
 
     # Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)

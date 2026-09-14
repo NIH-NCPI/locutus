@@ -20,20 +20,22 @@ keywords = ["Vocabulary", "Research Data", "Borg"]
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-dependencies = ["marshmallow",
-                "cachelib",
-                "flask",
-                "flask-cors",
-                "flask-restful",
-                "flask-session",
-                "nanoid",
-                "PyYAML",
-                "rich",
-                "search-dragon@git+https://github.com/NIH-NCPI/search-dragon.git",
-                "firebase-admin",
-                "pymongo",
-                "google-auth"
-                ]
+dependencies = [
+    "marshmallow",
+    "cachelib",
+    "flask",
+    "flask-cors",
+    "flask-restful",
+    "flask-session",
+    "nanoid",
+    "PyYAML",
+    "rich",
+    "search-dragon@git+https://github.com/NIH-NCPI/search-dragon.git",
+    "firebase-admin",
+    "pymongo",
+    "google-auth",
+    "python-dotenv>=1.2.2",
+]
 [dependency-groups]
     dev = [
     "pytest",
