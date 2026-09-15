@@ -120,7 +120,10 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
     # Persisted as owner_id (snake_case), matching this codebase's field
     # naming convention -- not the spec doc's ownerId, which was sketched
     # without seeing the actual schema (see the Phase 1.3 note).
-    if resource.get("owner_id") == current_user["user_id"]:
+    if (
+        resource.get("owner_id") == current_user["user_id"]
+        or resource.get("access") is None
+    ):
         return "editor"
 
     visibility = resource.get("visibility") or Visibility.Registered
