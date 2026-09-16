@@ -4,9 +4,9 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from flask import Flask, session
+from flask_session import Session
 
 import locutus
-from flask_session import Session
 
 logger = logging.getLogger(__name__)
 
