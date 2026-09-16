@@ -2,6 +2,7 @@ __pycache__
 .direnv
 issues/
 docs/coverage.md
+.just.*
 
 # Personal junk
 notes.md
