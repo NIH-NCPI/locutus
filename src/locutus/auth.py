@@ -120,12 +120,24 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
     # Persisted as owner_id (snake_case), matching this codebase's field
     # naming convention -- not the spec doc's ownerId, which was sketched
     # without seeing the actual schema (see the Phase 1.3 note).
+    if resource.get("owner_id") == current_user["user_id"]:
+        return "editor"
 
-    if (
-        resource.get("owner_id") == current_user["user_id"]
-        or resource.get("access") is None
-        or resource.get("access", {}).get("institutions") in [None, {}]
-    ):
+    # A resource saved before M4 has no "access" key at all -- every
+    # Serializable model backfills {"institutions": {}, "users": {}} the
+    # instant it's touched by any current code path (see Table/Study/
+    # Terminology/DataDictionary.__init__), so "access is None" can only
+    # mean a genuinely untouched pre-auth document. Nobody was ever
+    # designated owner or institution for these, so any real institution
+    # member (not just an owner match) gets editor -- matching how these
+    # resources behaved before ownership existed at all. This is narrower
+    # than "any authenticated user": a caller who isn't a member of any
+    # institution still only gets the Registered-visibility viewer access
+    # below. A resource with an explicit-but-empty institutions map (the
+    # normal state for anything created through the API without an
+    # explicit grant) does NOT qualify here -- that's real M4 data saying
+    # "no institution has access," not "this predates the concept."
+    if resource.get("access") is None and current_user["institutionIds"]:
         return "editor"
 
     visibility = resource.get("visibility") or Visibility.Registered
