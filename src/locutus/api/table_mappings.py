@@ -1,6 +1,5 @@
 from flask import request
 from flask.typing import ResponseReturnValue
-from flask_cors import cross_origin
 from flask_restful import Resource
 
 from locutus import normalize_ftd_placeholders
@@ -66,7 +65,12 @@ class TableMappings(Resource):
     @classmethod
     @require_write_access("Table", "id")
     def delete(cls, id: str) -> ResponseReturnValue:
-        body = request.get_json()
+        # silent=True: a DELETE commonly carries no body at all (by REST
+        # convention, and in practice from this frontend) -- body here is
+        # only ever used for the optional legacy editor fallback below, so
+        # a missing/empty body must not crash the request before that
+        # fallback (the active session) gets a chance to supply it.
+        body = request.get_json(silent=True)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -143,7 +147,12 @@ class TableMapping(Resource):
 
     @require_write_access("Table", "id")
     def delete(self, id: str, code: str) -> ResponseReturnValue:
-        body = request.get_json()
+        # silent=True: a DELETE commonly carries no body at all (by REST
+        # convention, and in practice from this frontend) -- body here is
+        # only ever used for the optional legacy editor fallback below, so
+        # a missing/empty body must not crash the request before that
+        # fallback (the active session) gets a chance to supply it.
+        body = request.get_json(silent=True)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -162,7 +171,6 @@ class TableMapping(Resource):
 
         return (response, 200, default_headers)
 
-    @cross_origin(allow_headers=["Content-Type"])
     @require_write_access("Table", "id")
     def put(self, id: str, code: str) -> ResponseReturnValue:
         body = request.get_json()

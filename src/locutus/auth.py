@@ -123,46 +123,39 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
     if resource.get("owner_id") == current_user["user_id"]:
         return "editor"
 
-    # A resource saved before M4 has no "access" key at all -- every
-    # Serializable model backfills {"institutions": {}, "users": {}} the
-    # instant it's touched by any current code path (see Table/Study/
-    # Terminology/DataDictionary.__init__), so "access is None" can only
-    # mean a genuinely untouched pre-auth document. Nobody was ever
-    # designated owner or institution for these, so any real institution
-    # member (not just an owner match) gets editor -- matching how these
-    # resources behaved before ownership existed at all. This is narrower
-    # than "any authenticated user": a caller who isn't a member of any
-    # institution still only gets the Registered-visibility viewer access
-    # below. A resource with an explicit-but-empty institutions map (the
-    # normal state for anything created through the API without an
-    # explicit grant) does NOT qualify here -- that's real M4 data saying
-    # "no institution has access," not "this predates the concept."
-    if resource.get("access") is None and current_user["institutionIds"]:
-        return "editor"
-
     visibility = resource.get("visibility") or Visibility.Registered
+    access = resource.get("access") or {}
+    institutions = access.get("institutions") or {}
 
     if visibility == Visibility.Institution:
-        institutions = resource.get("access", {}).get("institutions", {})
         for institution_id in current_user["institutionIds"]:
             if institution_id in institutions:
                 return institutions[institution_id]
         return None
 
     if visibility == Visibility.Restricted:
-        users = resource.get("access", {}).get("users", {})
+        users = access.get("users") or {}
         return users.get(current_user["user_id"])
 
-    # Pre-auth resources don't have ownership and get tagged as 'registered' automatically the first time they're opened.
-    # They won't have any insitutions nor an owner. If this person is an actulaly registered user, there is no way to know who this belongs to,
-    # so they should have 'editor' permissions
-
-    if visibility == Visibility.Registered and \
-    len(resource.get("access", {}).get("institutions", {})) == 0 and \
-    resource.get("owner_id") is None:
-        return "editor"
-
     if visibility in (Visibility.Registered, Visibility.Public):
+        # A resource that predates ownership (M4) has no real owner and no
+        # institution has ever been granted access to it -- there's no way
+        # to know who it "belongs" to, so any real institution member gets
+        # editor rather than being locked out of something nobody was ever
+        # assigned. Keyed on owner_id rather than "access is missing
+        # entirely": PUT-as-upsert preserves owner_id but every model
+        # always re-saves access as at least {} (its constructor default),
+        # so a legacy resource picks up an explicit-but-empty access dict
+        # the moment anyone even attempts to edit it, without ever
+        # acquiring a real owner -- owner_id is the only signal that
+        # survives that. A caller who isn't a member of any institution
+        # still doesn't get a free pass here -- just ordinary viewer access.
+        if (
+            resource.get("owner_id") is None
+            and not institutions
+            and current_user["institutionIds"]
+        ):
+            return "editor"
         # Public isn't enforced yet (W3) -- every caller already had to
         # authenticate to get here, so it behaves like Registered for now.
         return "viewer"
