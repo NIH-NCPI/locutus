@@ -20,6 +20,7 @@ greet:
   @echo {{mongo_uri}}
   @echo {{dbname}}
 
+
 # Start (or resume) a local MongoDB container for development
 mongo:
     @echo "The container: {{mongo_container}}"
@@ -35,6 +36,11 @@ mongo:
             -p {{mongo_port}}:27017 \
             mongo:7.0; \
     fi
+
+mongosh: mongo
+  @echo "The container: {{mongo_container}}"
+  docker exec -it {{mongo_container}} mongosh
+
 # Run the unit tests against the local MongoDB container
 test: mongo
     LOCUTUS_DB_TYPE=mongodb MONGO_URI={{mongo_uri}} uv run pytest
