@@ -119,7 +119,12 @@ class TableEdit(Resource):
         # require_write_access already confirmed this id exists.
         table = mTable.get(id)
         assert table is not None
-        body = request.get_json()
+        # silent=True: a DELETE commonly carries no body at all (by REST
+        # convention, and in practice from this frontend) -- body here is
+        # only ever used for the optional legacy editor fallback below, so
+        # a missing/empty body must not crash the request before that
+        # fallback (the active session) gets a chance to supply it.
+        body = request.get_json(silent=True)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -214,7 +219,12 @@ class Table(Resource):
 
     @require_write_access("Table", "id")
     def delete(self, id: str):
-        body = request.get_json()
+        # silent=True: a DELETE commonly carries no body at all (by REST
+        # convention, and in practice from this frontend) -- body here is
+        # only ever used for the optional legacy editor fallback below, so
+        # a missing/empty body must not crash the request before that
+        # fallback (the active session) gets a chance to supply it.
+        body = request.get_json(silent=True)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:

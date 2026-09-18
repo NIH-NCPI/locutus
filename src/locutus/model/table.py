@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
@@ -124,6 +125,17 @@ class Table(Serializable):
                 "url": f"{url}/{name}",
                 "description": self.description,
                 "codes": [],
+                # A shadow terminology only exists because of this table --
+                # nothing else ever references it directly, so whoever can
+                # edit the table should be able to edit it too (M4). Inherit
+                # rather than deriving from the request's current user here:
+                # this constructor has no Flask/auth context of its own
+                # (models stay independent of the web layer -- callers like
+                # the CLI sideload tooling construct these with no request
+                # in play at all), and self.owner_id/access are already
+                # whatever the caller (API layer or otherwise) set above.
+                "owner_id": self.owner_id,
+                "access": copy.deepcopy(self.access),
             }
 
             logger.info(f"Instantiating new terminology {terminology}")
@@ -288,11 +300,17 @@ class Table(Serializable):
                 "enumerations" not in v or len(v["enumerations"]) < 1
             ):
                 # Create an empty terminology and create a reference to that
-                # terminology
+                # terminology. Inherits owner_id/access from this table (M4)
+                # for the same reason the shadow terminology above does --
+                # this enum terminology only exists because of this
+                # variable/table, so whoever can edit the table should be
+                # able to edit it too.
                 t = Terminology(
                     name=v["name"],
                     description=v.get("description"),
                     url=f"{self.url}/{v['name']}",
+                    owner_id=self.owner_id,
+                    access=copy.deepcopy(self.access),
                 )
                 t.save()
 
