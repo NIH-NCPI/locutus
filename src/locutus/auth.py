@@ -153,6 +153,15 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
         users = resource.get("access", {}).get("users", {})
         return users.get(current_user["user_id"])
 
+    # Pre-auth resources don't have ownership and get tagged as 'registered' automatically the first time they're opened.
+    # They won't have any insitutions nor an owner. If this person is an actulaly registered user, there is no way to know who this belongs to,
+    # so they should have 'editor' permissions
+
+    if visibility == Visibility.Registered and \
+    len(resource.get("access", {}).get("institutions", {})) == 0 and \
+    resource.get("owner_id") is None:
+        return "editor"
+
     if visibility in (Visibility.Registered, Visibility.Public):
         # Public isn't enforced yet (W3) -- every caller already had to
         # authenticate to get here, so it behaves like Registered for now.

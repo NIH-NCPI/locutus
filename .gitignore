@@ -19,6 +19,9 @@ md-static
 uv.lock
 run-local
 
+# Config
+config.yaml
+
 # Python env
 py3x
 
