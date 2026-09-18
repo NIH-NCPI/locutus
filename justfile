@@ -1,18 +1,45 @@
-mongo_container := "locmongo"
-mongo_port := env_var_or_default("MONGODB_PORT", "27017")
-dbname := "test"
-mongo_uri := "mongodb://localhost:" + mongo_port + "/"+ dbname
+set dotenv-load
+# With the dotenv-load, we can set several vars using a dotfile.
+# just -E .your.dotfile [recipe]
 
-mapdragon_dir := "../map-dragon"
+mongo_container := env("mongo_container", "locmongo")
+mongo_port := env_var_or_default("mongo_port", "27017")
+dbname := env_var_or_default("dbname", "test")
+hostname := env_var_or_default("hostname", "localhost")
+mongo_uri := env_var_or_default("mongo_uri", "mongodb://" + hostname+ ":" + mongo_port + "/"+ dbname)
+
+mapdragon_dir := env_var_or_default("mapdragon_dir", "../map-dragon")
 mapdragon_repo := "https://github.com/NIH-NCPI/map-dragon.git"
-backend_port := "5000"
+backend_port := env_var_or_default("backend_port", "5000")
+
+
+
+greet:
+  @echo "Hello, {{mongo_port}}"
+  @echo {{mongo_container}}
+  @echo {{mongo_uri}}
+  @echo {{dbname}}
+
 
 # Start (or resume) a local MongoDB container for development
 mongo:
-    docker start {{mongo_container}} 2>/dev/null || docker run -d \
-        --name {{mongo_container}} \
-        -p {{mongo_port}}:27017 \
-        mongo:7.0
+    @echo "The container: {{mongo_container}}"
+    @if [ "$(docker inspect --format 'json .State.Running' {{mongo_container}} 2>/dev/null)" = "true" ]; then \
+        echo "MongoDB container is already running."; \
+    elif [ "$(docker ps -a -f name={{mongo_container}} -q)" ]; then \
+        echo "Starting existing MongoDB container..."; \
+        docker start {{mongo_container}}; \
+    else \
+        echo "Container does not exist. Creating and starting a new one..."; \
+        docker start {{mongo_container}} 2>/dev/null || docker run -d \
+            --name {{mongo_container}} \
+            -p {{mongo_port}}:27017 \
+            mongo:7.0; \
+    fi
+
+mongosh: mongo
+  @echo "The container: {{mongo_container}}"
+  docker exec -it {{mongo_container}} mongosh
 
 # Run the unit tests against the local MongoDB container
 test: mongo
@@ -52,8 +79,8 @@ mapdragon: mongo
     # Base the local env on map-dragon's own committed .env.unified (so
     # search/OAuth config stays in sync with upstream) but point the vocab
     # endpoint at the backend we just started instead of a same-origin /api.
-    grep -v '^VITE_VOCAB_ENDPOINT' "{{mapdragon_dir}}/.env.unified" > "{{mapdragon_dir}}/.env.local"
-    echo "VITE_VOCAB_ENDPOINT=http://localhost:{{backend_port}}/api" >> "{{mapdragon_dir}}/.env.local"
+    # grep -v '^VITE_VOCAB_ENDPOINT' "{{mapdragon_dir}}/.env.unified" > "{{mapdragon_dir}}/.env.local"
+    # echo "VITE_VOCAB_ENDPOINT=http://localhost:{{backend_port}}/api" >> "{{mapdragon_dir}}/.env.local"
 
     if [ ! -d "{{mapdragon_dir}}/node_modules" ]; then
         (cd "{{mapdragon_dir}}" && npm install)

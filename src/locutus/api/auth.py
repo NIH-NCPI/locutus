@@ -8,6 +8,7 @@ only verify a JWT that's already been issued.
 import logging
 import os
 
+from dotenv import load_dotenv
 from flask import request, session
 from flask_restful import Resource
 from google.auth.exceptions import GoogleAuthError
@@ -22,6 +23,8 @@ from locutus.model.user import User
 logger = logging.getLogger(__name__)
 
 _google_request = google_requests.Request()
+
+load_dotenv()
 
 
 def _is_bootstrap_admin_email(email: str) -> bool:

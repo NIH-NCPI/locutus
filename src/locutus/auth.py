@@ -123,6 +123,23 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
     if resource.get("owner_id") == current_user["user_id"]:
         return "editor"
 
+    # A resource saved before M4 has no "access" key at all -- every
+    # Serializable model backfills {"institutions": {}, "users": {}} the
+    # instant it's touched by any current code path (see Table/Study/
+    # Terminology/DataDictionary.__init__), so "access is None" can only
+    # mean a genuinely untouched pre-auth document. Nobody was ever
+    # designated owner or institution for these, so any real institution
+    # member (not just an owner match) gets editor -- matching how these
+    # resources behaved before ownership existed at all. This is narrower
+    # than "any authenticated user": a caller who isn't a member of any
+    # institution still only gets the Registered-visibility viewer access
+    # below. A resource with an explicit-but-empty institutions map (the
+    # normal state for anything created through the API without an
+    # explicit grant) does NOT qualify here -- that's real M4 data saying
+    # "no institution has access," not "this predates the concept."
+    if resource.get("access") is None and current_user["institutionIds"]:
+        return "editor"
+
     visibility = resource.get("visibility") or Visibility.Registered
 
     if visibility == Visibility.Institution:
@@ -135,6 +152,15 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
     if visibility == Visibility.Restricted:
         users = resource.get("access", {}).get("users", {})
         return users.get(current_user["user_id"])
+
+    # Pre-auth resources don't have ownership and get tagged as 'registered' automatically the first time they're opened.
+    # They won't have any insitutions nor an owner. If this person is an actulaly registered user, there is no way to know who this belongs to,
+    # so they should have 'editor' permissions
+
+    if visibility == Visibility.Registered and \
+    len(resource.get("access", {}).get("institutions", {})) == 0 and \
+    resource.get("owner_id") is None:
+        return "editor"
 
     if visibility in (Visibility.Registered, Visibility.Public):
         # Public isn't enforced yet (W3) -- every caller already had to
