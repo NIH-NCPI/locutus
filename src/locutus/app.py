@@ -88,7 +88,19 @@ def create_app(config_filename=None):
 
     app.before_request(set_request_id)
     app.after_request(add_request_id_header)
-    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+    # Deployment-specific allowed origin(s) for the credentialed (cookie-
+    # carrying) cross-origin requests Path A needs -- comma-separated, env
+    # var rather than hardcoded so a non-default front-end dev port/host or
+    # a staging/prod origin doesn't require a code change. Defaults to the
+    # Vite dev server's default port.
+    cors_origins = [
+        origin.strip()
+        for origin in os.environ.get(
+            "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
+        ).split(",")
+        if origin.strip()
+    ]
+    CORS(app, supports_credentials=True, origins=cors_origins)
     api = Api(app)
 
     # Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)

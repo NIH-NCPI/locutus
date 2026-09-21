@@ -1,3 +1,4 @@
+import copy
 import json
 
 import rich
@@ -138,6 +139,12 @@ class TableLoader(Resource):
                         "name": varname,
                         "url": f"{url}/{code}",
                         "codes": [],
+                        # Inherit owner_id/access from the table this
+                        # variable belongs to (M4) -- this enum terminology
+                        # only exists because of this CSV row, so whoever
+                        # can edit the table should be able to edit it too.
+                        "owner_id": tbl.owner_id,
+                        "access": copy.deepcopy(tbl.access),
                     }
 
                     for code in [

@@ -1,6 +1,7 @@
 __pycache__
 .direnv
 issues/
+scratch
 docs/coverage.md
 .just.*
 

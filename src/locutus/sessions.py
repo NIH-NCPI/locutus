@@ -50,7 +50,19 @@ class SessionManager:
         # Extra security
         self.app.config["SESSION_COOKIE_HTTPONLY"] = True
         self.app.config["SESSION_COOKIE_SECURE"] = True
-        self.app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # Option: 'Strict'
+
+        # "Lax" (the safe default -- same-origin deployments should stay on
+        # it) never attaches the cookie to a cross-site fetch()/XHR call, only
+        # to a top-level navigation -- fundamentally incompatible with a
+        # front end on a different origin (e.g. a Vite dev server on a
+        # different port than this API) making credentialed API calls via
+        # fetch/axios. That combination needs "None" here instead (paired
+        # with Secure=True above, which browsers require for SameSite=None).
+        # Env var rather than hardcoded so this can differ per deployment
+        # without a code change -- mirrors SESSION_LIFETIME_DAYS above.
+        self.app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get(
+            "SESSION_COOKIE_SAMESITE", "Lax"
+        )
 
         Session(self.app)
 
@@ -94,7 +106,12 @@ class SessionManager:
         self.app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=timeout_hours)
 
     def terminate_session(self):
-        user_id = session["user_id"]
+        # A logout call with no active session (already logged out, a
+        # session that's already expired server-side, or a double-fire
+        # from the front end) must still succeed cleanly -- session["user_id"]
+        # raised an unhandled KeyError here instead, turning an ordinary
+        # "log back in" flow into a 500.
+        user_id = session.get("user_id")
         logger.info(f"Terminating the Session for user:{user_id}")
         session.clear()
         return {"message": "Session terminated"}, 200
