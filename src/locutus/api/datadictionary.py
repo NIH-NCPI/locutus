@@ -2,7 +2,6 @@ import json
 
 from bson import json_util
 from flask import g, request
-from flask_cors import cross_origin
 from flask_restful import Resource
 
 from locutus.api import default_headers
@@ -39,7 +38,6 @@ class DataDictionaries(Resource):
         d.save()
         return d
 
-    @cross_origin(allow_headers=["Content-Type"])
     @require_auth
     def post(self):
         dd = request.get_json()
@@ -73,7 +71,6 @@ class DataDictionary(Resource):
         assert t is not None
         return json.loads(json_util.dumps(t)), 200, default_headers
 
-    @cross_origin(allow_headers=["Content-Type"])
     @require_write_access_or_create("DataDictionary", "id")
     def put(self, id: str):
         dd = request.get_json()
@@ -116,7 +113,6 @@ class DataDictionary(Resource):
 
 
 class DataDictionaryTable(Resource):
-    @cross_origin()
     @require_write_access("DataDictionary", "id")
     def delete(self, id: str, table_id: str):
         # require_write_access already confirmed this id exists.

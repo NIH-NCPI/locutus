@@ -128,6 +128,36 @@ def test_missing_visibility_key_treated_as_registered():
     assert get_permission(resource, _user()) == "viewer"
 
 
+def test_legacy_resource_with_no_access_key_editable_by_institution_member():
+    """A resource saved before M4 has no "access" key at all -- every
+    Serializable model backfills an empty access dict the instant it's
+    touched by any current code path, so a raw dict missing the key
+    entirely can only be a genuinely untouched pre-auth document. Nobody
+    was ever designated owner/institution for these; any real institution
+    member gets editor, matching how these resources behaved before
+    ownership existed at all."""
+    resource = {"owner_id": None}
+    assert get_permission(resource, _user(institution_ids=["vumc"])) == "editor"
+
+
+def test_legacy_resource_with_no_access_key_stays_viewer_without_institution():
+    """A caller who isn't a member of any institution doesn't get a free
+    pass to edit every legacy resource -- just the same Registered-visibility
+    viewer access they'd get on any other resource."""
+    resource = {"owner_id": None}
+    assert get_permission(resource, _user(institution_ids=[])) == "viewer"
+
+
+def test_resource_with_explicit_empty_access_is_not_treated_as_legacy():
+    """An access dict that's present but empty (the normal state for
+    anything created through the API without an explicit institution
+    grant) means "no institution has access" -- real M4 data, not a
+    stand-in for "this predates the concept." Must not be treated the
+    same as a missing access key."""
+    resource = _resource(owner_id="someone-else", visibility=Visibility.Registered)
+    assert get_permission(resource, _user(institution_ids=["vumc"])) == "viewer"
+
+
 # ── filter_readable() / new_resource_access_fields() ────────────────────
 
 
@@ -469,6 +499,62 @@ def test_require_write_access_allows_institution_editor(auth_app, basic_user):
         assert response.status_code == 200
     finally:
         study.delete(hard_delete=True)
+
+
+def test_require_write_access_allows_institution_member_on_legacy_resource(
+    auth_app, basic_user
+):
+    """The real-world case this decorator has to handle: a Study saved
+    before M4 has no owner_id/access/visibility keys at all -- inserted
+    directly here (bypassing the Study model, which always backfills those
+    keys the moment it's touched) to reproduce a genuinely untouched
+    pre-auth document. A real institution member must still be able to
+    edit it, not just the literal (nonexistent) owner."""
+    assert basic_user.id is not None
+    legacy_id = "st-legacy-" + secrets.token_hex(8)
+    locutus.persistence().collection("Study").document(legacy_id).set(
+        {
+            "id": legacy_id,
+            "name": "Legacy Study",
+            "url": "http://ftd.unit.tests/legacy-study/",
+            "title": "Legacy Study",
+            "description": "",
+        }
+    )
+    try:
+        with auth_app.session_transaction() as sess:
+            sess["user_id"] = basic_user.id
+
+        response = auth_app.get(f"/probe/write/{legacy_id}")
+        assert response.status_code == 200
+    finally:
+        locutus.persistence().collection("Study").document(legacy_id).delete()
+
+
+def test_require_write_access_403s_non_institution_user_on_legacy_resource(auth_app):
+    """A caller who doesn't belong to any institution doesn't get a free
+    pass just because the resource predates ownership."""
+    outsider = User(email="auth-outsider@example.com").save()
+    assert outsider.id is not None
+    legacy_id = "st-legacy-" + secrets.token_hex(8)
+    locutus.persistence().collection("Study").document(legacy_id).set(
+        {
+            "id": legacy_id,
+            "name": "Legacy Study",
+            "url": "http://ftd.unit.tests/legacy-study-outsider/",
+            "title": "Legacy Study",
+            "description": "",
+        }
+    )
+    try:
+        with auth_app.session_transaction() as sess:
+            sess["user_id"] = outsider.id
+
+        response = auth_app.get(f"/probe/write/{legacy_id}")
+        assert response.status_code == 403
+    finally:
+        locutus.persistence().collection("Study").document(legacy_id).delete()
+        outsider.delete()
 
 
 def test_require_write_access_or_create_allows_missing_resource(auth_app, basic_user):

@@ -2,7 +2,6 @@ import json
 
 from bson import json_util
 from flask import g, request
-from flask_cors import cross_origin
 from flask_restful import Resource
 
 from locutus.api import default_headers, get_editor
@@ -63,7 +62,12 @@ class TerminologyEdit(Resource):
         # require_write_access already confirmed this id exists.
         t = Term.get(id)
         assert t is not None
-        body = request.get_json()
+        # silent=True: a DELETE commonly carries no body at all (by REST
+        # convention, and in practice from this frontend) -- body here is
+        # only ever used for the optional legacy editor fallback below, so
+        # a missing/empty body must not crash the request before that
+        # fallback (the active session) gets a chance to supply it.
+        body = request.get_json(silent=True)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -160,7 +164,6 @@ class Terminologies(Resource):
             default_headers,
         )
 
-    @cross_origin(allow_headers=["Content-Type"])
     @require_auth
     def post(self):
         term = request.get_json()
@@ -223,7 +226,6 @@ class Terminology(Resource):
         t.save()
         return json.loads(json_util.dumps(t.realize_as_dict())), 200, default_headers
 
-    # @cross_origin()
     @require_write_access("Terminology", "id")
     def delete(self, id: str):
         # require_write_access already confirmed this id exists.

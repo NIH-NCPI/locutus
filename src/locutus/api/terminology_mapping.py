@@ -2,7 +2,6 @@ import json
 
 from bson import json_util
 from flask import request
-from flask_cors import cross_origin
 from flask_restful import Resource
 
 from locutus import (
@@ -28,7 +27,6 @@ from locutus.model.terminology_mapping import MappingRelationshipModel
 
 
 class TerminologyMapping(Resource):
-    @cross_origin()
     @require_read_access("Terminology", "id")
     def get(self, id: str, code: str):
         """
@@ -75,7 +73,12 @@ class TerminologyMapping(Resource):
     @require_write_access("Terminology", "id")
     def delete(self, id: str, code: str):
         """Soft deletes all mappings for the identified terminology code."""
-        body = request.get_json()
+        # silent=True: a DELETE commonly carries no body at all (by REST
+        # convention, and in practice from this frontend) -- body here is
+        # only ever used for the optional legacy editor fallback below, so
+        # a missing/empty body must not crash the request before that
+        # fallback (the active session) gets a chance to supply it.
+        body = request.get_json(silent=True)
         try:
             editor = get_editor(body=body, editor=None)
             if editor is None:
@@ -92,7 +95,6 @@ class TerminologyMapping(Resource):
 
         return (json.loads(json_util.dumps(response)), 200, default_headers)
 
-    @cross_origin(allow_headers=["Content-Type"])
     @require_write_access("Terminology", "id")
     def put(self, id: str, code: str):
         body = request.get_json()

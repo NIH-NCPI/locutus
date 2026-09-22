@@ -82,3 +82,31 @@ def test_session_lifetime_defaults_to_one_day(monkeypatch):
     monkeypatch.delenv("SESSION_LIFETIME_DAYS", raising=False)
     app = create_app()
     assert app.config["PERMANENT_SESSION_LIFETIME"].days == 1
+
+
+def test_session_cookie_samesite_defaults_to_lax(monkeypatch):
+    monkeypatch.delenv("SESSION_COOKIE_SAMESITE", raising=False)
+    app = create_app()
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+
+
+def test_session_cookie_samesite_env_var(monkeypatch):
+    """Lax never attaches the cookie to a cross-site fetch()/XHR call -- a
+    front end on a different origin (e.g. Vite dev server on a different
+    port) needs this set to None to have any working session at all."""
+    monkeypatch.setenv("SESSION_COOKIE_SAMESITE", "None")
+    app = create_app()
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "None"
+
+
+def test_session_terminate_without_active_session_does_not_500():
+    """Pins a real bug: session["user_id"] raised an unhandled KeyError
+    when there was no active session (already logged out, expired
+    server-side, or a double-fire from the front end), turning an ordinary
+    "log back in" flow into a 500 instead of a clean, idempotent logout."""
+    app = create_app()
+    app.config["TESTING"] = True
+
+    with app.test_client() as client:
+        response = client.post("/api/session/terminate")
+        assert response.status_code == 200

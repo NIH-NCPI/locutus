@@ -81,7 +81,11 @@ Other failure responses from this endpoint:
 POST /api/session/terminate
 ```
 
-Clears the session server-side and the cookie. No body required.
+Clears the session server-side and the cookie. No body required. Safe to
+call even when there's no active session (already logged out, expired
+server-side, a double-fire from the UI) -- it always returns `200` rather
+than erroring, so the front end doesn't need to guard this call on knowing
+whether a session is currently active.
 
 ## 3. Checking who's logged in / rehydrating after a reload
 
@@ -141,8 +145,15 @@ A resource's `visibility` determines who besides the owner can see/edit it:
 - **Institution** -- shared with the owner's institution, at "editor" or
   "viewer" per user.
 - **Restricted** -- shared with specific users, at "editor" or "viewer".
-- **Registered** (the default, including anything created before this
-  work) -- any logged-in user can view; only the owner can edit.
+- **Registered** (the default) -- any logged-in user can view; only the
+  owner can edit -- **except** a resource with no owner at all (anything
+  that predates this work and has never been touched since) is editable by
+  any user who belongs to at least one institution, not just the owner.
+  There's no way to know which institution a resource like that "belongs"
+  to, so any real institution member gets editor rather than the resource
+  being locked forever. A logged-in user who isn't a member of any
+  institution still only gets view access to these, same as any other
+  Registered resource.
 - **Public** -- not yet enforced; currently behaves like Registered.
 
 ### List endpoints are now filtered, not global
@@ -186,21 +197,37 @@ page:
 A few things surfaced while wiring this up that may affect the frontend
 depending on how it's deployed:
 
-- **CORS credentials.** The backend calls `CORS(app)` with no
-  `supports_credentials=True`, and the frontend would need to send
-  `fetch(..., { credentials: "include" })` (or Axios's
-  `withCredentials: true`) on every call. If the frontend is served from a
-  **different origin** than the API (e.g. a Vite dev server on one port
-  talking to Flask on another), the session cookie will not be sent or
-  accepted cross-origin until both sides of this are fixed. Same-origin
-  (API and app behind the same host in production) isn't affected. Flag
-  this to backend if local dev is cross-origin.
+- **Cross-origin (frontend and API on different origins, e.g. a Vite dev
+  server on one port talking to Flask on another) needs two things to line
+  up on the backend, or every call after login will silently 401.** Both
+  are backend config now, not code -- if you're seeing "login succeeds but
+  everything after it 401s," this is almost certainly why; ask whoever
+  runs the backend locally to check/set these two env vars (a `.env` file
+  in the backend's working directory is picked up automatically):
+  - `CORS_ALLOWED_ORIGINS` -- comma-separated list of origins allowed to
+    make credentialed requests. Defaults to `http://localhost:5173` (Vite's
+    default port) if unset -- if the frontend dev server is running on a
+    different port or host, this needs to include that exact origin.
+  - `SESSION_COOKIE_SAMESITE` -- defaults to `Lax`, which **never** attaches
+    the session cookie to a cross-site `fetch()`/XHR call (only to a real
+    top-level browser navigation). This is the actual cause of "the login
+    response sets a cookie, but the very next API call comes back 401
+    anyway" -- for a cross-origin setup this needs to be set to `None` in
+    the backend's env. (Requires `Secure` cookies, which the backend
+    already sets -- see below.)
+
+  The frontend side of this: send `fetch(..., { credentials: "include" })`
+  (or Axios's `withCredentials: true`) on every call, regardless of same-
+  or cross-origin. Same-origin production deployments (API and app behind
+  the same host) aren't affected by either of the two env vars above.
 - **`SESSION_COOKIE_SECURE = True`.** The session cookie is marked
-  `Secure`, meaning browsers will only send it over HTTPS. Most modern
-  browsers special-case `localhost` as an exception, but this can't be
-  assumed for every dev setup (e.g. testing against a deployed dev server
-  by IP, or a non-`localhost` hostname). If login appears to succeed but
-  the session doesn't stick on subsequent requests, check this first.
+  `Secure`, meaning browsers will only send it over HTTPS. Chrome/Firefox
+  treat `http://localhost` specifically (not `127.0.0.1`, not a LAN IP, not
+  a custom hostname) as an exception to this, so a same-origin or
+  cross-origin dev setup where both sides are literally on `localhost`
+  (just different ports) should still work. If login appears to succeed
+  but the session doesn't stick and you're not on `localhost`, check this
+  next, after `SESSION_COOKIE_SAMESITE` above.
 - **`POST /api/session/start` still exists but should not be used.** It
   predates the Google login work and starts a session for whatever
   `user_id` the caller sends, with no credential check at all. It's being

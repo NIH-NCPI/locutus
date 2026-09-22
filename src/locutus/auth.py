@@ -124,19 +124,38 @@ def get_permission(resource: dict, current_user: CurrentUser) -> str | None:
         return "editor"
 
     visibility = resource.get("visibility") or Visibility.Registered
+    access = resource.get("access") or {}
+    institutions = access.get("institutions") or {}
 
     if visibility == Visibility.Institution:
-        institutions = resource.get("access", {}).get("institutions", {})
         for institution_id in current_user["institutionIds"]:
             if institution_id in institutions:
                 return institutions[institution_id]
         return None
 
     if visibility == Visibility.Restricted:
-        users = resource.get("access", {}).get("users", {})
+        users = access.get("users") or {}
         return users.get(current_user["user_id"])
 
     if visibility in (Visibility.Registered, Visibility.Public):
+        # A resource that predates ownership (M4) has no real owner and no
+        # institution has ever been granted access to it -- there's no way
+        # to know who it "belongs" to, so any real institution member gets
+        # editor rather than being locked out of something nobody was ever
+        # assigned. Keyed on owner_id rather than "access is missing
+        # entirely": PUT-as-upsert preserves owner_id but every model
+        # always re-saves access as at least {} (its constructor default),
+        # so a legacy resource picks up an explicit-but-empty access dict
+        # the moment anyone even attempts to edit it, without ever
+        # acquiring a real owner -- owner_id is the only signal that
+        # survives that. A caller who isn't a member of any institution
+        # still doesn't get a free pass here -- just ordinary viewer access.
+        if (
+            resource.get("owner_id") is None
+            and not institutions
+            and current_user["institutionIds"]
+        ):
+            return "editor"
         # Public isn't enforced yet (W3) -- every caller already had to
         # authenticate to get here, so it behaves like Registered for now.
         return "viewer"
