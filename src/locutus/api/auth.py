@@ -118,6 +118,20 @@ class GoogleLogin(Resource):
                 role=User.Role.Admin if is_admin else User.Role.User,
                 google_sub=google_sub,
             ).save()
+            assert user.id is not None
+
+            # Keep the institution's own memberIds list in sync with the
+            # membership just granted above -- get_permission() only ever
+            # consults the user's own institutionIds (this has no bearing
+            # on access control), but memberIds is what admin tooling
+            # shows for "who's actually in this institution," and it
+            # should reflect the same provisioning decision rather than
+            # staying permanently empty.
+            for institution_id in institution_ids:
+                institution = Institution.get(institution_id)
+                if institution is not None:
+                    institution.add_member(user.id)
+                    institution.save()
 
         session["user_id"] = user.id
 

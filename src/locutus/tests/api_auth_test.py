@@ -119,11 +119,62 @@ def test_institution_allowlist_match_creates_user_with_institution(client, monke
         assert created.institution_ids == [inst.id]
         assert created.role == "user"
 
+        # The Institution's own memberIds list must stay in sync with the
+        # membership just granted -- get_permission() never consults this
+        # (only the user's own institutionIds), but admin tooling that
+        # lists "who's in this institution" reads it, and it must not stay
+        # permanently empty.
+        assert created.id is not None
+        assert inst.id is not None
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [created.id]
+
         with client.session_transaction() as sess:
             assert sess["user_id"] == created.id
     finally:
         _clear_users()
         _clear_institutions()
+
+
+def test_admin_email_that_also_matches_institution_adds_member(client, monkeypatch):
+    """Admin role and institution membership are independent dimensions
+    (see test_bootstrap_admin_email_creates_admin_user) -- an account that
+    happens to be both must still get added to the institution's memberIds,
+    exactly like an ordinary non-admin user would."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    _clear_institutions()
+    try:
+        inst = Institution(name="VUMC", allowed_emails=["admin@vumc.org"]).save()
+        locutus.persistence().collection("Config").document("bootstrap").set(
+            {"adminEmails": ["admin@vumc.org"]}
+        )
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-admin-vumc", email="admin@vumc.org"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 200
+        assert response.json["role"] == "admin"
+        assert response.json["institutionIds"] == [inst.id]
+
+        created = User.find_by_email("admin@vumc.org")
+        assert created is not None
+        assert created.id is not None
+        assert created.role == "admin"
+        assert created.institution_ids == [inst.id]
+
+        assert inst.id is not None
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [created.id]
+    finally:
+        _clear_users()
+        _clear_institutions()
+        _clear_bootstrap_config()
 
 
 def test_bootstrap_admin_email_creates_admin_user(client, monkeypatch):
