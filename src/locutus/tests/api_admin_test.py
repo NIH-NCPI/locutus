@@ -277,6 +277,47 @@ def test_admin_allowlist_delete(client):
         admin.cleanup()
 
 
+def test_admin_allowlist_delete_revokes_provisioned_member(client):
+    """Removing an email that already has an account attached doubles as
+    "revoke this institution's access" -- both memberIds (bookkeeping) and
+    the user's own institutionIds (what get_permission() actually
+    consults) must drop the institution, or the allowlist edit wouldn't
+    actually revoke anything for someone already provisioned."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    _clear_institutions()
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        institution = Institution(
+            name="VUMC", allowed_emails=["member@vumc.org"]
+        ).save()
+        assert institution.id is not None
+        assert member.id is not None
+
+        member.institution_ids = [institution.id]
+        member.save()
+        institution.add_member(member.id)
+        institution.save()
+
+        response = client.delete(
+            f"/api/admin/institutions/{institution.id}/allowlist/member@vumc.org"
+        )
+        assert response.status_code == 200
+        assert response.json == []
+
+        fetched_inst = Institution.get(institution.id)
+        assert fetched_inst is not None
+        assert fetched_inst.allowed_emails == []
+        assert fetched_inst.member_ids == []
+
+        fetched_member = User.get(member.id)
+        assert fetched_member is not None
+        assert fetched_member.institution_ids == []
+    finally:
+        _clear_institutions()
+        member.delete()
+        admin.cleanup()
+
+
 def test_admin_allowlist_delete_not_present_returns_404(client):
     admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
     _clear_institutions()

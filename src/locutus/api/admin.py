@@ -14,6 +14,7 @@ from flask_restful import Resource
 from locutus.api import default_headers
 from locutus.auth import require_admin
 from locutus.model.institution import Institution
+from locutus.model.user import User
 
 
 class AdminInstitutions(Resource):
@@ -123,6 +124,21 @@ class AdminInstitutionAllowlistItem(Resource):
             )
 
         institution.allowed_emails.remove(email)
+
+        # Doubles as "revoke this institution's access" for anyone already
+        # provisioned under this email -- removing only memberIds here
+        # would be cosmetic, since get_permission() never consults it, only
+        # the user's own institutionIds. Both have to drop this institution
+        # or the allowlist edit wouldn't actually revoke anything for
+        # someone who already has an account.
+        user = User.find_by_email(email)
+        if user is not None:
+            assert user.id is not None
+            if id in user.institution_ids:
+                user.institution_ids.remove(id)
+                user.save()
+            institution.remove_member(user.id)
+
         institution.save()
 
         return (
