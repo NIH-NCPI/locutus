@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import locutus
 from locutus.model.institution import Institution
 from locutus.model.user import User
@@ -131,6 +133,55 @@ def test_admin_institution_get_by_id(client):
         assert response.json["name"] == "VUMC"
     finally:
         _clear_institutions()
+        admin.cleanup()
+
+
+def test_admin_institution_get_by_id_resolves_members(client):
+    """memberIds alone is a list of opaque ids -- the admin UI needs actual
+    detail (who is this, when did they last log in) to be useful, so the
+    response also carries a resolved `members` array alongside the
+    unchanged `memberIds`."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    _clear_institutions()
+    never_logged_in = User(email="never-logged-in@vumc.org", institution_ids=[]).save()
+    logged_in = User(email="logged-in@vumc.org", institution_ids=[]).save()
+    try:
+        assert never_logged_in.id is not None
+        assert logged_in.id is not None
+
+        last_login = datetime(2026, 9, 20, 12, 0, 0, tzinfo=UTC)
+        logged_in.last_login_at = last_login
+        logged_in.save()
+
+        institution = Institution(name="VUMC").save()
+        assert institution.id is not None
+        institution.add_member(never_logged_in.id)
+        institution.add_member(logged_in.id)
+        # A memberIds entry with no matching User (stale/deleted account)
+        # must be silently skipped, not raise.
+        institution.add_member("deleted-user-id")
+        institution.save()
+
+        response = client.get(f"/api/admin/institutions/{institution.id}")
+        assert response.status_code == 200
+        assert response.json["memberIds"] == [
+            never_logged_in.id,
+            logged_in.id,
+            "deleted-user-id",
+        ]
+
+        members = {m["id"]: m for m in response.json["members"]}
+        assert set(members.keys()) == {never_logged_in.id, logged_in.id}
+
+        assert members[never_logged_in.id]["email"] == "never-logged-in@vumc.org"
+        assert members[never_logged_in.id]["lastLoginAt"] is None
+
+        assert members[logged_in.id]["email"] == "logged-in@vumc.org"
+        assert members[logged_in.id]["lastLoginAt"] is not None
+    finally:
+        _clear_institutions()
+        never_logged_in.delete()
+        logged_in.delete()
         admin.cleanup()
 
 
@@ -274,6 +325,47 @@ def test_admin_allowlist_delete(client):
         assert fetched.allowed_emails == ["b@vumc.org"]
     finally:
         _clear_institutions()
+        admin.cleanup()
+
+
+def test_admin_allowlist_delete_revokes_provisioned_member(client):
+    """Removing an email that already has an account attached doubles as
+    "revoke this institution's access" -- both memberIds (bookkeeping) and
+    the user's own institutionIds (what get_permission() actually
+    consults) must drop the institution, or the allowlist edit wouldn't
+    actually revoke anything for someone already provisioned."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    _clear_institutions()
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        institution = Institution(
+            name="VUMC", allowed_emails=["member@vumc.org"]
+        ).save()
+        assert institution.id is not None
+        assert member.id is not None
+
+        member.institution_ids = [institution.id]
+        member.save()
+        institution.add_member(member.id)
+        institution.save()
+
+        response = client.delete(
+            f"/api/admin/institutions/{institution.id}/allowlist/member@vumc.org"
+        )
+        assert response.status_code == 200
+        assert response.json == []
+
+        fetched_inst = Institution.get(institution.id)
+        assert fetched_inst is not None
+        assert fetched_inst.allowed_emails == []
+        assert fetched_inst.member_ids == []
+
+        fetched_member = User.get(member.id)
+        assert fetched_member is not None
+        assert fetched_member.institution_ids == []
+    finally:
+        _clear_institutions()
+        member.delete()
         admin.cleanup()
 
 

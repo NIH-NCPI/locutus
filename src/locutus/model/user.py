@@ -6,6 +6,7 @@ exists for, and giving it its own small structure keeps that machinery from
 having to account for a type with no owner/access fields of its own.
 """
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
@@ -28,6 +29,7 @@ class User:
         institution_ids: list[str] | None = None,
         role: Role = Role.User,
         google_sub: str | None = None,
+        last_login_at: datetime | None = None,
     ):
         self.id = id
         self.email = email
@@ -39,6 +41,11 @@ class User:
         # right long-term join key. Optional/backfillable since it doesn't
         # exist for any user created before Google login did.
         self.google_sub = google_sub
+        # Set on every successful GoogleLogin, regardless of which of its
+        # three paths resolved the account (see api/auth.py) -- None means
+        # a provisioned account (on an institution's allowedEmails, or
+        # seeded directly) that has never actually logged in yet.
+        self.last_login_at = last_login_at
 
     def is_admin(self) -> bool:
         return self.role == User.Role.Admin
@@ -51,6 +58,7 @@ class User:
             "institutionIds": self.institution_ids,
             "role": self.role,
             "googleSub": self.google_sub,
+            "lastLoginAt": self.last_login_at,
         }
 
     @classmethod
@@ -62,6 +70,7 @@ class User:
             institution_ids=data.get("institutionIds", []),
             role=data.get("role", User.Role.User),
             google_sub=data.get("googleSub"),
+            last_login_at=data.get("lastLoginAt"),
         )
 
     def save(self) -> "User":
