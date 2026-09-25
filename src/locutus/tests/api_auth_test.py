@@ -231,6 +231,46 @@ def test_returning_user_found_by_google_sub(client, monkeypatch):
         _clear_users()
 
 
+def test_login_stamps_last_login_at(client, monkeypatch):
+    """Every successful login sets lastLoginAt, regardless of whether the
+    account is brand new or returning -- admin tooling (the institution
+    member list) shows this per user."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    try:
+        existing = User(
+            email="stamped@example.com",
+            google_sub="sub-stamped",
+            institution_ids=[],
+        ).save()
+        assert existing.last_login_at is None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-stamped", email="stamped@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+        assert response.status_code == 200
+
+        first_login = User.find_by_email("stamped@example.com")
+        assert first_login is not None
+        assert first_login.last_login_at is not None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-stamped", email="stamped@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+        assert response.status_code == 200
+
+        second_login = User.find_by_email("stamped@example.com")
+        assert second_login is not None
+        assert second_login.last_login_at is not None
+        assert second_login.last_login_at >= first_login.last_login_at
+    finally:
+        _clear_users()
+
+
 def test_returning_user_backfills_institution_membership(client, monkeypatch):
     """An account that already existed (with institutionIds and a linked
     google_sub) before the memberIds sync was added must still get backfilled

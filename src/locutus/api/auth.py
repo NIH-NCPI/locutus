@@ -7,6 +7,7 @@ only verify a JWT that's already been issued.
 
 import logging
 import os
+from datetime import UTC, datetime
 
 from dotenv import load_dotenv
 from flask import request, session
@@ -120,6 +121,12 @@ class GoogleLogin(Resource):
             ).save()
 
         assert user.id is not None
+
+        # Stamped on every successful login, regardless of which path
+        # resolved the account -- lets admin tooling show "last seen" per
+        # user rather than only whether they're provisioned at all.
+        user.last_login_at = datetime.now(UTC)
+        user.save()
 
         # Keep every institution's own memberIds list in sync with this
         # user's current institutionIds. Deliberately runs on every login,

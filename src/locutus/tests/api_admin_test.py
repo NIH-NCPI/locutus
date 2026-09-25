@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import locutus
 from locutus.model.institution import Institution
 from locutus.model.user import User
@@ -131,6 +133,55 @@ def test_admin_institution_get_by_id(client):
         assert response.json["name"] == "VUMC"
     finally:
         _clear_institutions()
+        admin.cleanup()
+
+
+def test_admin_institution_get_by_id_resolves_members(client):
+    """memberIds alone is a list of opaque ids -- the admin UI needs actual
+    detail (who is this, when did they last log in) to be useful, so the
+    response also carries a resolved `members` array alongside the
+    unchanged `memberIds`."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    _clear_institutions()
+    never_logged_in = User(email="never-logged-in@vumc.org", institution_ids=[]).save()
+    logged_in = User(email="logged-in@vumc.org", institution_ids=[]).save()
+    try:
+        assert never_logged_in.id is not None
+        assert logged_in.id is not None
+
+        last_login = datetime(2026, 9, 20, 12, 0, 0, tzinfo=UTC)
+        logged_in.last_login_at = last_login
+        logged_in.save()
+
+        institution = Institution(name="VUMC").save()
+        assert institution.id is not None
+        institution.add_member(never_logged_in.id)
+        institution.add_member(logged_in.id)
+        # A memberIds entry with no matching User (stale/deleted account)
+        # must be silently skipped, not raise.
+        institution.add_member("deleted-user-id")
+        institution.save()
+
+        response = client.get(f"/api/admin/institutions/{institution.id}")
+        assert response.status_code == 200
+        assert response.json["memberIds"] == [
+            never_logged_in.id,
+            logged_in.id,
+            "deleted-user-id",
+        ]
+
+        members = {m["id"]: m for m in response.json["members"]}
+        assert set(members.keys()) == {never_logged_in.id, logged_in.id}
+
+        assert members[never_logged_in.id]["email"] == "never-logged-in@vumc.org"
+        assert members[never_logged_in.id]["lastLoginAt"] is None
+
+        assert members[logged_in.id]["email"] == "logged-in@vumc.org"
+        assert members[logged_in.id]["lastLoginAt"] is not None
+    finally:
+        _clear_institutions()
+        never_logged_in.delete()
+        logged_in.delete()
         admin.cleanup()
 
 

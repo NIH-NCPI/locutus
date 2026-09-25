@@ -17,10 +17,37 @@ from locutus.model.institution import Institution
 from locutus.model.user import User
 
 
+def _institution_dict_with_members(institution: Institution) -> dict:
+    """Institution.to_dict() plus a resolved `members` array -- memberIds
+    alone is a list of opaque user ids, which gives an admin UI no way to
+    show who that actually is or when they last logged in. Additive only:
+    memberIds itself is left exactly as it was, so anything already reading
+    that field is unaffected. A memberIds entry with no matching User (a
+    stale/deleted account) is silently skipped rather than raising.
+    """
+    data = institution.to_dict()
+    members = []
+    for user_id in institution.member_ids:
+        user = User.get(user_id)
+        if user is None:
+            continue
+        members.append(
+            {
+                "id": user.id,
+                "email": user.email,
+                "displayName": user.display_name,
+                "role": user.role,
+                "lastLoginAt": user.last_login_at,
+            }
+        )
+    data["members"] = members
+    return data
+
+
 class AdminInstitutions(Resource):
     @require_admin
     def get(self):
-        institutions = [i.to_dict() for i in Institution.all()]
+        institutions = [_institution_dict_with_members(i) for i in Institution.all()]
         return json.loads(json_util.dumps(institutions)), 200, default_headers
 
     @require_admin
@@ -58,7 +85,7 @@ class AdminInstitution(Resource):
         if institution is None:
             return {"message": f"Institution not found: {id}"}, 404, default_headers
         return (
-            json.loads(json_util.dumps(institution.to_dict())),
+            json.loads(json_util.dumps(_institution_dict_with_members(institution))),
             200,
             default_headers,
         )

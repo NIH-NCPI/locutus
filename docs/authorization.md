@@ -109,11 +109,18 @@ Creates an institution. Body: `{"id"?: str, "name": str, "allowedEmails"?:
 overwrites).
 
 #### GET
-Lists all institutions.
+Lists all institutions. Each institution's `memberIds` (raw user ids) is
+accompanied by a resolved `members` array -- one entry per id that still
+resolves to a real `User` (a stale/deleted id is silently skipped, not
+errored on), each shaped `{"id", "email", "displayName", "role",
+"lastLoginAt"}`. `lastLoginAt` is `null` for a provisioned account that has
+never actually logged in. `memberIds` itself is unchanged -- `members` is
+purely additive.
 
 ### https://[APPURL]/api/admin/institutions/[id]
 #### GET
-Fetches one institution by id.
+Fetches one institution by id. Same `members` enrichment as the list
+endpoint above.
 
 ### https://[APPURL]/api/admin/institutions/[id]/allowlist
 Pre-registering emails that are allowed to create an account under this
@@ -128,7 +135,10 @@ a single one). Adding an already-present email is a no-op.
 
 ### https://[APPURL]/api/admin/institutions/[id]/allowlist/[email]
 #### DELETE
-Removes one email from the allowlist. `404` if it wasn't on the list.
+Removes one email from the allowlist. `404` if it wasn't on the list. If
+that email already has an account, this also revokes the account's access
+to this institution -- both the institution's `memberIds` and the user's
+own `institutionIds` drop this institution, not just the allowlist entry.
 
 ## Aggregate/export endpoints
 
