@@ -231,15 +231,64 @@ def test_returning_user_found_by_google_sub(client, monkeypatch):
         _clear_users()
 
 
+def test_returning_user_backfills_institution_membership(client, monkeypatch):
+    """An account that already existed (with institutionIds and a linked
+    google_sub) before the memberIds sync was added must still get backfilled
+    on a later, ordinary login -- this account always resolves via
+    find_by_google_sub and never goes through account creation again, so
+    the sync has to run unconditionally on every login, not just then."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    _clear_institutions()
+    try:
+        inst = Institution(name="VUMC", allowed_emails=["returning@vumc.org"]).save()
+        assert inst.id is not None
+        existing = User(
+            email="returning@vumc.org",
+            google_sub="sub-returning-backfill",
+            institution_ids=[inst.id],
+        ).save()
+        # Simulates the pre-existing gap directly: this account predates the
+        # memberIds sync, so the institution never got the add_member call.
+        assert existing.id not in inst.member_ids
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(
+                sub="sub-returning-backfill", email="returning@vumc.org"
+            ),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 200
+        assert response.json["user_id"] == existing.id
+
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [existing.id]
+    finally:
+        _clear_users()
+        _clear_institutions()
+
+
 def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypatch):
     """An account created some other way (e.g. seeded directly) that has no
     google_sub yet must be linked on first Google login, not treated as
-    unprovisioned or duplicated."""
+    unprovisioned or duplicated -- and the same institution-membership
+    backfill applies here too."""
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
     _clear_users()
+    _clear_institutions()
     try:
-        existing = User(email="pre-seeded@example.com", institution_ids=["chop"]).save()
+        inst = Institution(
+            name="CHOP", allowed_emails=["pre-seeded@example.com"]
+        ).save()
+        assert inst.id is not None
+        existing = User(
+            email="pre-seeded@example.com", institution_ids=[inst.id]
+        ).save()
         assert existing.google_sub is None
+        assert existing.id not in inst.member_ids
 
         with patch(
             "locutus.api.auth.id_token.verify_oauth2_token",
@@ -255,5 +304,10 @@ def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypat
         relinked = User.find_by_google_sub("sub-newly-linked")
         assert relinked is not None
         assert relinked.id == existing.id
+
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [existing.id]
     finally:
         _clear_users()
+        _clear_institutions()

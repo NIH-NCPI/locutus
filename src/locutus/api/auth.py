@@ -118,20 +118,26 @@ class GoogleLogin(Resource):
                 role=User.Role.Admin if is_admin else User.Role.User,
                 google_sub=google_sub,
             ).save()
-            assert user.id is not None
 
-            # Keep the institution's own memberIds list in sync with the
-            # membership just granted above -- get_permission() only ever
-            # consults the user's own institutionIds (this has no bearing
-            # on access control), but memberIds is what admin tooling
-            # shows for "who's actually in this institution," and it
-            # should reflect the same provisioning decision rather than
-            # staying permanently empty.
-            for institution_id in institution_ids:
-                institution = Institution.get(institution_id)
-                if institution is not None:
-                    institution.add_member(user.id)
-                    institution.save()
+        assert user.id is not None
+
+        # Keep every institution's own memberIds list in sync with this
+        # user's current institutionIds. Deliberately runs on every login,
+        # not just first-time creation: institutionIds can also change by
+        # other means later (e.g. admin tooling editing a user directly),
+        # and an account that already existed before this sync was added
+        # would otherwise never get a chance to run it at all -- it always
+        # resolves via find_by_google_sub above and skips straight past
+        # account creation. get_permission() only ever consults the user's
+        # own institutionIds (this has no bearing on access control), but
+        # memberIds is what admin tooling shows for "who's actually in
+        # this institution," so it needs to self-heal here rather than
+        # only reflect a one-time provisioning decision.
+        for institution_id in user.institution_ids:
+            institution = Institution.get(institution_id)
+            if institution is not None and user.id not in institution.member_ids:
+                institution.add_member(user.id)
+                institution.save()
 
         session["user_id"] = user.id
 
