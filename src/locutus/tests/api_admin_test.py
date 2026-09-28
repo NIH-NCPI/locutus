@@ -61,6 +61,22 @@ def test_admin_institutions_post_creates(client):
         admin.cleanup()
 
 
+def test_admin_institutions_post_rejects_invalid_email(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    _clear_institutions()
+    try:
+        response = client.post(
+            "/api/admin/institutions",
+            json={"id": "vumc", "name": "VUMC", "allowedEmails": ["1"]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+        assert Institution.get("vumc") is None
+    finally:
+        _clear_institutions()
+        admin.cleanup()
+
+
 def test_admin_institutions_post_missing_name(client):
     admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
     try:
@@ -235,6 +251,41 @@ def test_admin_allowlist_post_add_emails(client):
         )
         assert response.status_code == 200
         assert sorted(response.json) == ["a@vumc.org", "b@vumc.org"]
+    finally:
+        _clear_institutions()
+        admin.cleanup()
+
+
+def test_admin_allowlist_post_rejects_invalid_email(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    _clear_institutions()
+    try:
+        institution = Institution(name="VUMC").save()
+        assert institution.id is not None
+
+        response = client.post(
+            f"/api/admin/institutions/{institution.id}/allowlist",
+            json={"emails": ["1"]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+
+        fetched = Institution.get(institution.id)
+        assert fetched is not None
+        assert fetched.allowed_emails == []
+
+        # A mix of valid and invalid rejects the whole batch -- the valid
+        # one isn't partially applied.
+        response = client.post(
+            f"/api/admin/institutions/{institution.id}/allowlist",
+            json={"emails": ["a@vumc.org", "1"]},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+
+        fetched = Institution.get(institution.id)
+        assert fetched is not None
+        assert fetched.allowed_emails == []
     finally:
         _clear_institutions()
         admin.cleanup()

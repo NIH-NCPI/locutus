@@ -106,7 +106,9 @@ resources.
 #### POST
 Creates an institution. Body: `{"id"?: str, "name": str, "allowedEmails"?:
 [str]}`. `409` if `id` is supplied and already exists (never silently
-overwrites).
+overwrites). `400` if any `allowedEmails` entry isn't a plausible email
+address (a pragmatic "looks like an email" check, not full RFC 5322
+validation) -- the whole request is rejected, nothing is partially created.
 
 #### GET
 Lists all institutions. Each institution's `memberIds` (raw user ids) is
@@ -131,7 +133,9 @@ Lists the institution's currently allowed emails.
 
 #### POST
 Adds one or more emails. Body: `{"emails": [str]}` (or `{"email": str}` for
-a single one). Adding an already-present email is a no-op.
+a single one). Adding an already-present email is a no-op. `400` if any
+entry isn't a plausible email address -- same check and same
+reject-the-whole-batch behavior as institution creation above.
 
 ### https://[APPURL]/api/admin/institutions/[id]/allowlist/[email]
 #### DELETE
