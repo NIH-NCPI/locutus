@@ -6,6 +6,7 @@ require_read_access/require_write_access.
 """
 
 import json
+import re
 
 from bson import json_util
 from flask import request
@@ -15,6 +16,15 @@ from locutus.api import default_headers
 from locutus.auth import require_admin
 from locutus.model.institution import Institution
 from locutus.model.user import User
+
+# Pragmatic "looks like an email" check, not full RFC 5322 -- just enough
+# to catch plainly-wrong input like a bare "1" rather than validate every
+# edge case a real address can take.
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _invalid_emails(emails: list[str]) -> list[str]:
+    return [e for e in emails if not _EMAIL_RE.match(e)]
 
 
 def _institution_dict_with_members(institution: Institution) -> dict:
@@ -65,10 +75,19 @@ class AdminInstitutions(Resource):
                 default_headers,
             )
 
+        allowed_emails = body.get("allowedEmails", [])
+        invalid = _invalid_emails(allowed_emails)
+        if invalid:
+            return (
+                {"message": f"Not a valid email address: {', '.join(invalid)}"},
+                400,
+                default_headers,
+            )
+
         institution = Institution(
             id=institution_id,
             name=name,
-            allowed_emails=body.get("allowedEmails", []),
+            allowed_emails=allowed_emails,
         )
         institution.save()
         return (
@@ -120,6 +139,14 @@ class AdminInstitutionAllowlist(Resource):
         if not emails:
             return (
                 {"message": "This action requires the parameter: 'emails'"},
+                400,
+                default_headers,
+            )
+
+        invalid = _invalid_emails(emails)
+        if invalid:
+            return (
+                {"message": f"Not a valid email address: {', '.join(invalid)}"},
                 400,
                 default_headers,
             )
