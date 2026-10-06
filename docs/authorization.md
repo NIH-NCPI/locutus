@@ -50,6 +50,16 @@ Cheap "is any session active" check. Predates this work; doesn't return the
 full profile (`role`, `institutionIds`) the way the Google login response
 does.
 
+### https://[APPURL]/api/user/me
+#### GET
+Self-service "who am I" -- returns the identical shape the Google login
+response does (`user_id`, `email`, `role`, `institutionIds`), re-fetched
+fresh rather than cached. Lets the front end resume a session on reload
+(or an API token caller check its own identity) without needing to
+re-prompt Google sign-in or decode anything client-side. Works via either
+credential path (session cookie or `Authorization: Bearer lct_...`), same
+as any other `@require_auth` endpoint.
+
 ## API tokens
 For CLI/script access instead of a browser session --
 `Authorization: Bearer lct_...`.
@@ -143,6 +153,43 @@ Removes one email from the allowlist. `404` if it wasn't on the list. If
 that email already has an account, this also revokes the account's access
 to this institution -- both the institution's `memberIds` and the user's
 own `institutionIds` drop this institution, not just the allowlist entry.
+
+## Admin: users
+All endpoints below require the system-level admin role
+(`@require_admin`), same as the institution endpoints above. A user
+directory independent of any one institution -- `memberIds`/`allowedEmails`
+only ever show who belongs to *that* institution, not everyone in the
+system.
+
+### https://[APPURL]/api/admin/users
+#### GET
+Lists every user (`User.to_dict()` -- `id`, `email`, `displayName`,
+`institutionIds`, `role`, `googleSub`, `lastLoginAt`, `disabledAt`,
+`disabledBy`). Disabled accounts are included, not filtered out, so an
+admin can find and re-enable them.
+
+### https://[APPURL]/api/admin/users/[id]
+#### GET
+Fetches one user by id. `404` if it doesn't exist.
+
+### https://[APPURL]/api/admin/users/[id]/disable
+#### POST
+Off-boarding without deletion: blocks this account from logging in or
+using its existing session/API tokens, but touches nothing else -- owned
+resources, provenance, and institution membership (`institutionIds`/
+`memberIds`) are all left exactly as they are, intact for historical
+reference. Sets `disabledAt`/`disabledBy`; an already-active session or
+API token for this account stops working on its very next request, and a
+disabled account can't start a fresh session either -- all three fall
+through to the same plain `401` an unauthenticated caller gets, not a
+distinct "disabled" message. Idempotent. `403` if `id` is the calling
+admin's own account -- no admin can lock themselves out with no other
+admin available to reverse it. `404` if the user doesn't exist.
+
+### https://[APPURL]/api/admin/users/[id]/enable
+#### POST
+Reverses a disable -- clears `disabledAt`/`disabledBy`. Idempotent. `404`
+if the user doesn't exist.
 
 ## Aggregate/export endpoints
 
