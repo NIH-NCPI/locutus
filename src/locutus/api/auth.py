@@ -10,7 +10,7 @@ import os
 from datetime import UTC, datetime
 
 from dotenv import load_dotenv
-from flask import request, session
+from flask import g, request, session
 from flask_restful import Resource
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
@@ -18,6 +18,7 @@ from google.oauth2 import id_token
 
 import locutus
 from locutus.api import default_headers
+from locutus.auth import require_auth
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
@@ -155,6 +156,30 @@ class GoogleLogin(Resource):
                 institution.save()
 
         session["user_id"] = user.id
+
+        return (
+            {
+                "user_id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "institutionIds": user.institution_ids,
+            },
+            200,
+            default_headers,
+        )
+
+
+class Me(Resource):
+    @require_auth
+    def get(self):
+        """Self-service "who am I" (S4): the same shape GoogleLogin.post
+        above already returns at login -- the only other place it's
+        exposed -- so the front end can re-fetch role/institutionIds on
+        reload without re-prompting Google sign-in."""
+        # require_auth already confirmed this user_id resolves to a real,
+        # non-disabled user moments ago via the same get_user() lookup.
+        user = User.get(g.current_user["user_id"])
+        assert user is not None
 
         return (
             {

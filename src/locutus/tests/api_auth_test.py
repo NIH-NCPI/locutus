@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 import locutus
+from locutus.model.api_token import ApiToken
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
@@ -387,3 +388,69 @@ def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypat
     finally:
         _clear_users()
         _clear_institutions()
+
+
+# ── GET /api/user/me (S4: self-service "who am I") ──────────────────────
+
+
+def test_me_requires_auth(client):
+    response = client.get("/api/user/me")
+    assert response.status_code == 401
+
+
+def test_me_returns_current_user_via_session(client):
+    user = User(
+        email="whoami@example.com", institution_ids=["vumc"], role=User.Role.Admin
+    ).save()
+    assert user.id is not None
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = client.get("/api/user/me")
+        assert response.status_code == 200
+        # Same shape POST /api/auth/google returns at login (M1) -- the
+        # whole point of this endpoint.
+        assert response.json == {
+            "user_id": user.id,
+            "email": "whoami@example.com",
+            "role": "admin",
+            "institutionIds": ["vumc"],
+        }
+    finally:
+        user.delete()
+
+
+def test_me_returns_current_user_via_api_token(client):
+    """Confirms the dual-access requirement directly: the same endpoint
+    works for a Bearer lct_ token (Path B -- a CLI tool or script), not
+    just an interactive browser session."""
+    user = User(email="whoami-token@example.com", institution_ids=[]).save()
+    assert user.id is not None
+    try:
+        _token, raw = ApiToken.create(user_id=user.id, name="test-token")
+        response = client.get(
+            "/api/user/me", headers={"Authorization": f"Bearer {raw}"}
+        )
+        assert response.status_code == 200
+        assert response.json["user_id"] == user.id
+        assert response.json["email"] == "whoami-token@example.com"
+    finally:
+        user.delete()
+
+
+def test_me_rejects_disabled_account(client):
+    user = User(
+        email="whoami-disabled@example.com",
+        institution_ids=[],
+        disabled_at=datetime.now(UTC),
+    ).save()
+    assert user.id is not None
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = client.get("/api/user/me")
+        assert response.status_code == 401
+    finally:
+        user.delete()

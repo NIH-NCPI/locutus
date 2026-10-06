@@ -16,7 +16,7 @@ from locutus.api.admin import (
     AdminUserEnable,
     AdminUsers,
 )
-from locutus.api.auth import GoogleLogin
+from locutus.api.auth import GoogleLogin, Me
 from locutus.api.combined_harmony import CombinedHarmony
 from locutus.api.datadictionary import (
     DataDictionaries,
@@ -134,6 +134,9 @@ def create_app(config_filename=None):
         resource_class_kwargs={"session_manager": session_manager},
     )
     api.add_resource(GoogleLogin, "/api/auth/google")
+    # Self-service "who am I" (S4) -- re-fetches role/institutionIds on
+    # reload without re-prompting Google sign-in.
+    api.add_resource(Me, "/api/user/me")
 
     api.add_resource(ApiTokens, "/api/tokens")
     api.add_resource(ApiTokenItem, "/api/tokens/<string:id>")
