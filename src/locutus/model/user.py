@@ -105,6 +105,13 @@ class User:
         return cls.from_dict(data) if data is not None else None
 
     @classmethod
+    def all(cls) -> "list[User]":
+        return [
+            cls.from_dict(doc.to_dict())
+            for doc in locutus.persistence().collection("User").stream()
+        ]
+
+    @classmethod
     def find_by_email(cls, email: str) -> "User | None":
         match = locutus.persistence().collection("User").find_one({"email": email})
         return cls.from_dict(match) if match is not None else None

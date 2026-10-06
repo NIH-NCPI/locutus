@@ -11,6 +11,10 @@ from locutus.api.admin import (
     AdminInstitutionAllowlist,
     AdminInstitutionAllowlistItem,
     AdminInstitutions,
+    AdminUser,
+    AdminUserDisable,
+    AdminUserEnable,
+    AdminUsers,
 )
 from locutus.api.auth import GoogleLogin
 from locutus.api.combined_harmony import CombinedHarmony
@@ -147,6 +151,13 @@ def create_app(config_filename=None):
         AdminInstitutionAllowlistItem,
         "/api/admin/institutions/<string:id>/allowlist/<string:email>",
     )
+
+    # GET (list)/GET one, and disable/enable (off-boarding without
+    # deletion) for any user (S4)
+    api.add_resource(AdminUsers, "/api/admin/users")
+    api.add_resource(AdminUser, "/api/admin/users/<string:id>")
+    api.add_resource(AdminUserDisable, "/api/admin/users/<string:id>/disable")
+    api.add_resource(AdminUserEnable, "/api/admin/users/<string:id>/enable")
 
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 
