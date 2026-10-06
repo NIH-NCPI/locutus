@@ -336,6 +336,37 @@ def test_require_auth_rejects_expired_token(auth_app, basic_user):
         _clear_api_tokens()
 
 
+def test_require_auth_rejects_session_for_disabled_user(auth_app, basic_user):
+    """Off-boarding (S4): an already-active session stops working on the
+    very next request after an admin disables the account -- no need to
+    separately hunt down and delete the session document."""
+    assert basic_user.id is not None
+    basic_user.disabled_at = datetime.now(UTC)
+    basic_user.save()
+    with auth_app.session_transaction() as sess:
+        sess["user_id"] = basic_user.id
+
+    response = auth_app.get("/probe/auth")
+    assert response.status_code == 401
+
+
+def test_require_auth_rejects_api_token_for_disabled_user(auth_app, basic_user):
+    """Same as the session case -- a disabled account's existing API
+    tokens must stop working too, not just its interactive session."""
+    assert basic_user.id is not None
+    token = _make_token(basic_user.id)
+    try:
+        basic_user.disabled_at = datetime.now(UTC)
+        basic_user.save()
+
+        response = auth_app.get(
+            "/probe/auth", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 401
+    finally:
+        _clear_api_tokens()
+
+
 def test_require_auth_interactive_only_rejects_api_token(auth_app, basic_user):
     assert basic_user.id is not None
     token = _make_token(basic_user.id)

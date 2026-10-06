@@ -30,6 +30,8 @@ class User:
         role: Role = Role.User,
         google_sub: str | None = None,
         last_login_at: datetime | None = None,
+        disabled_at: datetime | None = None,
+        disabled_by: str | None = None,
     ):
         self.id = id
         self.email = email
@@ -46,6 +48,14 @@ class User:
         # a provisioned account (on an institution's allowedEmails, or
         # seeded directly) that has never actually logged in yet.
         self.last_login_at = last_login_at
+        # Off-boarding without deletion (S4): None means active. Set means
+        # every credential path (session, API token, and a fresh
+        # GoogleLogin) rejects this account with a plain 401 -- see the
+        # disabled_at checks in locutus/auth.py and api/auth.py. Owned
+        # resources, provenance, and institution membership are untouched;
+        # this blocks login only.
+        self.disabled_at = disabled_at
+        self.disabled_by = disabled_by
 
     def is_admin(self) -> bool:
         return self.role == User.Role.Admin
@@ -59,6 +69,8 @@ class User:
             "role": self.role,
             "googleSub": self.google_sub,
             "lastLoginAt": self.last_login_at,
+            "disabledAt": self.disabled_at,
+            "disabledBy": self.disabled_by,
         }
 
     @classmethod
@@ -71,6 +83,8 @@ class User:
             role=data.get("role", User.Role.User),
             google_sub=data.get("googleSub"),
             last_login_at=data.get("lastLoginAt"),
+            disabled_at=data.get("disabledAt"),
+            disabled_by=data.get("disabledBy"),
         )
 
     def save(self) -> "User":

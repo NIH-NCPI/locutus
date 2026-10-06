@@ -8,6 +8,7 @@ project's existing convention of mocking the one genuinely external call
 handler logic around it.
 """
 
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import locutus
@@ -267,6 +268,41 @@ def test_login_stamps_last_login_at(client, monkeypatch):
         assert second_login is not None
         assert second_login.last_login_at is not None
         assert second_login.last_login_at >= first_login.last_login_at
+    finally:
+        _clear_users()
+
+
+def test_disabled_account_cannot_log_in(client, monkeypatch):
+    """Off-boarding (S4): a disabled account can't mint a fresh session
+    either, rather than getting a cookie that dies on its very next call.
+    Same plain 401 an unauthenticated caller gets, so the response can't
+    be used to distinguish "no such account" from "disabled account"."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    try:
+        disabled = User(
+            email="disabled@example.com",
+            google_sub="sub-disabled",
+            institution_ids=["vumc"],
+            disabled_at=datetime.now(UTC),
+        ).save()
+        assert disabled.id is not None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-disabled", email="disabled@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 401
+        with client.session_transaction() as sess:
+            assert "user_id" not in sess
+
+        # Login didn't stamp lastLoginAt or touch anything else either --
+        # rejected before any of that runs.
+        still_disabled = User.find_by_email("disabled@example.com")
+        assert still_disabled is not None
+        assert still_disabled.last_login_at is None
     finally:
         _clear_users()
 

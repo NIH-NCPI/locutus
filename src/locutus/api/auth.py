@@ -122,6 +122,14 @@ class GoogleLogin(Resource):
 
         assert user.id is not None
 
+        # Off-boarding (S4) -- a disabled account can't mint a fresh
+        # session either, rather than getting a cookie that dies on its
+        # very next call. Same plain 401 require_auth already uses
+        # elsewhere, so a caller can't use this response to distinguish
+        # "no such account" from "disabled account" and go probing.
+        if user.disabled_at is not None:
+            return {"message": "Authentication required"}, 401, default_headers
+
         # Stamped on every successful login, regardless of which path
         # resolved the account -- lets admin tooling show "last seen" per
         # user rather than only whether they're provisioned at all.
