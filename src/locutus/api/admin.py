@@ -1,15 +1,16 @@
 """
-Admin-only institution management (Auth Requirements spec, M3, S3).
-Institutions aren't part of the M4 owner/access resource model -- every
-endpoint here is gated by @require_admin (the system-level role), not
-require_read_access/require_write_access.
+Admin-only institution and user management (Auth Requirements spec, M3,
+S3, S4). Neither institutions nor users are part of the M4 owner/access
+resource model -- every endpoint here is gated by @require_admin (the
+system-level role), not require_read_access/require_write_access.
 """
 
 import json
 import re
+from datetime import UTC, datetime
 
 from bson import json_util
-from flask import request
+from flask import g, request
 from flask_restful import Resource
 
 from locutus.api import default_headers
@@ -200,3 +201,61 @@ class AdminInstitutionAllowlistItem(Resource):
             200,
             default_headers,
         )
+
+
+class AdminUsers(Resource):
+    """S4: admin-facing user directory -- memberIds/allowedEmails alone
+    (the institution endpoints above) give no way to see everyone in the
+    system at once, independent of institution."""
+
+    @require_admin
+    def get(self):
+        users = [u.to_dict() for u in User.all()]
+        return json.loads(json_util.dumps(users)), 200, default_headers
+
+
+class AdminUser(Resource):
+    @require_admin
+    def get(self, id: str):
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminUserDisable(Resource):
+    """S4: off-boarding without deletion -- see the disabled_at checks in
+    locutus/auth.py and api/auth.py's GoogleLogin for the enforcement side.
+    This endpoint only ever sets/clears the flag; it doesn't touch owned
+    resources, provenance, or institution membership."""
+
+    @require_admin
+    def post(self, id: str):
+        if id == g.current_user["user_id"]:
+            return (
+                {"message": "You cannot disable your own account"},
+                403,
+                default_headers,
+            )
+
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+
+        user.disabled_at = datetime.now(UTC)
+        user.disabled_by = g.current_user["user_id"]
+        user.save()
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminUserEnable(Resource):
+    @require_admin
+    def post(self, id: str):
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+
+        user.disabled_at = None
+        user.disabled_by = None
+        user.save()
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers

@@ -89,25 +89,27 @@ whether a session is currently active.
 
 ## 3. Checking who's logged in / rehydrating after a reload
 
-**There is currently no "whoami" endpoint that returns the full user
-profile (`role`, `institutionIds`, `email`) after the fact.** That shape is
-only ever returned once, in the `POST /api/auth/google` response.
+```
+GET /api/user/me
+```
 
-Until a whoami endpoint exists, the practical options are:
-- Cache the login response client-side (e.g. in memory + `sessionStorage`)
-  and treat "no cached profile" as logged-out, prompting a fresh Google
-  sign-in on reload. This is the simplest option but means a hard refresh
-  always re-triggers the Google sign-in flow.
-- Ask backend for a small `GET /api/user/me`-style addition if silent
-  session resumption (reload without re-prompting Google) is a real
-  requirement. Flag this to the backend if you need it -- it's a small,
-  contained addition to `locutus/auth.py`'s existing `require_auth`
-  machinery.
+Returns the same shape the `POST /api/auth/google` response does --
+`{"user_id", "email", "role", "institutionIds"}` -- re-fetched fresh
+rather than cached. Use this on reload to resume a session silently
+(without re-prompting Google sign-in): call it once on app load, and
+treat a `401` the same as any other `401` from this API (redirect to
+login). No body required; works with the normal credentialed `fetch()`
+(session cookie) the rest of the app already uses.
 
-`GET /api/session/status` does exist, but it predates this auth work and
+Before this existed, that profile shape was only ever returned once, at
+login -- caching the login response client-side was the only option, and
+a hard refresh always re-triggered the Google sign-in flow. That's no
+longer necessary.
+
+`GET /api/session/status` also exists, but it predates this auth work and
 only returns `{"user_id": ..., "affiliation": ...}` -- no `role` or
 `institutionIds`. It's useful only as a cheap "is *any* session active"
-check, not for rehydrating a full profile.
+check, not for rehydrating a full profile -- use `/api/user/me` for that.
 
 ## 4. Everything else: what's different now
 
@@ -233,4 +235,3 @@ depending on how it's deployed:
   `user_id` the caller sends, with no credential check at all. It's being
   left in place only because nothing has removed it yet -- don't wire the
   new login flow to it.
-- **No whoami endpoint** -- see [Section 3](#3-checking-whos-logged-in--rehydrating-after-a-reload) above.

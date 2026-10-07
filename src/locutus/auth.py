@@ -71,6 +71,13 @@ def _resolve_via_token(token: str) -> CurrentUser | None:
     if user_doc is None:
         return None
 
+    # Off-boarding (S4) -- a disabled account's existing tokens stop
+    # working on their very next call, same as require_auth itself never
+    # having resolved anyone. Checked here rather than at token-creation
+    # time, since an account can be disabled after a token already exists.
+    if user_doc.get("disabledAt") is not None:
+        return None
+
     # Fire-and-forget per M6 -- a failure here must never fail the request
     # this token is actually trying to make.
     try:
@@ -89,6 +96,12 @@ def _resolve_via_session() -> CurrentUser | None:
 
     user_doc = locutus.persistence().get_user(user_id)
     if user_doc is None:
+        return None
+
+    # Off-boarding (S4) -- an already-active session stops working on the
+    # very next request after an admin disables the account, with no need
+    # to separately hunt down and delete the session document itself.
+    if user_doc.get("disabledAt") is not None:
         return None
 
     return _user_context(user_doc)

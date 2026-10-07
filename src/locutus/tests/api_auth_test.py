@@ -8,9 +8,11 @@ project's existing convention of mocking the one genuinely external call
 handler logic around it.
 """
 
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import locutus
+from locutus.model.api_token import ApiToken
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
@@ -271,6 +273,41 @@ def test_login_stamps_last_login_at(client, monkeypatch):
         _clear_users()
 
 
+def test_disabled_account_cannot_log_in(client, monkeypatch):
+    """Off-boarding (S4): a disabled account can't mint a fresh session
+    either, rather than getting a cookie that dies on its very next call.
+    Same plain 401 an unauthenticated caller gets, so the response can't
+    be used to distinguish "no such account" from "disabled account"."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    try:
+        disabled = User(
+            email="disabled@example.com",
+            google_sub="sub-disabled",
+            institution_ids=["vumc"],
+            disabled_at=datetime.now(UTC),
+        ).save()
+        assert disabled.id is not None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-disabled", email="disabled@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 401
+        with client.session_transaction() as sess:
+            assert "user_id" not in sess
+
+        # Login didn't stamp lastLoginAt or touch anything else either --
+        # rejected before any of that runs.
+        still_disabled = User.find_by_email("disabled@example.com")
+        assert still_disabled is not None
+        assert still_disabled.last_login_at is None
+    finally:
+        _clear_users()
+
+
 def test_returning_user_backfills_institution_membership(client, monkeypatch):
     """An account that already existed (with institutionIds and a linked
     google_sub) before the memberIds sync was added must still get backfilled
@@ -351,3 +388,69 @@ def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypat
     finally:
         _clear_users()
         _clear_institutions()
+
+
+# ── GET /api/user/me (S4: self-service "who am I") ──────────────────────
+
+
+def test_me_requires_auth(client):
+    response = client.get("/api/user/me")
+    assert response.status_code == 401
+
+
+def test_me_returns_current_user_via_session(client):
+    user = User(
+        email="whoami@example.com", institution_ids=["vumc"], role=User.Role.Admin
+    ).save()
+    assert user.id is not None
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = client.get("/api/user/me")
+        assert response.status_code == 200
+        # Same shape POST /api/auth/google returns at login (M1) -- the
+        # whole point of this endpoint.
+        assert response.json == {
+            "user_id": user.id,
+            "email": "whoami@example.com",
+            "role": "admin",
+            "institutionIds": ["vumc"],
+        }
+    finally:
+        user.delete()
+
+
+def test_me_returns_current_user_via_api_token(client):
+    """Confirms the dual-access requirement directly: the same endpoint
+    works for a Bearer lct_ token (Path B -- a CLI tool or script), not
+    just an interactive browser session."""
+    user = User(email="whoami-token@example.com", institution_ids=[]).save()
+    assert user.id is not None
+    try:
+        _token, raw = ApiToken.create(user_id=user.id, name="test-token")
+        response = client.get(
+            "/api/user/me", headers={"Authorization": f"Bearer {raw}"}
+        )
+        assert response.status_code == 200
+        assert response.json["user_id"] == user.id
+        assert response.json["email"] == "whoami-token@example.com"
+    finally:
+        user.delete()
+
+
+def test_me_rejects_disabled_account(client):
+    user = User(
+        email="whoami-disabled@example.com",
+        institution_ids=[],
+        disabled_at=datetime.now(UTC),
+    ).save()
+    assert user.id is not None
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = client.get("/api/user/me")
+        assert response.status_code == 401
+    finally:
+        user.delete()

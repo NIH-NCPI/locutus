@@ -450,3 +450,223 @@ def test_admin_allowlist_delete_requires_admin(client):
     finally:
         _clear_institutions()
         test_owner.cleanup()
+
+
+# ── S4: admin user management ────────────────────────────────────────────
+
+
+def test_admin_users_get_requires_auth(client):
+    response = client.get("/api/admin/users")
+    assert response.status_code == 401
+
+
+def test_admin_users_get_requires_admin(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.get("/api/admin/users")
+        assert response.status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_admin_users_get_lists_all(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    disabled = User(
+        email="disabled@vumc.org",
+        institution_ids=[],
+        disabled_at=datetime.now(UTC),
+        disabled_by=admin.user.id,
+    ).save()
+    try:
+        response = client.get("/api/admin/users")
+        assert response.status_code == 200
+
+        # Listing includes disabled accounts -- an admin managing users
+        # needs to see them, both to re-enable and just to know who's
+        # disabled. Scoped to the ids this test created, since other
+        # accounts may exist in the shared test database.
+        by_id = {u["id"]: u for u in response.json}
+        assert by_id[admin.user.id]["disabledAt"] is None
+        assert by_id[member.id]["email"] == "member@vumc.org"
+        assert by_id[member.id]["disabledAt"] is None
+        assert by_id[disabled.id]["email"] == "disabled@vumc.org"
+        assert by_id[disabled.id]["disabledAt"] is not None
+        assert by_id[disabled.id]["disabledBy"] == admin.user.id
+    finally:
+        member.delete()
+        disabled.delete()
+        admin.cleanup()
+
+
+def test_admin_user_get_by_id(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=["vumc"]).save()
+    try:
+        response = client.get(f"/api/admin/users/{member.id}")
+        assert response.status_code == 200
+        assert response.json["email"] == "member@vumc.org"
+        assert response.json["institutionIds"] == ["vumc"]
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_admin_user_get_by_id_missing_returns_404(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        response = client.get("/api/admin/users/not-there")
+        assert response.status_code == 404
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_disable_requires_admin(client):
+    test_owner = _Owner(client)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/disable")
+        assert response.status_code == 403
+    finally:
+        member.delete()
+        test_owner.cleanup()
+
+
+def test_admin_user_disable_sets_fields(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    assert member.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/disable")
+        assert response.status_code == 200
+        assert response.json["disabledAt"] is not None
+        assert response.json["disabledBy"] == admin.user.id
+
+        fetched = User.get(member.id)
+        assert fetched is not None
+        assert fetched.disabled_at is not None
+        assert fetched.disabled_by == admin.user.id
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_admin_user_disable_missing_returns_404(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        response = client.post("/api/admin/users/not-there/disable")
+        assert response.status_code == 404
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_disable_rejects_self_target(client):
+    """No admin self-lockout -- there may be no other admin available to
+    reverse it."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    assert admin.user.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{admin.user.id}/disable")
+        assert response.status_code == 403
+
+        fetched = User.get(admin.user.id)
+        assert fetched is not None
+        assert fetched.disabled_at is None
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_disable_is_idempotent(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        first = client.post(f"/api/admin/users/{member.id}/disable")
+        assert first.status_code == 200
+
+        second = client.post(f"/api/admin/users/{member.id}/disable")
+        assert second.status_code == 200
+        assert second.json["disabledAt"] is not None
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_admin_user_enable_requires_admin(client):
+    test_owner = _Owner(client)
+    member = User(
+        email="member@vumc.org", institution_ids=[], disabled_at=datetime.now(UTC)
+    ).save()
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/enable")
+        assert response.status_code == 403
+    finally:
+        member.delete()
+        test_owner.cleanup()
+
+
+def test_admin_user_enable_clears_fields(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(
+        email="member@vumc.org",
+        institution_ids=[],
+        disabled_at=datetime.now(UTC),
+        disabled_by="some-other-admin-id",
+    ).save()
+    assert member.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/enable")
+        assert response.status_code == 200
+        assert response.json["disabledAt"] is None
+        assert response.json["disabledBy"] is None
+
+        fetched = User.get(member.id)
+        assert fetched is not None
+        assert fetched.disabled_at is None
+        assert fetched.disabled_by is None
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_admin_user_enable_missing_returns_404(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        response = client.post("/api/admin/users/not-there/enable")
+        assert response.status_code == 404
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_enable_is_idempotent(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        first = client.post(f"/api/admin/users/{member.id}/enable")
+        assert first.status_code == 200
+
+        second = client.post(f"/api/admin/users/{member.id}/enable")
+        assert second.status_code == 200
+        assert second.json["disabledAt"] is None
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_disabled_user_cannot_authenticate_after_admin_disables_them(client):
+    """End-to-end: disabling through the admin endpoint actually revokes
+    access, not just the flag -- the disabled user's own session stops
+    working on their very next request."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/disable")
+        assert response.status_code == 200
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = member.id
+
+        response = client.get("/api/admin/users")
+        assert response.status_code == 401
+    finally:
+        member.delete()
+        admin.cleanup()
