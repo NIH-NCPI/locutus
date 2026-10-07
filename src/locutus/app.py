@@ -11,8 +11,12 @@ from locutus.api.admin import (
     AdminInstitutionAllowlist,
     AdminInstitutionAllowlistItem,
     AdminInstitutions,
+    AdminUser,
+    AdminUserDisable,
+    AdminUserEnable,
+    AdminUsers,
 )
-from locutus.api.auth import GoogleLogin
+from locutus.api.auth import GoogleLogin, Me
 from locutus.api.combined_harmony import CombinedHarmony
 from locutus.api.datadictionary import (
     DataDictionaries,
@@ -88,7 +92,19 @@ def create_app(config_filename=None):
 
     app.before_request(set_request_id)
     app.after_request(add_request_id_header)
-    CORS(app)
+    # Deployment-specific allowed origin(s) for the credentialed (cookie-
+    # carrying) cross-origin requests Path A needs -- comma-separated, env
+    # var rather than hardcoded so a non-default front-end dev port/host or
+    # a staging/prod origin doesn't require a code change. Defaults to the
+    # Vite dev server's default port.
+    cors_origins = [
+        origin.strip()
+        for origin in os.environ.get(
+            "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
+        ).split(",")
+        if origin.strip()
+    ]
+    CORS(app, supports_credentials=True, origins=cors_origins)
     api = Api(app)
 
     # Fetch a lookup from locutus_utilities on deployment or app startup(90d expiration)
@@ -113,6 +129,9 @@ def create_app(config_filename=None):
         resource_class_kwargs={"session_manager": session_manager},
     )
     api.add_resource(GoogleLogin, "/api/auth/google")
+    # Self-service "who am I" (S4) -- re-fetches role/institutionIds on
+    # reload without re-prompting Google sign-in.
+    api.add_resource(Me, "/api/user/me")
 
     api.add_resource(ApiTokens, "/api/tokens")
     api.add_resource(ApiTokenItem, "/api/tokens/<string:id>")
@@ -130,6 +149,13 @@ def create_app(config_filename=None):
         AdminInstitutionAllowlistItem,
         "/api/admin/institutions/<string:id>/allowlist/<string:email>",
     )
+
+    # GET (list)/GET one, and disable/enable (off-boarding without
+    # deletion) for any user (S4)
+    api.add_resource(AdminUsers, "/api/admin/users")
+    api.add_resource(AdminUser, "/api/admin/users/<string:id>")
+    api.add_resource(AdminUserDisable, "/api/admin/users/<string:id>/disable")
+    api.add_resource(AdminUserEnable, "/api/admin/users/<string:id>/enable")
 
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 

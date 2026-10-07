@@ -1,25 +1,64 @@
 """
-Admin-only institution management (Auth Requirements spec, M3, S3).
-Institutions aren't part of the M4 owner/access resource model -- every
-endpoint here is gated by @require_admin (the system-level role), not
-require_read_access/require_write_access.
+Admin-only institution and user management (Auth Requirements spec, M3,
+S3, S4). Neither institutions nor users are part of the M4 owner/access
+resource model -- every endpoint here is gated by @require_admin (the
+system-level role), not require_read_access/require_write_access.
 """
 
 import json
+import re
+from datetime import UTC, datetime
 
 from bson import json_util
-from flask import request
+from flask import g, request
 from flask_restful import Resource
 
 from locutus.api import default_headers
 from locutus.auth import require_admin
 from locutus.model.institution import Institution
+from locutus.model.user import User
+
+# Pragmatic "looks like an email" check, not full RFC 5322 -- just enough
+# to catch plainly-wrong input like a bare "1" rather than validate every
+# edge case a real address can take.
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _invalid_emails(emails: list[str]) -> list[str]:
+    return [e for e in emails if not _EMAIL_RE.match(e)]
+
+
+def _institution_dict_with_members(institution: Institution) -> dict:
+    """Institution.to_dict() plus a resolved `members` array -- memberIds
+    alone is a list of opaque user ids, which gives an admin UI no way to
+    show who that actually is or when they last logged in. Additive only:
+    memberIds itself is left exactly as it was, so anything already reading
+    that field is unaffected. A memberIds entry with no matching User (a
+    stale/deleted account) is silently skipped rather than raising.
+    """
+    data = institution.to_dict()
+    members = []
+    for user_id in institution.member_ids:
+        user = User.get(user_id)
+        if user is None:
+            continue
+        members.append(
+            {
+                "id": user.id,
+                "email": user.email,
+                "displayName": user.display_name,
+                "role": user.role,
+                "lastLoginAt": user.last_login_at,
+            }
+        )
+    data["members"] = members
+    return data
 
 
 class AdminInstitutions(Resource):
     @require_admin
     def get(self):
-        institutions = [i.to_dict() for i in Institution.all()]
+        institutions = [_institution_dict_with_members(i) for i in Institution.all()]
         return json.loads(json_util.dumps(institutions)), 200, default_headers
 
     @require_admin
@@ -37,10 +76,19 @@ class AdminInstitutions(Resource):
                 default_headers,
             )
 
+        allowed_emails = body.get("allowedEmails", [])
+        invalid = _invalid_emails(allowed_emails)
+        if invalid:
+            return (
+                {"message": f"Not a valid email address: {', '.join(invalid)}"},
+                400,
+                default_headers,
+            )
+
         institution = Institution(
             id=institution_id,
             name=name,
-            allowed_emails=body.get("allowedEmails", []),
+            allowed_emails=allowed_emails,
         )
         institution.save()
         return (
@@ -57,7 +105,7 @@ class AdminInstitution(Resource):
         if institution is None:
             return {"message": f"Institution not found: {id}"}, 404, default_headers
         return (
-            json.loads(json_util.dumps(institution.to_dict())),
+            json.loads(json_util.dumps(_institution_dict_with_members(institution))),
             200,
             default_headers,
         )
@@ -96,6 +144,14 @@ class AdminInstitutionAllowlist(Resource):
                 default_headers,
             )
 
+        invalid = _invalid_emails(emails)
+        if invalid:
+            return (
+                {"message": f"Not a valid email address: {', '.join(invalid)}"},
+                400,
+                default_headers,
+            )
+
         for email in emails:
             if email not in institution.allowed_emails:
                 institution.allowed_emails.append(email)
@@ -123,6 +179,21 @@ class AdminInstitutionAllowlistItem(Resource):
             )
 
         institution.allowed_emails.remove(email)
+
+        # Doubles as "revoke this institution's access" for anyone already
+        # provisioned under this email -- removing only memberIds here
+        # would be cosmetic, since get_permission() never consults it, only
+        # the user's own institutionIds. Both have to drop this institution
+        # or the allowlist edit wouldn't actually revoke anything for
+        # someone who already has an account.
+        user = User.find_by_email(email)
+        if user is not None:
+            assert user.id is not None
+            if id in user.institution_ids:
+                user.institution_ids.remove(id)
+                user.save()
+            institution.remove_member(user.id)
+
         institution.save()
 
         return (
@@ -130,3 +201,61 @@ class AdminInstitutionAllowlistItem(Resource):
             200,
             default_headers,
         )
+
+
+class AdminUsers(Resource):
+    """S4: admin-facing user directory -- memberIds/allowedEmails alone
+    (the institution endpoints above) give no way to see everyone in the
+    system at once, independent of institution."""
+
+    @require_admin
+    def get(self):
+        users = [u.to_dict() for u in User.all()]
+        return json.loads(json_util.dumps(users)), 200, default_headers
+
+
+class AdminUser(Resource):
+    @require_admin
+    def get(self, id: str):
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminUserDisable(Resource):
+    """S4: off-boarding without deletion -- see the disabled_at checks in
+    locutus/auth.py and api/auth.py's GoogleLogin for the enforcement side.
+    This endpoint only ever sets/clears the flag; it doesn't touch owned
+    resources, provenance, or institution membership."""
+
+    @require_admin
+    def post(self, id: str):
+        if id == g.current_user["user_id"]:
+            return (
+                {"message": "You cannot disable your own account"},
+                403,
+                default_headers,
+            )
+
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+
+        user.disabled_at = datetime.now(UTC)
+        user.disabled_by = g.current_user["user_id"]
+        user.save()
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminUserEnable(Resource):
+    @require_admin
+    def post(self, id: str):
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+
+        user.disabled_at = None
+        user.disabled_by = None
+        user.save()
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers

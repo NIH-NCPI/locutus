@@ -77,12 +77,20 @@ def test_loading_table(client, ftd_concept_relationships):
 
         term = t.terminology.dereference()
         assert len(term.codes) == len(mini_table_body["csvContents"])
+        # The shadow terminology only exists because of this table, created
+        # in the same request -- it must inherit the same owner/access (M4).
+        assert term.owner_id == test_owner.user.id
+        assert term.access == t.access
 
         # cleanup
         # term.global_id().delete()
         term.delete(hard_delete=True)
 
         enum = t.variables[1].enumerations.dereference()
+        # The CSV "enumerations" column also creates a terminology as a
+        # side effect -- same ownership requirement applies.
+        assert enum.owner_id == test_owner.user.id
+        assert enum.access == t.access
         # enum.global_id().delete()
         enum.delete(hard_delete=True)
 
@@ -143,12 +151,24 @@ def test_loading_table_put(client, ftd_concept_relationships):
 
         term = t.terminology.dereference()
         assert len(term.codes) == len(mini_table_body["csvContents"])
+        # Deliberately NOT asserting term.owner_id here: original_table's
+        # shadow terminology was created back when the Table itself was
+        # first constructed with no owner, before test_owner.own() assigned
+        # one afterward -- a real "predates ownership" case (get_permission's
+        # institution-member fallback), not something this fix touches.
+        # Ownership only ever gets stamped onto a terminology at the moment
+        # it's created, never retroactively.
 
         # cleanup
         # term.global_id().delete()
         term.delete(hard_delete=True)
 
         enum = t.variables[1].enumerations.dereference()
+        # Unlike the shadow terminology above, this one is created fresh by
+        # *this* load_table() call -- after ownership was already assigned
+        # to the table -- so it must inherit it (M4).
+        assert enum.owner_id == test_owner.user.id
+        assert enum.access == t.access
         # enum.global_id().delete()
         enum.delete(hard_delete=True)
 

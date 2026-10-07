@@ -50,6 +50,16 @@ Cheap "is any session active" check. Predates this work; doesn't return the
 full profile (`role`, `institutionIds`) the way the Google login response
 does.
 
+### https://[APPURL]/api/user/me
+#### GET
+Self-service "who am I" -- returns the identical shape the Google login
+response does (`user_id`, `email`, `role`, `institutionIds`), re-fetched
+fresh rather than cached. Lets the front end resume a session on reload
+(or an API token caller check its own identity) without needing to
+re-prompt Google sign-in or decode anything client-side. Works via either
+credential path (session cookie or `Authorization: Bearer lct_...`), same
+as any other `@require_auth` endpoint.
+
 ## API tokens
 For CLI/script access instead of a browser session --
 `Authorization: Bearer lct_...`.
@@ -106,14 +116,23 @@ resources.
 #### POST
 Creates an institution. Body: `{"id"?: str, "name": str, "allowedEmails"?:
 [str]}`. `409` if `id` is supplied and already exists (never silently
-overwrites).
+overwrites). `400` if any `allowedEmails` entry isn't a plausible email
+address (a pragmatic "looks like an email" check, not full RFC 5322
+validation) -- the whole request is rejected, nothing is partially created.
 
 #### GET
-Lists all institutions.
+Lists all institutions. Each institution's `memberIds` (raw user ids) is
+accompanied by a resolved `members` array -- one entry per id that still
+resolves to a real `User` (a stale/deleted id is silently skipped, not
+errored on), each shaped `{"id", "email", "displayName", "role",
+"lastLoginAt"}`. `lastLoginAt` is `null` for a provisioned account that has
+never actually logged in. `memberIds` itself is unchanged -- `members` is
+purely additive.
 
 ### https://[APPURL]/api/admin/institutions/[id]
 #### GET
-Fetches one institution by id.
+Fetches one institution by id. Same `members` enrichment as the list
+endpoint above.
 
 ### https://[APPURL]/api/admin/institutions/[id]/allowlist
 Pre-registering emails that are allowed to create an account under this
@@ -124,11 +143,53 @@ Lists the institution's currently allowed emails.
 
 #### POST
 Adds one or more emails. Body: `{"emails": [str]}` (or `{"email": str}` for
-a single one). Adding an already-present email is a no-op.
+a single one). Adding an already-present email is a no-op. `400` if any
+entry isn't a plausible email address -- same check and same
+reject-the-whole-batch behavior as institution creation above.
 
 ### https://[APPURL]/api/admin/institutions/[id]/allowlist/[email]
 #### DELETE
-Removes one email from the allowlist. `404` if it wasn't on the list.
+Removes one email from the allowlist. `404` if it wasn't on the list. If
+that email already has an account, this also revokes the account's access
+to this institution -- both the institution's `memberIds` and the user's
+own `institutionIds` drop this institution, not just the allowlist entry.
+
+## Admin: users
+All endpoints below require the system-level admin role
+(`@require_admin`), same as the institution endpoints above. A user
+directory independent of any one institution -- `memberIds`/`allowedEmails`
+only ever show who belongs to *that* institution, not everyone in the
+system.
+
+### https://[APPURL]/api/admin/users
+#### GET
+Lists every user (`User.to_dict()` -- `id`, `email`, `displayName`,
+`institutionIds`, `role`, `googleSub`, `lastLoginAt`, `disabledAt`,
+`disabledBy`). Disabled accounts are included, not filtered out, so an
+admin can find and re-enable them.
+
+### https://[APPURL]/api/admin/users/[id]
+#### GET
+Fetches one user by id. `404` if it doesn't exist.
+
+### https://[APPURL]/api/admin/users/[id]/disable
+#### POST
+Off-boarding without deletion: blocks this account from logging in or
+using its existing session/API tokens, but touches nothing else -- owned
+resources, provenance, and institution membership (`institutionIds`/
+`memberIds`) are all left exactly as they are, intact for historical
+reference. Sets `disabledAt`/`disabledBy`; an already-active session or
+API token for this account stops working on its very next request, and a
+disabled account can't start a fresh session either -- all three fall
+through to the same plain `401` an unauthenticated caller gets, not a
+distinct "disabled" message. Idempotent. `403` if `id` is the calling
+admin's own account -- no admin can lock themselves out with no other
+admin available to reverse it. `404` if the user doesn't exist.
+
+### https://[APPURL]/api/admin/users/[id]/enable
+#### POST
+Reverses a disable -- clears `disabledAt`/`disabledBy`. Idempotent. `404`
+if the user doesn't exist.
 
 ## Aggregate/export endpoints
 

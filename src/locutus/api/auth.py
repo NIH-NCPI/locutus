@@ -7,8 +7,10 @@ only verify a JWT that's already been issued.
 
 import logging
 import os
+from datetime import UTC, datetime
 
-from flask import request, session
+from dotenv import load_dotenv
+from flask import g, request, session
 from flask_restful import Resource
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
@@ -16,12 +18,15 @@ from google.oauth2 import id_token
 
 import locutus
 from locutus.api import default_headers
+from locutus.auth import require_auth
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
 logger = logging.getLogger(__name__)
 
 _google_request = google_requests.Request()
+
+load_dotenv()
 
 
 def _is_bootstrap_admin_email(email: str) -> bool:
@@ -116,7 +121,65 @@ class GoogleLogin(Resource):
                 google_sub=google_sub,
             ).save()
 
+        assert user.id is not None
+
+        # Off-boarding (S4) -- a disabled account can't mint a fresh
+        # session either, rather than getting a cookie that dies on its
+        # very next call. Same plain 401 require_auth already uses
+        # elsewhere, so a caller can't use this response to distinguish
+        # "no such account" from "disabled account" and go probing.
+        if user.disabled_at is not None:
+            return {"message": "Authentication required"}, 401, default_headers
+
+        # Stamped on every successful login, regardless of which path
+        # resolved the account -- lets admin tooling show "last seen" per
+        # user rather than only whether they're provisioned at all.
+        user.last_login_at = datetime.now(UTC)
+        user.save()
+
+        # Keep every institution's own memberIds list in sync with this
+        # user's current institutionIds. Deliberately runs on every login,
+        # not just first-time creation: institutionIds can also change by
+        # other means later (e.g. admin tooling editing a user directly),
+        # and an account that already existed before this sync was added
+        # would otherwise never get a chance to run it at all -- it always
+        # resolves via find_by_google_sub above and skips straight past
+        # account creation. get_permission() only ever consults the user's
+        # own institutionIds (this has no bearing on access control), but
+        # memberIds is what admin tooling shows for "who's actually in
+        # this institution," so it needs to self-heal here rather than
+        # only reflect a one-time provisioning decision.
+        for institution_id in user.institution_ids:
+            institution = Institution.get(institution_id)
+            if institution is not None and user.id not in institution.member_ids:
+                institution.add_member(user.id)
+                institution.save()
+
         session["user_id"] = user.id
+
+        return (
+            {
+                "user_id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "institutionIds": user.institution_ids,
+            },
+            200,
+            default_headers,
+        )
+
+
+class Me(Resource):
+    @require_auth
+    def get(self):
+        """Self-service "who am I" (S4): the same shape GoogleLogin.post
+        above already returns at login -- the only other place it's
+        exposed -- so the front end can re-fetch role/institutionIds on
+        reload without re-prompting Google sign-in."""
+        # require_auth already confirmed this user_id resolves to a real,
+        # non-disabled user moments ago via the same get_user() lookup.
+        user = User.get(g.current_user["user_id"])
+        assert user is not None
 
         return (
             {

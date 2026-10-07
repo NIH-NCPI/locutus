@@ -70,6 +70,13 @@ def test_table_post_creates_table(client, sample_terminology):
         assert table is not None
 
         terminology = table.terminology.dereference()
+        # The shadow terminology only exists because of this table -- it
+        # must inherit the same owner/access rather than coming out
+        # ownerless (which would leave it uneditable by anyone but an
+        # institution-member fallback, or an admin).
+        assert terminology.owner_id == test_owner.user.id
+        assert terminology.access == table.access
+
         table.delete(hard_delete=True)
         terminology.delete(hard_delete=True)
     finally:
@@ -195,6 +202,39 @@ def test_table_delete(client, sample_terminology):
         test_owner.cleanup()
 
 
+def test_table_delete_with_no_body(client, sample_terminology):
+    """Same real bug as test_table_edit_delete_variable_with_no_body,
+    pinned on a structurally different DELETE handler (deletes the whole
+    table, not just a variable) -- Content-Type: application/json with no
+    body must not crash before the session-based editor fallback runs."""
+    test_owner = _Owner(client)
+    try:
+        body = {
+            "name": "Table To Delete No Body",
+            "url": "http://ftd.unit.tests/api_table/to_delete_no_body",
+            "editor": "unit-test",
+        }
+        created = client.post(
+            "/api/Table", json=body, headers={"Content-Type": "application/json"}
+        ).json
+        table_id = created["id"]
+        terminology_id = created["terminology"]["reference"].split("/")[-1]
+
+        response = client.delete(
+            f"/api/Table/{table_id}", headers={"Content-Type": "application/json"}
+        )
+        assert response.status_code == 200
+        assert response.json["id"] == table_id
+
+        assert Table.get(table_id) is None
+
+        remaining_terminology = Terminology.get(terminology_id)
+        if remaining_terminology is not None:
+            remaining_terminology.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()
+
+
 def test_table_delete_requires_write_access(client, sample_terminology, basic_table):
     test_owner = _Owner(client)
     try:
@@ -252,6 +292,43 @@ def test_table_edit_put_adds_variable(client, sample_terminology, basic_table):
         test_owner.cleanup()
 
 
+def test_table_edit_put_new_enum_terminology_inherits_ownership(
+    client, sample_terminology, basic_table
+):
+    """An ENUMERATION variable added with no pre-existing enumerations gets
+    a brand-new empty terminology created as a side effect (Table.add_variable)
+    -- that terminology must inherit owner_id/access from the table it
+    belongs to, not come out ownerless (M4)."""
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+
+        response = client.put(
+            f"/api/Table/{basic_table.id}/variable/new_enum_field",
+            json={
+                "data_type": "ENUMERATION",
+                "description": "A brand new enum field",
+                "editor": "unit-test",
+            },
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 201
+
+        table = Table.get(basic_table.id)
+        assert table is not None
+        variable = table.get_variable("new_enum_field")
+        assert variable is not None
+
+        enum_terminology = variable.get_terminology()
+        assert enum_terminology is not None
+        assert enum_terminology.owner_id == test_owner.user.id
+        assert enum_terminology.access == table.access
+
+        enum_terminology.delete(hard_delete=True)
+    finally:
+        test_owner.cleanup()
+
+
 def test_table_edit_put_requires_write_access(client, sample_terminology, basic_table):
     test_owner = _Owner(client)
     try:
@@ -294,6 +371,31 @@ def test_table_edit_delete_variable(client, sample_terminology, basic_table):
         response = client.delete(
             f"/api/Table/{basic_table.id}/variable/{quote('String Var')}",
             json={"editor": "unit-test"},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 200
+
+        table = Table.get(basic_table.id)
+        assert table is not None
+        assert table.get_variable("String Var") is None
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_edit_delete_variable_with_no_body(
+    client, sample_terminology, basic_table
+):
+    """Pins a real bug: the front end's DELETE calls send
+    Content-Type: application/json with no body at all (no json= kwarg
+    here, matching that exactly) -- request.get_json() without silent=True
+    raised an unhandled 400 from Werkzeug's own JSON parser before the
+    handler's code (and its session-based editor fallback) ever ran."""
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+
+        response = client.delete(
+            f"/api/Table/{basic_table.id}/variable/{quote('String Var')}",
             headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 200

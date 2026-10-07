@@ -8,9 +8,11 @@ project's existing convention of mocking the one genuinely external call
 handler logic around it.
 """
 
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import locutus
+from locutus.model.api_token import ApiToken
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
@@ -119,11 +121,62 @@ def test_institution_allowlist_match_creates_user_with_institution(client, monke
         assert created.institution_ids == [inst.id]
         assert created.role == "user"
 
+        # The Institution's own memberIds list must stay in sync with the
+        # membership just granted -- get_permission() never consults this
+        # (only the user's own institutionIds), but admin tooling that
+        # lists "who's in this institution" reads it, and it must not stay
+        # permanently empty.
+        assert created.id is not None
+        assert inst.id is not None
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [created.id]
+
         with client.session_transaction() as sess:
             assert sess["user_id"] == created.id
     finally:
         _clear_users()
         _clear_institutions()
+
+
+def test_admin_email_that_also_matches_institution_adds_member(client, monkeypatch):
+    """Admin role and institution membership are independent dimensions
+    (see test_bootstrap_admin_email_creates_admin_user) -- an account that
+    happens to be both must still get added to the institution's memberIds,
+    exactly like an ordinary non-admin user would."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    _clear_institutions()
+    try:
+        inst = Institution(name="VUMC", allowed_emails=["admin@vumc.org"]).save()
+        locutus.persistence().collection("Config").document("bootstrap").set(
+            {"adminEmails": ["admin@vumc.org"]}
+        )
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-admin-vumc", email="admin@vumc.org"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 200
+        assert response.json["role"] == "admin"
+        assert response.json["institutionIds"] == [inst.id]
+
+        created = User.find_by_email("admin@vumc.org")
+        assert created is not None
+        assert created.id is not None
+        assert created.role == "admin"
+        assert created.institution_ids == [inst.id]
+
+        assert inst.id is not None
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [created.id]
+    finally:
+        _clear_users()
+        _clear_institutions()
+        _clear_bootstrap_config()
 
 
 def test_bootstrap_admin_email_creates_admin_user(client, monkeypatch):
@@ -180,15 +233,139 @@ def test_returning_user_found_by_google_sub(client, monkeypatch):
         _clear_users()
 
 
-def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypatch):
-    """An account created some other way (e.g. seeded directly) that has no
-    google_sub yet must be linked on first Google login, not treated as
-    unprovisioned or duplicated."""
+def test_login_stamps_last_login_at(client, monkeypatch):
+    """Every successful login sets lastLoginAt, regardless of whether the
+    account is brand new or returning -- admin tooling (the institution
+    member list) shows this per user."""
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
     _clear_users()
     try:
-        existing = User(email="pre-seeded@example.com", institution_ids=["chop"]).save()
+        existing = User(
+            email="stamped@example.com",
+            google_sub="sub-stamped",
+            institution_ids=[],
+        ).save()
+        assert existing.last_login_at is None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-stamped", email="stamped@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+        assert response.status_code == 200
+
+        first_login = User.find_by_email("stamped@example.com")
+        assert first_login is not None
+        assert first_login.last_login_at is not None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-stamped", email="stamped@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+        assert response.status_code == 200
+
+        second_login = User.find_by_email("stamped@example.com")
+        assert second_login is not None
+        assert second_login.last_login_at is not None
+        assert second_login.last_login_at >= first_login.last_login_at
+    finally:
+        _clear_users()
+
+
+def test_disabled_account_cannot_log_in(client, monkeypatch):
+    """Off-boarding (S4): a disabled account can't mint a fresh session
+    either, rather than getting a cookie that dies on its very next call.
+    Same plain 401 an unauthenticated caller gets, so the response can't
+    be used to distinguish "no such account" from "disabled account"."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    try:
+        disabled = User(
+            email="disabled@example.com",
+            google_sub="sub-disabled",
+            institution_ids=["vumc"],
+            disabled_at=datetime.now(UTC),
+        ).save()
+        assert disabled.id is not None
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(sub="sub-disabled", email="disabled@example.com"),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 401
+        with client.session_transaction() as sess:
+            assert "user_id" not in sess
+
+        # Login didn't stamp lastLoginAt or touch anything else either --
+        # rejected before any of that runs.
+        still_disabled = User.find_by_email("disabled@example.com")
+        assert still_disabled is not None
+        assert still_disabled.last_login_at is None
+    finally:
+        _clear_users()
+
+
+def test_returning_user_backfills_institution_membership(client, monkeypatch):
+    """An account that already existed (with institutionIds and a linked
+    google_sub) before the memberIds sync was added must still get backfilled
+    on a later, ordinary login -- this account always resolves via
+    find_by_google_sub and never goes through account creation again, so
+    the sync has to run unconditionally on every login, not just then."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    _clear_institutions()
+    try:
+        inst = Institution(name="VUMC", allowed_emails=["returning@vumc.org"]).save()
+        assert inst.id is not None
+        existing = User(
+            email="returning@vumc.org",
+            google_sub="sub-returning-backfill",
+            institution_ids=[inst.id],
+        ).save()
+        # Simulates the pre-existing gap directly: this account predates the
+        # memberIds sync, so the institution never got the add_member call.
+        assert existing.id not in inst.member_ids
+
+        with patch(
+            "locutus.api.auth.id_token.verify_oauth2_token",
+            return_value=_claims(
+                sub="sub-returning-backfill", email="returning@vumc.org"
+            ),
+        ):
+            response = client.post("/api/auth/google", json={"credential": "tok"})
+
+        assert response.status_code == 200
+        assert response.json["user_id"] == existing.id
+
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [existing.id]
+    finally:
+        _clear_users()
+        _clear_institutions()
+
+
+def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypatch):
+    """An account created some other way (e.g. seeded directly) that has no
+    google_sub yet must be linked on first Google login, not treated as
+    unprovisioned or duplicated -- and the same institution-membership
+    backfill applies here too."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    _clear_users()
+    _clear_institutions()
+    try:
+        inst = Institution(
+            name="CHOP", allowed_emails=["pre-seeded@example.com"]
+        ).save()
+        assert inst.id is not None
+        existing = User(
+            email="pre-seeded@example.com", institution_ids=[inst.id]
+        ).save()
         assert existing.google_sub is None
+        assert existing.id not in inst.member_ids
 
         with patch(
             "locutus.api.auth.id_token.verify_oauth2_token",
@@ -204,5 +381,76 @@ def test_existing_email_only_account_gets_linked_to_google_sub(client, monkeypat
         relinked = User.find_by_google_sub("sub-newly-linked")
         assert relinked is not None
         assert relinked.id == existing.id
+
+        refreshed_inst = Institution.get(inst.id)
+        assert refreshed_inst is not None
+        assert refreshed_inst.member_ids == [existing.id]
     finally:
         _clear_users()
+        _clear_institutions()
+
+
+# ── GET /api/user/me (S4: self-service "who am I") ──────────────────────
+
+
+def test_me_requires_auth(client):
+    response = client.get("/api/user/me")
+    assert response.status_code == 401
+
+
+def test_me_returns_current_user_via_session(client):
+    user = User(
+        email="whoami@example.com", institution_ids=["vumc"], role=User.Role.Admin
+    ).save()
+    assert user.id is not None
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = client.get("/api/user/me")
+        assert response.status_code == 200
+        # Same shape POST /api/auth/google returns at login (M1) -- the
+        # whole point of this endpoint.
+        assert response.json == {
+            "user_id": user.id,
+            "email": "whoami@example.com",
+            "role": "admin",
+            "institutionIds": ["vumc"],
+        }
+    finally:
+        user.delete()
+
+
+def test_me_returns_current_user_via_api_token(client):
+    """Confirms the dual-access requirement directly: the same endpoint
+    works for a Bearer lct_ token (Path B -- a CLI tool or script), not
+    just an interactive browser session."""
+    user = User(email="whoami-token@example.com", institution_ids=[]).save()
+    assert user.id is not None
+    try:
+        _token, raw = ApiToken.create(user_id=user.id, name="test-token")
+        response = client.get(
+            "/api/user/me", headers={"Authorization": f"Bearer {raw}"}
+        )
+        assert response.status_code == 200
+        assert response.json["user_id"] == user.id
+        assert response.json["email"] == "whoami-token@example.com"
+    finally:
+        user.delete()
+
+
+def test_me_rejects_disabled_account(client):
+    user = User(
+        email="whoami-disabled@example.com",
+        institution_ids=[],
+        disabled_at=datetime.now(UTC),
+    ).save()
+    assert user.id is not None
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = user.id
+
+        response = client.get("/api/user/me")
+        assert response.status_code == 401
+    finally:
+        user.delete()

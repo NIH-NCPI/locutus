@@ -6,6 +6,7 @@ exists for, and giving it its own small structure keeps that machinery from
 having to account for a type with no owner/access fields of its own.
 """
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
@@ -28,6 +29,9 @@ class User:
         institution_ids: list[str] | None = None,
         role: Role = Role.User,
         google_sub: str | None = None,
+        last_login_at: datetime | None = None,
+        disabled_at: datetime | None = None,
+        disabled_by: str | None = None,
     ):
         self.id = id
         self.email = email
@@ -39,6 +43,19 @@ class User:
         # right long-term join key. Optional/backfillable since it doesn't
         # exist for any user created before Google login did.
         self.google_sub = google_sub
+        # Set on every successful GoogleLogin, regardless of which of its
+        # three paths resolved the account (see api/auth.py) -- None means
+        # a provisioned account (on an institution's allowedEmails, or
+        # seeded directly) that has never actually logged in yet.
+        self.last_login_at = last_login_at
+        # Off-boarding without deletion (S4): None means active. Set means
+        # every credential path (session, API token, and a fresh
+        # GoogleLogin) rejects this account with a plain 401 -- see the
+        # disabled_at checks in locutus/auth.py and api/auth.py. Owned
+        # resources, provenance, and institution membership are untouched;
+        # this blocks login only.
+        self.disabled_at = disabled_at
+        self.disabled_by = disabled_by
 
     def is_admin(self) -> bool:
         return self.role == User.Role.Admin
@@ -51,6 +68,9 @@ class User:
             "institutionIds": self.institution_ids,
             "role": self.role,
             "googleSub": self.google_sub,
+            "lastLoginAt": self.last_login_at,
+            "disabledAt": self.disabled_at,
+            "disabledBy": self.disabled_by,
         }
 
     @classmethod
@@ -62,6 +82,9 @@ class User:
             institution_ids=data.get("institutionIds", []),
             role=data.get("role", User.Role.User),
             google_sub=data.get("googleSub"),
+            last_login_at=data.get("lastLoginAt"),
+            disabled_at=data.get("disabledAt"),
+            disabled_by=data.get("disabledBy"),
         )
 
     def save(self) -> "User":
@@ -80,6 +103,13 @@ class User:
     def get(cls, user_id: str) -> "User | None":
         data = locutus.persistence().get_user(user_id)
         return cls.from_dict(data) if data is not None else None
+
+    @classmethod
+    def all(cls) -> "list[User]":
+        return [
+            cls.from_dict(doc.to_dict())
+            for doc in locutus.persistence().collection("User").stream()
+        ]
 
     @classmethod
     def find_by_email(cls, email: str) -> "User | None":
