@@ -1,42 +1,4 @@
-from flask import request
 from flask_restful import Resource
-
-from locutus.api import default_headers
-from locutus.model.exceptions import APIError, LackingUserID
-
-
-class SessionStart(Resource):
-    """API resource for starting a user session.
-
-    Attributes:
-        session_manager (SessionManager): Manages session operations. :)
-    """
-
-    def __init__(self, session_manager):
-        self.session_manager = session_manager
-
-    def post(self):
-        """Starts a session for the user.
-
-        This method expects a POST request with a JSON payload containing a
-         `user_id` and an optional `affiliation`.
-
-        Returns:
-            dict: A message indicating whether the session was successfully
-            started, along with HTTP status code.
-        """
-        body = request.get_json()
-
-        try:
-            user_id = body.get("user_id")
-            if "user_id" not in body:
-                raise LackingUserID(user_id)
-
-            affiliation = body.get("affiliation")
-
-            return self.session_manager.initiate_session(user_id, affiliation)
-        except APIError as e:
-            return e.to_dict(), e.status_code, default_headers
 
 
 class SessionTerminate(Resource):

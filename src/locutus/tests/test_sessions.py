@@ -2,10 +2,11 @@
 Focused coverage for the Auth Requirements M10 session-storage migration:
 sessions are now written to MongoDB rather than the local filesystem, which
 is what makes them readable across separate app instances (the actual
-guarantee a multi-instance deployment needs). A full session/middleware test
-suite is deliberately deferred to the auth-decorator work (M6) -- see the
-implementation plan's Phase 3.3 -- since that's when the target contract
-(real identity, not a client-supplied user_id) will exist to test against.
+guarantee a multi-instance deployment needs). This intentionally exercises
+the storage mechanism directly via client.session_transaction() rather than
+through a login endpoint -- real identity/access-control coverage lives in
+test_auth.py and api_auth_test.py (Phase 3.3/Google login), which is a
+separate concern from "does Flask-Session correctly persist to Mongo."
 """
 
 import os
@@ -19,17 +20,14 @@ def _sessions_collection():
     return db.client[db.db_name]["sessions"]
 
 
-def test_session_start_persists_to_mongodb():
+def test_session_persists_to_mongodb():
     app = create_app()
     app.config["TESTING"] = True
 
     with app.test_client() as client:
         try:
-            response = client.post(
-                "/api/session/start",
-                json={"user_id": "u-mongo-persist-test", "affiliation": "basic"},
-            )
-            assert response.status_code == 200
+            with client.session_transaction() as sess:
+                sess["user_id"] = "u-mongo-persist-test"
 
             docs = list(_sessions_collection().find())
             assert len(docs) == 1
@@ -50,11 +48,8 @@ def test_session_readable_from_a_separate_app_instance():
 
     with app_a.test_client() as client_a:
         try:
-            response = client_a.post(
-                "/api/session/start",
-                json={"user_id": "u-cross-instance-test", "affiliation": "basic"},
-            )
-            assert response.status_code == 200
+            with client_a.session_transaction() as sess:
+                sess["user_id"] = "u-cross-instance-test"
             session_cookie = client_a.get_cookie("session")
             assert session_cookie is not None
 
