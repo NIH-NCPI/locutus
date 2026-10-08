@@ -18,14 +18,15 @@ env:
   SERVICE: 'locutus'
   IMAGE_NAME: 'locutus_img'
   GCP_CREDENTIALS:  ${{ secrets.GCP_CREDENTIALS }}
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
+  GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
 
 jobs:
-  
+
   deploy:
     runs-on: 'ubuntu-latest'
-    
+
     if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'release'
 
     environment:
@@ -63,11 +64,11 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-  
+
       - name: Extract Version from PR Title # Assumes PR title contains the tag. ex v0.0.0
         id: extract_version
         run: |
-          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z]*\)\?') 
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z]*\)\?')
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "Extracted Version: ${VERSION}"
 
@@ -77,13 +78,11 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ env.UMLS_API_KEY }}
-                
+          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ env.UMLS_API_KEY }}, GOOGLE_CLIENT_ID=${{ env.GOOGLE_CLIENT_ID }}
+
       # If the tag already exists the Release process will fail
       - name: Create a Release
         uses: elgohr/Github-Release-Action@v5
         with:
           title: "Release ${{ steps.extract_version.outputs.VERSION }}" # e.g., Release v0.0.0
           tag: ${{ env.VERSION }} # v0.0.0
-    
-  
