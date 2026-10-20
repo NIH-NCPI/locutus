@@ -201,7 +201,7 @@ class DateVariable(Variable):
         if date:
             # A calendar date with no time-of-day component; a timezone
             # would be meaningless here, so this intentionally stays naive.
-            self.date = datetime.strptime(date, format)  # noqa: DTZ007
+            self.date = datetime.strptime(date, format)
         else:
             self.date = None
         self.format = format
