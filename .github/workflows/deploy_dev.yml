@@ -23,6 +23,7 @@ env:
   GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
   UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
   MONGO_URI: ${{ secrets.MONGO_URI }}
+  GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
 
 jobs:
   deploy:
@@ -83,4 +84,4 @@ jobs:
           service: "${{ env.SERVICE }}"
           region: "${{ env.REGION }}"
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ env.UMLS_API_KEY }}, MONGO_URI=${{ env.MONGO_URI }}, PYTHONUNBUFFERED=1, LOCUTUS_LOGLEVEL=DEBUG
+          env_vars: VERSION=${{ env.VERSION }}, UMLS_API_KEY=${{ env.UMLS_API_KEY }}, MONGO_URI=${{ env.MONGO_URI }}, PYTHONUNBUFFERED=1, GOOGLE_CLIENT_ID=${{ env.GOOGLE_CLIENT_ID }}, LOCUTUS_LOGLEVEL=DEBUG
