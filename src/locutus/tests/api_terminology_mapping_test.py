@@ -13,7 +13,7 @@ def _set_mapping(client, term_id, code, mapped_code, editor="unit-test"):
                 {
                     "code": mapped_code,
                     "display": f"Mapped Display {mapped_code}",
-                    "system": "http://mapping.system",
+                    "system": "http://purl.obolibrary.org/obo/hp.owl",
                 }
             ],
         },
@@ -27,7 +27,7 @@ def test_terminology_mapping_put_and_get(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        response = _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        response = _set_mapping(client, "ontology-one", "C1", "HP:0001250")
         assert response.status_code == 201
 
         response = client.get("/api/Terminology/ontology-one/mapping/C1")
@@ -36,7 +36,7 @@ def test_terminology_mapping_put_and_get(
         body = response.json
         assert body["code"] == "C1"
         assert len(body["mappings"]) == 1
-        assert body["mappings"][0]["code"] == "MAPPED_CODE"
+        assert body["mappings"][0]["code"] == "HP:0001250"
     finally:
         test_owner.cleanup()
 
@@ -51,7 +51,7 @@ def test_terminology_mapping_put_missing_system(
             "/api/Terminology/ontology-one/mapping/C1",
             json={
                 "editor": "unit-test",
-                "mappings": [{"code": "MAPPED_CODE", "display": "Mapped Display"}],
+                "mappings": [{"code": "HP:0001250", "display": "Mapped Display"}],
             },
             headers={"Content-Type": "application/json"},
         )
@@ -73,9 +73,9 @@ def test_terminology_mapping_put_missing_editor(
             json={
                 "mappings": [
                     {
-                        "code": "MAPPED_CODE",
+                        "code": "HP:0001250",
                         "display": "Mapped Display",
-                        "system": "http://mapping.system",
+                        "system": "http://purl.obolibrary.org/obo/hp.owl",
                     }
                 ]
             },
@@ -92,7 +92,7 @@ def test_terminology_mapping_put_code_not_present(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        response = _set_mapping(client, "ontology-one", "C99", "MAPPED_CODE")
+        response = _set_mapping(client, "ontology-one", "C99", "HP:0001250")
         assert response.status_code == 404
     finally:
         test_owner.cleanup()
@@ -120,7 +120,7 @@ def test_terminology_mapping_delete(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
 
         response = client.delete(
             "/api/Terminology/ontology-one/mapping/C1",
@@ -187,7 +187,7 @@ def test_terminology_mapping_requires_write_access(
     # logged-in user only gets Registered-visibility viewer access.
     test_owner = _Owner(client)
     try:
-        response = _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        response = _set_mapping(client, "ontology-one", "C1", "HP:0001250")
         assert response.status_code == 403
     finally:
         test_owner.cleanup()
@@ -199,7 +199,7 @@ def test_terminology_mappings_get_all(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
 
         response = client.get("/api/Terminology/ontology-one/mapping")
         assert response.status_code == 200
@@ -218,8 +218,8 @@ def test_terminology_mappings_delete_all(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
-        _set_mapping(client, "ontology-one", "C2", "MAPPED_CODE_2")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
+        _set_mapping(client, "ontology-one", "C2", "HP:0001250_2")
 
         response = client.delete(
             "/api/Terminology/ontology-one/mapping",
@@ -290,11 +290,11 @@ def test_mapping_relationship_put_raises_on_valid_request(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
 
         with pytest.raises(TypeError):
             client.put(
-                "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/MAPPED_CODE",
+                "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/HP:0001250",
                 json={"mapping_relationship": "equivalent", "editor": "unit-test"},
                 headers={"Content-Type": "application/json"},
             )
@@ -308,10 +308,10 @@ def test_mapping_relationship_put_missing_relationship_field(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
 
         response = client.put(
-            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/MAPPED_CODE",
+            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/HP:0001250",
             json={"editor": "unit-test"},
             headers={"Content-Type": "application/json"},
         )
@@ -326,12 +326,12 @@ def test_mapping_relationship_put_missing_editor(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
 
         headers = test_owner.token_headers()
         headers["Content-Type"] = "application/json"
         response = client.put(
-            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/MAPPED_CODE",
+            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/HP:0001250",
             json={"mapping_relationship": "equivalent"},
             headers=headers,
         )
@@ -347,7 +347,7 @@ def test_mapping_relationship_put_code_not_present(
     try:
         test_owner.own(sample_terminology)
         response = client.put(
-            "/api/Terminology/ontology-one/mapping_relationship/C99/mapping/MAPPED_CODE",
+            "/api/Terminology/ontology-one/mapping_relationship/C99/mapping/HP:0001250",
             json={"mapping_relationship": "equivalent", "editor": "unit-test"},
             headers={"Content-Type": "application/json"},
         )
@@ -362,10 +362,10 @@ def test_mapping_relationship_put_invalid_relationship_value(
     test_owner = _Owner(client)
     try:
         test_owner.own(sample_terminology)
-        _set_mapping(client, "ontology-one", "C1", "MAPPED_CODE")
+        _set_mapping(client, "ontology-one", "C1", "HP:0001250")
 
         response = client.put(
-            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/MAPPED_CODE",
+            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/HP:0001250",
             json={
                 "mapping_relationship": "not-a-real-relationship",
                 "editor": "unit-test",
@@ -383,7 +383,7 @@ def test_mapping_relationship_put_requires_write_access(
     test_owner = _Owner(client)
     try:
         response = client.put(
-            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/MAPPED_CODE",
+            "/api/Terminology/ontology-one/mapping_relationship/C1/mapping/HP:0001250",
             json={"mapping_relationship": "equivalent", "editor": "unit-test"},
             headers={"Content-Type": "application/json"},
         )

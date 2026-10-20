@@ -9,6 +9,7 @@ from csv import DictReader
 
 from locutus import persistence
 from locutus.model.exceptions import APIError, LackingRequiredParameter
+from locutus.model.mapped_codes import harmonize_mappings
 from locutus.model.table import Table
 from locutus.model.variable import Variable
 
@@ -66,6 +67,23 @@ def SetMappings(mapping_entries) -> dict:
             and source_enumeration.strip() == ""
         ):
             raise LackingRequiredParameter("source_enumeration or source_variable")
+
+    # Harmonize every mapped code to its preferred CURIE and system before
+    # writing anything; one error lists every row that doesn't match.
+    row_numbers, to_map = [], []
+    for number, row in enumerate(mapping_entries, start=1):
+        if row["code"].strip() != "":
+            row_numbers.append(number)
+            to_map.append(row)
+    harmonized = harmonize_mappings(
+        to_map,
+        describe=lambda i, row: (
+            f"row {row_numbers[i]} "
+            f"({row['source_variable']}/{row['source_enumeration']})"
+        ),
+    )
+    for row, clean in zip(to_map, harmonized, strict=True):
+        row["code"], row["system"] = clean["code"], clean["system"]
 
     for row in mapping_entries:
         if _cur_table is None or _cur_table.id != row["table_id"]:

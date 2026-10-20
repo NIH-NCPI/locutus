@@ -1,10 +1,8 @@
 import logging
-import os
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any, ClassVar
 
-from search_dragon.support import ftd_ontology_lookup
+from term_wyrm import default_vocabularies
 
 import locutus
 import locutus.model.terminology
@@ -156,78 +154,30 @@ class OntologyAPICollection(ResourceSingletonBase):
 
 
 class FTDOntologyLookup:
+    """Prefix <-> system lookups, backed by term-wyrm's vocabularies.
+
+    System matching ignores http/https and trailing slashes; returned
+    prefixes and systems are the preferred ones.
     """
-    This class handles fetching the CSV data from GitHub, saving it locally,
-    and storing it in memory for later use in API calls.
-    The CSV is fetched every time the app is redeployed and saved to a directory.
-    """
-
-    _csv_url = "https://raw.githubusercontent.com/NIH-NCPI/locutus_utilities/main/data/input/ontology_data/locutus_system_map.csv"
-    _local_csv_path = "locutus/storage/data/references/ftd_ontology_lookup.csv"
-    abs_path = (
-        Path(__file__).parent / "../storage/data/references/ftd_ontology_lookup.csv"
-    )
-    _expiration_days = 90
-    stored_ontology_lookup: ClassVar[dict] = {}
-    reverse_lookup: ClassVar[dict] = {}
-
-    @staticmethod
-    def is_expired(filepath, expiration_days):
-        """
-        Check if the file is expired based on the modification date.
-        """
-        if not os.path.exists(filepath):
-            return True
-        file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath), tz=UTC)
-        return datetime.now(UTC) - file_mtime > timedelta(days=expiration_days)
-
-    @classmethod
-    def load_data_to_memory(cls):
-        """
-        Load the data from the CSV file into memory.
-        This is called after the CSV is fetched or if it exists locally.
-
-        """
-        if cls.stored_ontology_lookup:
-            return
-
-        for curie, system in ftd_ontology_lookup().items():
-            if curie and system:
-                cls.stored_ontology_lookup[curie] = system
-                # Reverse lookup: also allow system-to-curie if needed
-                if system not in cls.reverse_lookup:
-                    cls.reverse_lookup[system] = curie
-
-        logger.debug("Ontology data loaded into memory.")
 
     @classmethod
     def fetch_and_store_csv(cls):
-        """
-        Fetch the CSV from GitHub if expired or missing, then store it locally and load into memory.
-
-        EST 2025-07-30 - I've moved the this into the search dragon library.
-        """
-
-        # Now load the data into memory after the file is fetched or if it exists
-        cls.load_data_to_memory()
+        """Load the vocabularies at startup rather than on the first request."""
+        default_vocabularies()
 
     @classmethod
     def get_mapped_system(cls, ori_system):
         """
-        Get the system URL given a CURIE (e.g., 'LNC' → 'http://loinc.org').
+        Get the system URL given a CURIE prefix (e.g., 'LNC' → 'http://loinc.org').
         """
-        for curie, system in ftd_ontology_lookup().items():
-            if curie == ori_system:
-                return system
-        return ori_system
+        voc = default_vocabularies().resolve(ori_system)
+        return voc.system if voc else ori_system
 
     @classmethod
     def get_mapped_curie(cls, system_url):
         """
-        Get the CURIE given a system URL (e.g., 'http://loinc.org' → 'LNC').
+        Get the preferred CURIE prefix given a system URL
+        (e.g., 'http://loinc.org' → 'loinc').
         """
-        for curie, system in ftd_ontology_lookup().items():
-            if system == system_url:
-                return curie
-
-        return ""
+        voc = default_vocabularies().by_system(system_url) if system_url else None
+        return voc.prefix if voc else ""

@@ -17,6 +17,7 @@ from locutus.model.exceptions import (
     LackingRequiredParameter,
     LackingUserID,
 )
+from locutus.model.mapped_codes import harmonize_mappings
 from locutus.model.terminology import (
     MappingUserInputModel,
 )
@@ -116,6 +117,7 @@ class TerminologyMapping(Resource):
                         f"Missing required parameter 'system' in mapping at index {i}"
                     )
 
+            mappings = harmonize_mappings(mappings)
             codingmapping = [CodingMapping(**x) for x in mappings]
 
             # require_write_access already confirmed this id exists.

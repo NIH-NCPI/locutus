@@ -8,6 +8,7 @@ from locutus.api.terminology_mappings import TerminologyMappings
 from locutus.auth import require_read_access, require_write_access
 from locutus.model.coding import CodingMapping
 from locutus.model.exceptions import APIError, LackingUserID
+from locutus.model.mapped_codes import harmonize_mappings
 from locutus.model.table import Table
 from locutus.model.terminology import MappingUserInputModel
 
@@ -179,7 +180,7 @@ class TableMapping(Resource):
             if editor is None:
                 raise LackingUserID(editor)
 
-            mappings = request.get_json()["mappings"]
+            mappings = harmonize_mappings(request.get_json()["mappings"])
 
             codingmapping = [CodingMapping(**x) for x in mappings]
             # require_write_access already confirmed this id exists.

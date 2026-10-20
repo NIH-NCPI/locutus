@@ -1,17 +1,13 @@
 from typing import ClassVar
 
-import search_dragon.search
 from marshmallow import Schema, fields, post_load
+from term_wyrm.apis import available_apis
 
 from locutus.model.exceptions import InvalidValueError
 
 
 class OntoApiPreference:
-    available_apis: ClassVar[set] = {
-        key
-        for api_dict in search_dragon.search.SEARCH_APIS
-        for key, value in api_dict.items()
-    }
+    available_apis: ClassVar[set] = set(available_apis())
 
     def __init__(self, preferences=None):
 

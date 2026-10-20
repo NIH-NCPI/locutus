@@ -12,9 +12,9 @@ def _row(table_id, **overrides):
         "table_id": table_id,
         "source_variable": "string_var",
         "source_enumeration": "string_var",
-        "code": "MAPPED_CODE",
+        "code": "HP:0001250",
         "display": "Mapped Display",
-        "system": "http://mapping.system",
+        "system": "http://purl.obolibrary.org/obo/hp.owl",
         "provenance": "csv-import",
         "mapping_relationship": "",
     }
@@ -48,7 +48,7 @@ def test_sideload_post_happy_path(client, sample_terminology, basic_table):
         term = table.terminology.dereference()
         mappings = term.mappings("string_var")["string_var"]
         assert len(mappings) == 1
-        assert mappings[0].code == "MAPPED_CODE"
+        assert mappings[0].code == "HP:0001250"
     finally:
         test_owner.cleanup()
 
@@ -143,5 +143,69 @@ def test_sideload_post_table_not_found_returns_400(client):
             headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 400
+    finally:
+        test_owner.cleanup()
+
+
+def test_sideload_harmonizes_mapped_codes(client, sample_terminology, basic_table):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        rows = [
+            _row(basic_table.id, code="hpo:0001250"),
+            _row(
+                basic_table.id,
+                code="0002197",
+                system="https://purl.obolibrary.org/obo/hp.owl/",
+            ),
+        ]
+        response = client.post(
+            "/api/SideLoad",
+            json={"csvContents": rows},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 200
+
+        table = Table.get(basic_table.id)
+        assert table is not None
+        mappings = table.terminology.dereference().mappings("string_var")["string_var"]
+        assert [(m.code, m.system) for m in mappings] == [
+            ("HP:0001250", "http://purl.obolibrary.org/obo/hp.owl"),
+            ("HP:0002197", "http://purl.obolibrary.org/obo/hp.owl"),
+        ]
+    finally:
+        test_owner.cleanup()
+
+
+def test_sideload_rejects_unrecognized_codes_before_writing(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        rows = [
+            _row(basic_table.id),
+            _row(basic_table.id, code="MAPPED_CODE", system="http://mapping.system"),
+            _row(basic_table.id, code="", system=""),  # blank line, tolerated
+            _row(basic_table.id, code="HP:0001250", system="http://snomed.info/sct"),
+        ]
+        response = client.post(
+            "/api/SideLoad",
+            json={"csvContents": rows},
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 400
+        assert response.json["error"] == "UnrecognizedMappingCode"
+        problems = response.json["problems"]
+        assert len(problems) == 2
+        assert problems[0].startswith("row 2 (string_var/string_var):")
+        assert "unknown system" in problems[0]
+        assert problems[1].startswith("row 4 ")
+        assert "the system is 'snomedct'" in problems[1]
+
+        table = Table.get(basic_table.id)
+        assert table is not None
+        mappings = table.terminology.dereference().mappings("string_var")
+        assert mappings.get("string_var", []) == []
     finally:
         test_owner.cleanup()

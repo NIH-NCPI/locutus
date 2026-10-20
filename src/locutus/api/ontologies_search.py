@@ -66,7 +66,7 @@ class OntologyAPISearch(Resource):
                 raise LackingRequiredParameter("start")
 
             try:
-                search_results = OntologyAPISearchModel.run_search_dragon(
+                search_results = OntologyAPISearchModel.run_search(
                     keyword_param,
                     ontology_param,
                     pref_api,

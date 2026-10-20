@@ -14,7 +14,7 @@ def _set_mapping(client, table_id, code, mapped_code, editor="unit-test"):
                 {
                     "code": mapped_code,
                     "display": f"Mapped Display {mapped_code}",
-                    "system": "http://mapping.system",
+                    "system": "http://purl.obolibrary.org/obo/hp.owl",
                 }
             ],
         },
@@ -26,7 +26,7 @@ def test_table_mapping_put_and_get(client, sample_terminology, basic_table):
     test_owner = _Owner(client)
     try:
         test_owner.own(basic_table)
-        response = _set_mapping(client, basic_table.id, "string_var", "MAPPED_CODE")
+        response = _set_mapping(client, basic_table.id, "string_var", "HP:0001250")
         assert response.status_code == 201
 
         response = client.get(f"/api/Table/{basic_table.id}/mapping/string_var")
@@ -35,29 +35,80 @@ def test_table_mapping_put_and_get(client, sample_terminology, basic_table):
         body = response.json
         assert body["code"] == "string_var"
         assert len(body["mappings"]) == 1
-        assert body["mappings"][0]["code"] == "MAPPED_CODE"
+        assert body["mappings"][0]["code"] == "HP:0001250"
     finally:
         test_owner.cleanup()
 
 
-def test_table_mapping_put_missing_system_raises(
-    client, sample_terminology, basic_table
-):
-    # Documents current behavior: unlike TerminologyMapping.put, TableMapping.put
-    # doesn't validate that each mapping has a 'system' key before constructing
-    # CodingMapping, which itself blows up on a None system.
+def _put_mappings(client, table_id, mappings):
+    return client.put(
+        f"/api/Table/{table_id}/mapping/string_var",
+        json={"editor": "unit-test", "mappings": mappings},
+        headers={"Content-Type": "application/json"},
+    )
+
+
+def test_table_mapping_put_harmonizes_codes(client, sample_terminology, basic_table):
+    # A synonym prefix, an older bare code, and a CURIE with no system at all
+    # all come out as preferred CURIEs with the vocabulary's main system.
     test_owner = _Owner(client)
     try:
         test_owner.own(basic_table)
-        with pytest.raises(AttributeError):
-            client.put(
-                f"/api/Table/{basic_table.id}/mapping/string_var",
-                json={
-                    "editor": "unit-test",
-                    "mappings": [{"code": "MAPPED_CODE", "display": "Mapped Display"}],
+        response = _put_mappings(
+            client,
+            basic_table.id,
+            [
+                {
+                    "code": "HPO:0001250",
+                    "display": "Seizure",
+                    "system": "https://purl.obolibrary.org/obo/hp.owl/",
                 },
-                headers={"Content-Type": "application/json"},
-            )
+                {
+                    "code": "0002197",
+                    "display": "Generalized-onset seizure",
+                    "system": "http://purl.obolibrary.org/obo/hp.owl",
+                },
+                {"code": "MONDO:0005027", "display": "epilepsy"},
+            ],
+        )
+        assert response.status_code == 201
+
+        response = client.get(f"/api/Table/{basic_table.id}/mapping/string_var")
+        mappings = response.json["mappings"]
+        assert [(m["code"], m["system"]) for m in mappings] == [
+            ("HP:0001250", "http://purl.obolibrary.org/obo/hp.owl"),
+            ("HP:0002197", "http://purl.obolibrary.org/obo/hp.owl"),
+            ("MONDO:0005027", "http://purl.obolibrary.org/obo/mondo.owl"),
+        ]
+    finally:
+        test_owner.cleanup()
+
+
+def test_table_mapping_put_rejects_unrecognized_codes(
+    client, sample_terminology, basic_table
+):
+    test_owner = _Owner(client)
+    try:
+        test_owner.own(basic_table)
+        response = _put_mappings(
+            client,
+            basic_table.id,
+            [
+                {"code": "HP:0001250", "display": "fine"},
+                {"code": "MAPPED_CODE", "display": "bare code, no system"},
+                {"code": "NOTAVOCAB:1", "display": "unknown prefix"},
+            ],
+        )
+        assert response.status_code == 400
+        body = response.json
+        assert body["error"] == "UnrecognizedMappingCode"
+        assert len(body["problems"]) == 2
+        assert body["problems"][0].startswith("mapping 1:")
+        assert "unknown prefix 'NOTAVOCAB'" in body["problems"][1]
+
+        # Nothing was saved.
+        response = client.get(f"/api/Table/{basic_table.id}/mapping/string_var")
+        assert response.json["mappings"] == []
     finally:
         test_owner.cleanup()
 
@@ -73,9 +124,9 @@ def test_table_mapping_put_missing_editor(client, sample_terminology, basic_tabl
             json={
                 "mappings": [
                     {
-                        "code": "MAPPED_CODE",
+                        "code": "HP:0001250",
                         "display": "Mapped Display",
-                        "system": "http://mapping.system",
+                        "system": "http://purl.obolibrary.org/obo/hp.owl",
                     }
                 ]
             },
@@ -107,7 +158,7 @@ def test_table_mapping_delete(client, sample_terminology, basic_table):
     test_owner = _Owner(client)
     try:
         test_owner.own(basic_table)
-        _set_mapping(client, basic_table.id, "string_var", "MAPPED_CODE")
+        _set_mapping(client, basic_table.id, "string_var", "HP:0001250")
 
         response = client.delete(
             f"/api/Table/{basic_table.id}/mapping/string_var",
@@ -153,7 +204,7 @@ def test_table_mappings_get_all(client, sample_terminology, basic_table):
     test_owner = _Owner(client)
     try:
         test_owner.own(basic_table)
-        _set_mapping(client, basic_table.id, "string_var", "MAPPED_CODE")
+        _set_mapping(client, basic_table.id, "string_var", "HP:0001250")
 
         response = client.get(f"/api/Table/{basic_table.id}/mapping")
         assert response.status_code == 200
@@ -169,7 +220,7 @@ def test_table_mappings_delete_all(client, sample_terminology, basic_table):
     test_owner = _Owner(client)
     try:
         test_owner.own(basic_table)
-        _set_mapping(client, basic_table.id, "string_var", "MAPPED_CODE")
+        _set_mapping(client, basic_table.id, "string_var", "HP:0001250")
 
         response = client.delete(
             f"/api/Table/{basic_table.id}/mapping",
@@ -227,7 +278,7 @@ def test_table_mapping_put_requires_write_access(
     # a real, logged-in, non-owning user only gets viewer access.
     test_owner = _Owner(client)
     try:
-        response = _set_mapping(client, basic_table.id, "string_var", "MAPPED_CODE")
+        response = _set_mapping(client, basic_table.id, "string_var", "HP:0001250")
         assert response.status_code == 403
     finally:
         test_owner.cleanup()

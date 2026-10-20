@@ -15,6 +15,7 @@ from locutus.model.harmony_export import (
     basic_date,
 )
 from locutus.model.harmony_export import harmony_exporter as build_harmony_exporter
+from locutus.model.mapped_codes import harmonize_for_export
 from locutus.model.provenance import Provenance
 from locutus.model.reference import Reference
 from locutus.model.terminology import Terminology
@@ -344,6 +345,9 @@ class Table(Serializable):
         # method can run; name is required at the schema/API boundary
         # (fields.Str(required=True)) even though the attribute itself
         # allows None for a Table built directly in Python.
+        mapped_code, mapped_system = harmonize_for_export(
+            mapped_coding.code, mapped_coding.system
+        )
         return harmony_exporter.add_row(
             table_id=cast(str, self.id),
             source_text=local_coding.code,
@@ -352,9 +356,9 @@ class Table(Serializable):
             parent_varname="",  # I'm not sure if we can get this ATM
             source_system=local_coding.system,
             mapping_relationship=mapped_coding.mapping_relationship,
-            mapped_code=mapped_coding.code,
+            mapped_code=mapped_code,
             mapped_display=mapped_coding.display,
-            mapped_system=mapped_coding.system,
+            mapped_system=mapped_system,
             comment="",
             **kwargs,
         )
