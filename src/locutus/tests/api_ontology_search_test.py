@@ -1,6 +1,6 @@
-from unittest.mock import patch
-
 import pytest
+from term_wyrm import SearchService
+from term_wyrm.apis import ApiError
 
 import locutus
 from locutus.model.lookups import ResourceSingletonBase
@@ -62,16 +62,101 @@ def test_ontology_search_requires_auth(client, seeded_ontology_apis):
     assert response.status_code == 401
 
 
-def test_ontology_search_success(client, seeded_ontology_apis, test_owner):
-    with patch(
-        "locutus.model.ontologies_search.run_search",
-        return_value={"results": [], "total": 0},
-    ) as mock_run_search:
-        response = client.get("/api/ontology_search", query_string=_search_query())
+class FakeHttp:
+    """Stands in for term-wyrm's HTTP client; answers every OLS search with
+    one MONDO term and records the parameters it was sent."""
 
+    def __init__(self, error=None):
+        self.calls = []
+        self.error = error
+
+    def get_json(self, url, params=None):
+        self.calls.append((url, dict(params or {})))
+        if self.error:
+            raise self.error
+        return {
+            "response": {
+                "numFound": 100,
+                "docs": [
+                    {
+                        "obo_id": "MONDO:0005015",
+                        "ontology_prefix": "MONDO",
+                        "iri": "http://purl.obolibrary.org/obo/MONDO_0005015",
+                        "label": "diabetes mellitus",
+                        "description": ["A metabolic disease."],
+                    }
+                ],
+            }
+        }
+
+
+@pytest.fixture
+def fake_http(monkeypatch):
+    http = FakeHttp()
+    monkeypatch.setattr(
+        "locutus.model.ontologies_search.SearchService",
+        lambda apis: SearchService(apis, http=http),
+    )
+    return http
+
+
+def test_ontology_search_success(client, seeded_ontology_apis, test_owner, fake_http):
+    response = client.get(
+        "/api/ontology_search",
+        query_string=_search_query(results_per_page="10", start_index="2"),
+    )
     assert response.status_code == 200
-    assert response.json == {"results": [], "total": 0}
-    mock_run_search.assert_called_once()
+
+    # start_index is a 0-based page number; OLS takes a row offset.
+    [(url, params)] = fake_http.calls
+    assert url.endswith("/search")
+    assert params == {"q": "diabetes", "ontology": "mondo", "start": 20, "rows": 10}
+
+    body = response.json
+    assert body["results"] == [
+        {
+            "code": "MONDO:0005015",
+            "system": "http://purl.obolibrary.org/obo/mondo.owl",
+            "code_iri": "http://purl.obolibrary.org/obo/MONDO_0005015",
+            "display": "diabetes mellitus",
+            "description": ["A metabolic disease."],
+            "ontology_prefix": "MONDO",
+        }
+    ]
+    assert body["results_count"] == 1
+    assert body["results_per_ontology"] == {"MONDO": 1}
+    assert body["more_results_available"] is True
+    assert body["search_query"].startswith("https://www.ebi.ac.uk/ols4/api/search?")
+    assert body["failures"] == []
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"selected_api": "nope"},
+        {"selected_api": "olsd"},  # hierarchy only; can't search
+        {"start_index": "first"},
+        {"start_index": "-1"},
+        {"results_per_page": "501"},
+    ],
+)
+def test_ontology_search_bad_values_return_400(
+    client, seeded_ontology_apis, test_owner, fake_http, overrides
+):
+    response = client.get(
+        "/api/ontology_search", query_string=_search_query(**overrides)
+    )
+    assert response.status_code == 400
+    assert fake_http.calls == []
+
+
+def test_ontology_search_all_apis_failed_returns_502(
+    client, seeded_ontology_apis, test_owner, fake_http
+):
+    fake_http.error = ApiError("HTTP 503", "https://www.ebi.ac.uk/ols4/api/search", 503)
+    response = client.get("/api/ontology_search", query_string=_search_query())
+    assert response.status_code == 502
+    assert "ols: HTTP 503" in response.json["message"]
 
 
 def test_ontology_search_missing_keyword(client, seeded_ontology_apis, test_owner):

@@ -76,3 +76,22 @@ class LackingRequiredParameter(APIError):
         message = f"This action requires the parameter: '{self.param}'"
         logger.error(message)
         super().__init__(message, status_code=400)
+
+
+class UnrecognizedMappingCode(APIError):
+    """
+    Raised when mapped codes can't be harmonized to a known vocabulary. Lists
+    every bad mapping at once so the whole request (or CSV) can be fixed.
+    """
+
+    def __init__(self, problems):
+        self.problems = problems
+        message = (
+            f"{len(problems)} mapped code(s) don't match a known vocabulary: "
+            + "; ".join(problems)
+        )
+        logger.error(message)
+        super().__init__(message, details={"problems": problems}, status_code=400)
+
+    def to_dict(self):
+        return super().to_dict() | {"problems": self.problems}

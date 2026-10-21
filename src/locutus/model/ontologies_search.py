@@ -1,7 +1,8 @@
 from marshmallow import Schema, fields, post_load
-from search_dragon.search import run_search
+from term_wyrm import SearchService
+from term_wyrm.apis import available_apis
 
-from locutus.model.exceptions import InvalidValueError
+from locutus.model.exceptions import APIError, InvalidValueError
 from locutus.model.lookups import OntologyAPICollection
 
 from . import Serializable
@@ -117,9 +118,14 @@ class OntologyAPI(Serializable):
 
 class OntologyAPISearchModel:
     @staticmethod
-    def run_search_dragon(keywords, ontologies, apis, results_per_page, start_index):
+    def run_search(keywords, ontologies, apis, results_per_page, start_index):
+        """Search ``apis`` for ``keywords`` within ``ontologies``.
+
+        ``start_index`` is a 0-based page number. Raises ValueError for bad
+        paging values, InvalidValueError for unknown ontologies or APIs, and
+        APIError (502) when every API failed.
+        """
         onto_seed_data = OntologyAPICollection()
-        onto_data = onto_seed_data.get_ontology_data("system")
 
         # Validate ontologies(FE provided) against expected ontologies(firestore)
         onto_curies = onto_seed_data.get_ontology_data("curie")
@@ -130,7 +136,37 @@ class OntologyAPISearchModel:
                     value=f"{onto}", valid_values=onto_curies.values()
                 )
 
-        search_result = run_search(
-            onto_data, keywords, ontologies, apis, results_per_page, start_index
+        page_size = int(results_per_page)
+        page = int(start_index)
+        if page < 0:
+            raise ValueError(f"start_index must be >= 0, not {page}")
+
+        try:
+            service = SearchService(apis)
+        except (KeyError, TypeError) as e:
+            raise InvalidValueError(
+                value=f"{apis}", valid_values=sorted(available_apis())
+            ) from e
+        try:
+            result = service.search(
+                keywords, ontologies, page_size=page_size, offset=page * page_size
+            )
+        except KeyError as e:
+            # Listed in the OntologyAPI collection but unknown to term-wyrm.
+            raise InvalidValueError(
+                value=f"{ontologies}", valid_values=onto_curies.values()
+            ) from e
+
+        if result.failures and not result.pages:
+            raise APIError(
+                "No ontology API could answer: "
+                + "; ".join(f"{f.source}: {f.error}" for f in result.failures),
+                status_code=502,
+            )
+
+        response = result.to_dict()
+        # search-dragon reported a single URL; keep it for the front end.
+        response["search_query"] = next(
+            reversed(response["search_queries"].values()), ""
         )
-        return search_result
+        return response
