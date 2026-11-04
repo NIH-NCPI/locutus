@@ -670,3 +670,181 @@ def test_disabled_user_cannot_authenticate_after_admin_disables_them(client):
     finally:
         member.delete()
         admin.cleanup()
+
+
+def test_admin_user_promote_requires_auth(client):
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/promote")
+        assert response.status_code == 401
+    finally:
+        member.delete()
+
+
+def test_admin_user_promote_requires_admin(client):
+    """A normal user can't promote anyone -- including themselves."""
+    test_owner = _Owner(client)
+    assert test_owner.user.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{test_owner.user.id}/promote")
+        assert response.status_code == 403
+
+        fetched = User.get(test_owner.user.id)
+        assert fetched is not None
+        assert fetched.role == User.Role.User
+    finally:
+        test_owner.cleanup()
+
+
+def test_admin_user_promote_sets_role(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    assert member.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/promote")
+        assert response.status_code == 200
+        assert response.json["role"] == "admin"
+
+        fetched = User.get(member.id)
+        assert fetched is not None
+        assert fetched.is_admin()
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_admin_user_promote_missing_returns_404(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        response = client.post("/api/admin/users/not-there/promote")
+        assert response.status_code == 404
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_promote_is_idempotent(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(
+        email="member@vumc.org", institution_ids=[], role=User.Role.Admin
+    ).save()
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/promote")
+        assert response.status_code == 200
+        assert response.json["role"] == "admin"
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_admin_user_demote_requires_admin(client):
+    test_owner = _Owner(client)
+    other_admin = User(
+        email="other-admin@example.com", institution_ids=[], role=User.Role.Admin
+    ).save()
+    assert other_admin.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{other_admin.id}/demote")
+        assert response.status_code == 403
+
+        fetched = User.get(other_admin.id)
+        assert fetched is not None
+        assert fetched.is_admin()
+    finally:
+        other_admin.delete()
+        test_owner.cleanup()
+
+
+def test_admin_user_demote_sets_role(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    other_admin = User(
+        email="other-admin@example.com", institution_ids=[], role=User.Role.Admin
+    ).save()
+    assert other_admin.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{other_admin.id}/demote")
+        assert response.status_code == 200
+        assert response.json["role"] == "user"
+
+        fetched = User.get(other_admin.id)
+        assert fetched is not None
+        assert not fetched.is_admin()
+    finally:
+        other_admin.delete()
+        admin.cleanup()
+
+
+def test_admin_user_demote_missing_returns_404(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        response = client.post("/api/admin/users/not-there/demote")
+        assert response.status_code == 404
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_demote_rejects_self_target(client):
+    """With this rule the calling admin always stays an admin, so demotion
+    can never leave the system without one."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    assert admin.user.id is not None
+    try:
+        response = client.post(f"/api/admin/users/{admin.user.id}/demote")
+        assert response.status_code == 403
+
+        fetched = User.get(admin.user.id)
+        assert fetched is not None
+        assert fetched.is_admin()
+    finally:
+        admin.cleanup()
+
+
+def test_admin_user_demote_is_idempotent(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        response = client.post(f"/api/admin/users/{member.id}/demote")
+        assert response.status_code == 200
+        assert response.json["role"] == "user"
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_promoted_user_gains_admin_access_on_next_request(client):
+    """End-to-end: no re-login needed -- the role is read from the stored
+    User on every request."""
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    try:
+        with client.session_transaction() as sess:
+            sess["user_id"] = member.id
+        assert client.get("/api/admin/users").status_code == 403
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = admin.user.id
+        response = client.post(f"/api/admin/users/{member.id}/promote")
+        assert response.status_code == 200
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = member.id
+        assert client.get("/api/admin/users").status_code == 200
+    finally:
+        member.delete()
+        admin.cleanup()
+
+
+def test_demoted_admin_loses_access_on_next_request(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    other_admin = User(
+        email="other-admin@example.com", institution_ids=[], role=User.Role.Admin
+    ).save()
+    try:
+        response = client.post(f"/api/admin/users/{other_admin.id}/demote")
+        assert response.status_code == 200
+
+        with client.session_transaction() as sess:
+            sess["user_id"] = other_admin.id
+        assert client.get("/api/admin/users").status_code == 403
+    finally:
+        other_admin.delete()
+        admin.cleanup()

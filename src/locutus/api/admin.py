@@ -259,3 +259,42 @@ class AdminUserEnable(Resource):
         user.disabled_by = None
         user.save()
         return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminUserPromote(Resource):
+    """Grants the system-level admin role. Takes effect on the user's very
+    next request -- require_admin reads the role from the stored User each
+    time (via both the session and API-token paths), not from the session."""
+
+    @require_admin
+    def post(self, id: str):
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+
+        user.role = User.Role.Admin
+        user.save()
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminUserDemote(Resource):
+    """Returns an admin to the normal user role. Like disable, an admin can't
+    target their own account -- with that rule, the caller always remains an
+    admin, so the system can never be left with none."""
+
+    @require_admin
+    def post(self, id: str):
+        if id == g.current_user["user_id"]:
+            return (
+                {"message": "You cannot remove your own admin role"},
+                403,
+                default_headers,
+            )
+
+        user = User.get(id)
+        if user is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+
+        user.role = User.Role.User
+        user.save()
+        return json.loads(json_util.dumps(user.to_dict())), 200, default_headers

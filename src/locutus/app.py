@@ -12,8 +12,10 @@ from locutus.api.admin import (
     AdminInstitutionAllowlistItem,
     AdminInstitutions,
     AdminUser,
+    AdminUserDemote,
     AdminUserDisable,
     AdminUserEnable,
+    AdminUserPromote,
     AdminUsers,
 )
 from locutus.api.auth import GoogleLogin, Me
@@ -156,6 +158,8 @@ def create_app(config_filename=None):
     api.add_resource(AdminUser, "/api/admin/users/<string:id>")
     api.add_resource(AdminUserDisable, "/api/admin/users/<string:id>/disable")
     api.add_resource(AdminUserEnable, "/api/admin/users/<string:id>/enable")
+    api.add_resource(AdminUserPromote, "/api/admin/users/<string:id>/promote")
+    api.add_resource(AdminUserDemote, "/api/admin/users/<string:id>/demote")
 
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 
