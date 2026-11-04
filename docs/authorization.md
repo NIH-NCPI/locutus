@@ -191,6 +191,22 @@ admin available to reverse it. `404` if the user doesn't exist.
 Reverses a disable -- clears `disabledAt`/`disabledBy`. Idempotent. `404`
 if the user doesn't exist.
 
+### https://[APPURL]/api/admin/users/[id]/promote
+#### POST
+Grants the system-level admin role (`role: "admin"`). Returns the updated
+user. Takes effect on that user's very next request, whether they use a
+session or an API token -- the role is read from the stored user on every
+request, so no re-login is needed. Idempotent. `404` if the user doesn't
+exist.
+
+### https://[APPURL]/api/admin/users/[id]/demote
+#### POST
+Returns an admin to the normal user role (`role: "user"`). Returns the
+updated user. Like promotion, it takes effect on that user's very next
+request. Idempotent. `403` if `id` is the calling admin's own account --
+since an admin can't demote themselves, the system can never be left
+without an admin. `404` if the user doesn't exist.
+
 ## Aggregate/export endpoints
 
 ### https://[APPURL]/api/harmony?[params]
