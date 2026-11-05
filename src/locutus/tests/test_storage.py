@@ -75,16 +75,24 @@ def test_api_token_lifecycle():
 
         assert locutus.persistence().list_api_tokens("someone-else") == []
 
-        # Wrong owner can't delete.
-        assert locutus.persistence().delete_api_token(token_id, "someone-else") is False
+        # Wrong owner can't revoke.
+        revoke = locutus.persistence().revoke_api_token
+        assert revoke(token_id, "someone-else", "someone-else") is False
         assert len(locutus.persistence().list_api_tokens("u1")) == 1
 
         # Missing token id is a clean False, not an error.
-        assert locutus.persistence().delete_api_token("not-a-real-id", "u1") is False
+        assert revoke("not-a-real-id", "u1", "u1") is False
 
-        # Owner can delete.
-        assert locutus.persistence().delete_api_token(token_id, "u1") is True
+        # Owner can revoke; the document stays, hidden from the default list.
+        assert revoke(token_id, "u1", "u1", "lost laptop") is True
         assert locutus.persistence().list_api_tokens("u1") == []
+        [kept] = locutus.persistence().list_api_tokens("u1", include_revoked=True)
+        assert kept["revokedAt"] is not None
+        assert kept["revokedBy"] == "u1"
+        assert kept["revokeReason"] == "lost laptop"
+
+        # Already revoked.
+        assert revoke(token_id, "u1", "u1") is False
     finally:
         _clear("ApiToken")
 
@@ -183,3 +191,36 @@ def test_document_with_custom_string_id_supports_set_get_update_delete():
         doc_ref.delete()
 
     assert not doc_ref.get().exists
+
+
+def _revoked_ttl_seconds():
+    for index in locutus.persistence().db["ApiToken"].list_indexes():
+        if index["name"] == "revokedAt_ttl":
+            return index["expireAfterSeconds"]
+    return None
+
+
+def test_ensure_revoked_token_ttl_creates_updates_and_drops():
+    """create_app() runs this on every start, so it has to handle the index
+    already existing -- with the same TTL, a changed one, or being turned
+    off."""
+    db = locutus.persistence()
+    original = _revoked_ttl_seconds()
+    try:
+        db.ensure_revoked_token_ttl(0)
+        assert _revoked_ttl_seconds() is None
+
+        db.ensure_revoked_token_ttl(30)
+        assert _revoked_ttl_seconds() == 30 * 24 * 60 * 60
+
+        db.ensure_revoked_token_ttl(30)  # no-op
+        assert _revoked_ttl_seconds() == 30 * 24 * 60 * 60
+
+        db.ensure_revoked_token_ttl(90)
+        assert _revoked_ttl_seconds() == 90 * 24 * 60 * 60
+
+        db.ensure_revoked_token_ttl(0)
+        assert _revoked_ttl_seconds() is None
+    finally:
+        if original is not None:
+            db.ensure_revoked_token_ttl(original // (24 * 60 * 60))

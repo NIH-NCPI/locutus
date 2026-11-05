@@ -57,6 +57,11 @@ def _resolve_via_token(token: str) -> CurrentUser | None:
     if token_doc is None:
         return None
 
+    # Revocation keeps the document (for incident review) rather than
+    # deleting it, so a hash match alone doesn't mean the token is live.
+    if token_doc.get("revokedAt") is not None:
+        return None
+
     expires_at = token_doc.get("expiresAt")
     if expires_at is not None:
         # pymongo returns naive datetimes by default even though we always

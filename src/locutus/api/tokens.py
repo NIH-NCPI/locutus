@@ -1,8 +1,11 @@
 """
-API token self-service (Auth Requirements spec, M9). Creation is
-interactive-only so a compromised token can't mint another token to
-extend its own access; listing and self-revocation work from either
-credential path.
+API token self-service (Auth Requirements spec, M9), plus the admin side
+of token incident response. Creation is interactive-only so a compromised
+token can't mint another token to extend its own access; listing and
+revocation work from either credential path.
+
+Revoking never deletes a token -- it's marked revoked (see ApiToken) and
+recorded as an AuditEvent, so an admin can still see when it was last used.
 """
 
 from datetime import datetime
@@ -13,6 +16,7 @@ from flask_restful import Resource
 from locutus.api import default_headers
 from locutus.auth import require_admin, require_auth
 from locutus.model.api_token import ApiToken
+from locutus.model.user import User
 
 
 def _isoformat(value: datetime | None) -> str | None:
@@ -27,6 +31,23 @@ def _summarize(token: ApiToken) -> dict:
         "lastUsedAt": _isoformat(token.last_used_at),
         "expiresAt": _isoformat(token.expires_at),
     }
+
+
+def _admin_summarize(token: ApiToken) -> dict:
+    """_summarize plus ownership and revocation details -- still never the
+    hash or the raw token."""
+    return {
+        **_summarize(token),
+        "userId": token.user_id,
+        "revokedAt": _isoformat(token.revoked_at),
+        "revokedBy": token.revoked_by,
+        "revokeReason": token.revoke_reason,
+    }
+
+
+def _reason() -> str | None:
+    body = request.get_json(silent=True) or {}
+    return body.get("reason") or None
 
 
 class ApiTokens(Resource):
@@ -76,7 +97,7 @@ class ApiTokenItem(Resource):
     @require_auth
     def delete(self, id):
         """Owner revokes their own token."""
-        if not ApiToken.delete(id, g.current_user["user_id"]):
+        if not ApiToken.revoke(id, g.current_user["user_id"]):
             return {"message": "Token not found"}, 404, default_headers
         return {"message": "Token revoked"}, 200, default_headers
 
@@ -84,7 +105,62 @@ class ApiTokenItem(Resource):
 class AdminApiTokenItem(Resource):
     @require_admin
     def delete(self, id):
-        """Admin revokes any user's token, e.g. for offboarding."""
-        if not ApiToken.admin_delete(id):
+        """Admin revokes any user's token, e.g. for offboarding.
+
+        Body (optional): { "reason": str }
+        """
+        if not ApiToken.admin_revoke(id, g.current_user["user_id"], _reason()):
             return {"message": "Token not found"}, 404, default_headers
         return {"message": "Token revoked"}, 200, default_headers
+
+
+class AdminUserApiTokens(Resource):
+    @require_admin
+    def get(self, id: str):
+        """Lists every token a user has, revoked ones included, so an admin
+        can find the one to revoke and see when it was last used."""
+        if User.get(id) is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+        tokens = ApiToken.list_for_user(id, include_revoked=True)
+        return [_admin_summarize(t) for t in tokens], 200, default_headers
+
+    @require_admin
+    def delete(self, id: str):
+        """Revokes all of a user's active tokens -- lighter than disabling
+        the account, which also ends their sessions and blocks login.
+
+        Body (optional): { "reason": str }
+        Returns: { "revoked": int, "tokenIds": [str] }
+        """
+        if User.get(id) is None:
+            return {"message": f"User not found: {id}"}, 404, default_headers
+        revoked = ApiToken.admin_revoke_all(id, g.current_user["user_id"], _reason())
+        return {"revoked": len(revoked), "tokenIds": revoked}, 200, default_headers
+
+
+class ApiTokenRevokeByValue(Resource):
+    @require_auth
+    def post(self):
+        """Revokes a token by its raw value, whoever owns it -- for any
+        signed-in user who finds a token somewhere it shouldn't be (a log,
+        a commit, a chat). Holding the value is already enough to use or
+        revoke it, so no further check is needed.
+
+        Body: { "token": "lct_...", "reason"?: str }
+        Always the same 200 whether or not anything was revoked, so this
+        can't be used to test whether a string is a live token.
+        """
+        body = request.get_json(silent=True) or {}
+        raw = body.get("token")
+        if not isinstance(raw, str) or not raw:
+            return (
+                {"message": "This action requires the parameter: 'token'"},
+                400,
+                default_headers,
+            )
+        ApiToken.revoke_by_value(raw, g.current_user["user_id"], _reason())
+        return (
+            {"message": "If that token was active, it has been revoked"},
+            200,
+            default_headers,
+        )

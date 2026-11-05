@@ -75,13 +75,50 @@ the raw token is shown exactly once.
 Lists the current user's own tokens (metadata only -- never the token or
 its hash).
 
+Revoking a token never deletes it. The token is marked with `revokedAt`/
+`revokedBy`/`revokeReason` and stops working on its very next request, and
+the document is kept so an admin can still see when it was last used.
+Revoked tokens drop out of the owner's own `GET /api/tokens` list. Every
+revocation is recorded in the [audit log](#audit-log).
+
+Tokens don't expire unless created with `expiresAt`. A revoked token is
+kept for `REVOKED_TOKEN_RETENTION_DAYS` (default `365`) after it was
+revoked, then Mongo deletes it automatically (a TTL index on `revokedAt`,
+set up at startup). `0` keeps revoked tokens forever. The audit log entry
+for the revocation is kept either way.
+
 ### https://[APPURL]/api/tokens/[id]
 #### DELETE
-Revokes one of the current user's own tokens.
+Revokes one of the current user's own tokens. `404` if it doesn't exist,
+isn't theirs, or is already revoked.
+
+### https://[APPURL]/api/tokens/revoke
+#### POST
+Revokes a token by its raw value, whoever owns it -- for any signed-in user
+who finds a token somewhere it shouldn't be (a log, a commit, a chat
+message). Holding the value is already enough to use the token, so it's
+enough to revoke it too. Body: `{"token": "lct_...", "reason"?: str}`.
+Always returns the same `200` whether or not anything was revoked, so it
+can't be used to test whether a string is a live token. `400` if `token` is
+missing.
 
 ### https://[APPURL]/api/admin/tokens/[id]
 #### DELETE
-Admin-only: revokes any user's token (e.g. offboarding).
+Admin-only: revokes any user's token (e.g. offboarding). Optional body:
+`{"reason": str}`. `404` if it doesn't exist or is already revoked.
+
+### https://[APPURL]/api/admin/users/[id]/tokens
+#### GET
+Admin-only: lists every token the user has, revoked ones included. Same
+fields as `GET /api/tokens`, plus `userId`, `revokedAt`, `revokedBy`, and
+`revokeReason` -- never the token or its hash. `404` if the user doesn't
+exist.
+
+#### DELETE
+Admin-only: revokes all of the user's active tokens. Optional body:
+`{"reason": str}`. Returns `{"revoked": int, "tokenIds": [str]}`. Lighter
+than [disabling](#httpsappurlapiadminusersiddisable) the account: the user
+can still sign in and create new tokens. `404` if the user doesn't exist.
 
 ## Institution access on a resource
 Any user with write access to a `Study`/`Table`/`Terminology`/
@@ -206,6 +243,68 @@ updated user. Like promotion, it takes effect on that user's very next
 request. Idempotent. `403` if `id` is the calling admin's own account --
 since an admin can't demote themselves, the system can never be left
 without an admin. `404` if the user doesn't exist.
+
+Disable, enable, promote, and demote each accept an optional body of
+`{"reason": str}` and are recorded in the audit log below. A request that's
+rejected (`403`/`404`) isn't recorded.
+
+## Audit log
+
+### https://[APPURL]/api/admin/audit
+#### GET
+Admin-only: who disabled, enabled, promoted, or demoted an account, and who
+revoked which API tokens, newest first. Each event is `{"id", "at",
+"action", "actorId", "targetUserId", "targetTokenIds", "reason"}`, where
+`action` is one of `user.disable`, `user.enable`, `user.promote`,
+`user.demote`, `token.revoke` (one token, by its owner or an admin),
+`token.revoke_all`, or `token.revoke_by_value`. Optional query params:
+`userId` (matches the user as either actor or target), `action`, and
+`limit` (default 100, max 1000). `400` for an unknown `action` or a bad
+`limit`.
+
+## Responding to a suspect token or account
+
+| Situation | Response |
+|---|---|
+| One token is exposed (pasted in a log, chat, or commit) | Anyone signed in: `POST /api/tokens/revoke` with the value. An admin who knows the id: `DELETE /api/admin/tokens/[id]`. |
+| A user's machine is lost or all their tokens are suspect | Admin: `DELETE /api/admin/users/[id]/tokens`. Their browser sign-in keeps working. |
+| The account itself is compromised, or the person has left | Admin: `POST /api/admin/users/[id]/disable`. Ends sessions and tokens and blocks sign-in. |
+| Something system-wide (e.g. the session secret leaked) | No endpoint; see below. |
+
+`GET /api/admin/users/[id]/tokens` shows each token's `lastUsedAt`, and
+`GET /api/admin/audit?userId=[id]` shows what's been done to the account
+so far.
+
+For a system-wide emergency, act on the database directly. In `mongosh`
+against the locutus database:
+
+```js
+// End every browser session (everyone has to sign in again).
+db.sessions.deleteMany({})
+
+// Revoke every API token.
+db.ApiToken.updateMany(
+  { revokedAt: null },
+  { $set: { revokedAt: new Date(), revokedBy: "emergency", revokeReason: "global revoke" } }
+)
+```
+
+The app's `SECRET_KEY` is generated fresh each time it starts (see
+`locutus/sessions.py`), so restarting it also rotates that.
+
+### Future work: where a change came from
+
+When cleaning up after a suspect token, `lastUsedAt` shows only its most
+recent use, and provenance records the user behind a change but not how
+it was made. You can list everything a user changed between a suspected
+leak and the revocation, but you can't separate what the token did from
+the person's own edits in the browser. Recording the source on each
+provenance entry -- the web app, a direct API call, Talon, and so on, plus
+the token id when the request came in with a token -- would make that
+exact. Request identity already knows whether a token was used, so most
+of the work is threading it through to everywhere provenance is written,
+and having clients like Talon identify themselves (e.g. a `User-Agent` or
+custom header).
 
 ## Aggregate/export endpoints
 

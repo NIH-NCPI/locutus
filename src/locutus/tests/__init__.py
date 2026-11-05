@@ -1,5 +1,6 @@
 import pytest
 
+import locutus
 from locutus.app import create_app
 from locutus.model.api_token import ApiToken
 from locutus.model.user import User
@@ -59,6 +60,8 @@ class _Owner:
 
     def cleanup(self):
         assert self.user.id is not None
+        # Hard delete, not ApiToken.revoke -- revocation keeps the
+        # document, which would leave test tokens behind.
         for token_id in self._token_ids:
-            ApiToken.delete(token_id, self.user.id)
+            locutus.persistence().collection("ApiToken").document(token_id).delete()
         self.user.delete()
