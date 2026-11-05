@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import locutus
+from locutus.model.audit_event import AuditEvent
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
@@ -847,4 +848,104 @@ def test_demoted_admin_loses_access_on_next_request(client):
         assert client.get("/api/admin/users").status_code == 403
     finally:
         other_admin.delete()
+        admin.cleanup()
+
+
+def _clear_audit():
+    for doc in locutus.persistence().collection("AuditEvent").stream():
+        locutus.persistence().collection("AuditEvent").document(doc.id).delete()
+
+
+def test_admin_user_changes_are_audited(client):
+    _clear_audit()
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    member = User(email="member@vumc.org", institution_ids=[]).save()
+    assert member.id is not None
+    try:
+        client.post(f"/api/admin/users/{member.id}/promote")
+        client.post(f"/api/admin/users/{member.id}/demote")
+        client.post(
+            f"/api/admin/users/{member.id}/disable", json={"reason": "left the lab"}
+        )
+        client.post(f"/api/admin/users/{member.id}/enable")
+
+        events = AuditEvent.find(user_id=member.id)
+        # Newest first.
+        assert [e.action for e in events] == [
+            "user.enable",
+            "user.disable",
+            "user.demote",
+            "user.promote",
+        ]
+        assert {e.actor_id for e in events} == {admin.user.id}
+        assert {e.target_user_id for e in events} == {member.id}
+        assert events[1].reason == "left the lab"
+    finally:
+        member.delete()
+        admin.cleanup()
+        _clear_audit()
+
+
+def test_rejected_admin_actions_are_not_audited(client):
+    _clear_audit()
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        client.post(f"/api/admin/users/{admin.user.id}/demote")
+        client.post("/api/admin/users/not-there/promote")
+        assert AuditEvent.find() == []
+    finally:
+        admin.cleanup()
+        _clear_audit()
+
+
+def test_admin_audit_get_requires_admin(client):
+    test_owner = _Owner(client)
+    try:
+        assert client.get("/api/admin/audit").status_code == 403
+    finally:
+        test_owner.cleanup()
+
+
+def test_admin_audit_get_filters(client):
+    _clear_audit()
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    a = User(email="a@vumc.org", institution_ids=[]).save()
+    b = User(email="b@vumc.org", institution_ids=[]).save()
+    try:
+        client.post(f"/api/admin/users/{a.id}/promote")
+        client.post(f"/api/admin/users/{b.id}/promote")
+        client.post(f"/api/admin/users/{b.id}/disable")
+
+        response = client.get("/api/admin/audit")
+        assert response.status_code == 200
+        assert len(response.json) == 3
+        assert response.json[0]["action"] == "user.disable"
+        assert isinstance(response.json[0]["at"], str)
+
+        response = client.get(f"/api/admin/audit?userId={b.id}")
+        assert [e["action"] for e in response.json] == ["user.disable", "user.promote"]
+
+        # The admin is the actor on every event.
+        response = client.get(f"/api/admin/audit?userId={admin.user.id}")
+        assert len(response.json) == 3
+
+        response = client.get("/api/admin/audit?action=user.promote")
+        assert {e["targetUserId"] for e in response.json} == {a.id, b.id}
+
+        response = client.get("/api/admin/audit?limit=1")
+        assert len(response.json) == 1
+    finally:
+        a.delete()
+        b.delete()
+        admin.cleanup()
+        _clear_audit()
+
+
+def test_admin_audit_get_rejects_bad_params(client):
+    admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
+    try:
+        assert client.get("/api/admin/audit?action=nope").status_code == 400
+        assert client.get("/api/admin/audit?limit=x").status_code == 400
+        assert client.get("/api/admin/audit?limit=0").status_code == 400
+    finally:
         admin.cleanup()

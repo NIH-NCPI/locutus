@@ -214,6 +214,9 @@ class CollectionReference:
         return self._collection.create_index(keys)
 
 
+_REVOKED_TOKEN_TTL_INDEX = "revokedAt_ttl"
+
+
 def filter_uri(uri):
     return uri_filter.sub(r"\1****\3", uri)
 
@@ -225,7 +228,14 @@ class FirestoreCompatibleClient:
     allowed_collections: ClassVar[set] = set(
         list(resource_types.keys())
         + simple_types
-        + ["OntologyAPI", "User", "Institution", "ApiToken", "Config"]
+        + [
+            "OntologyAPI",
+            "User",
+            "Institution",
+            "ApiToken",
+            "AuditEvent",
+            "Config",
+        ]
     )
 
     def __init__(self, mongo_uri=None, missing_ok=False):
@@ -291,35 +301,86 @@ class FirestoreCompatibleClient:
         """Insert a new API token document, returning its generated id."""
         return self.collection("ApiToken").document().set(token_doc)
 
-    def list_api_tokens(self, user_id):
-        """List a user's API tokens, never including the token hash."""
+    def list_api_tokens(self, user_id, include_revoked=False):
+        """List a user's API tokens, never including the token hash.
+        Revoked tokens are left out unless include_revoked is set (the
+        admin view, where they're kept for incident review)."""
+        query = {"userId": user_id}
+        if not include_revoked:
+            # Matches a missing revokedAt too, i.e. tokens that predate it.
+            query["revokedAt"] = None
         # return_instance=False makes find() yield plain dicts, but its
         # signature doesn't say so -- cast rather than widen a shared method
         # nothing else here depends on.
         tokens = cast(
             "list[dict]",
-            list(
-                self.collection("ApiToken").find(
-                    {"userId": user_id}, return_instance=False
-                )
-            ),
+            list(self.collection("ApiToken").find(query, return_instance=False)),
         )
         return [
             {k: v for k, v in token.items() if k != "tokenHash"} for token in tokens
         ]
 
-    def delete_api_token(self, token_id, user_id):
-        """Delete a token if it belongs to user_id.
+    def revoke_api_token(self, token_id, user_id, revoked_by, reason=None):
+        """Revoke a token if it belongs to user_id and isn't already
+        revoked. The document is kept, with revokedAt/revokedBy/revokeReason
+        set, so lastUsedAt survives for incident review.
 
-        Returns True if deleted, False if the token doesn't exist or
-        belongs to someone else -- callers use this to distinguish "already
-        gone" from "not yours" without a second lookup.
+        Returns True if revoked, False if the token doesn't exist, belongs
+        to someone else, or was already revoked -- callers use this to
+        distinguish "already gone" from "not yours" without a second lookup.
         """
         snapshot = self.collection("ApiToken").document(token_id).get()
-        if not snapshot.exists or snapshot.to_dict().get("userId") != user_id:
+        if not snapshot.exists:
             return False
-        snapshot.delete()
+        token = snapshot.to_dict()
+        if token.get("userId") != user_id or token.get("revokedAt") is not None:
+            return False
+        self.collection("ApiToken").document(token_id).update(
+            {
+                "revokedAt": datetime.now(UTC),
+                "revokedBy": revoked_by,
+                "revokeReason": reason,
+            }
+        )
         return True
+
+    def ensure_revoked_token_ttl(self, days):
+        """Have Mongo delete each revoked API token `days` after it was
+        revoked, via a TTL index on revokedAt. Tokens that were never
+        revoked have revokedAt=None, which a TTL index never expires, so
+        they're unaffected. days <= 0 keeps revoked tokens forever (drops
+        the index if it exists).
+
+        The audit log (AuditEvent) isn't affected -- it keeps the record of
+        who revoked what after the token itself is gone.
+        """
+        collection = self.db["ApiToken"]
+        existing = next(
+            (
+                index
+                for index in collection.list_indexes()
+                if index["name"] == _REVOKED_TOKEN_TTL_INDEX
+            ),
+            None,
+        )
+        if days <= 0:
+            if existing is not None:
+                collection.drop_index(_REVOKED_TOKEN_TTL_INDEX)
+            return
+
+        seconds = days * 24 * 60 * 60
+        if existing is None:
+            collection.create_index(
+                "revokedAt", name=_REVOKED_TOKEN_TTL_INDEX, expireAfterSeconds=seconds
+            )
+        elif existing.get("expireAfterSeconds") != seconds:
+            # create_index refuses to change an existing index's options;
+            # collMod changes the TTL in place.
+            self.db.command(
+                "collMod",
+                "ApiToken",
+                index={"name": _REVOKED_TOKEN_TTL_INDEX, "expireAfterSeconds": seconds},
+            )
 
     def update_token_last_used(self, token_id):
         """Best-effort update of a token's lastUsedAt timestamp. Callers
