@@ -30,7 +30,7 @@ dependencies = [
     "nanoid",
     "PyYAML",
     "rich",
-    "term-wyrm@git+https://github.com/carrollaboratory/term-wyrm.git@v0.3.0",
+    "term-wyrm@git+https://github.com/carrollaboratory/term-wyrm.git@v0.3.1",
     "firebase-admin",
     "pymongo",
     "google-auth",
