@@ -5,8 +5,9 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS, cross_origin
 from flask_restful import Api
 
-from locutus import setup_logging
+from locutus import persistence, setup_logging
 from locutus.api.admin import (
+    AdminAuditEvents,
     AdminInstitution,
     AdminInstitutionAllowlist,
     AdminInstitutionAllowlistItem,
@@ -75,7 +76,13 @@ from locutus.api.terminology import (
 )
 from locutus.api.terminology_mapping import MappingRelationship, TerminologyMapping
 from locutus.api.terminology_mappings import TerminologyMappings
-from locutus.api.tokens import AdminApiTokenItem, ApiTokenItem, ApiTokens
+from locutus.api.tokens import (
+    AdminApiTokenItem,
+    AdminUserApiTokens,
+    ApiTokenItem,
+    ApiTokenRevokeByValue,
+    ApiTokens,
+)
 from locutus.api.user_input import TableUserInput, TerminologyUserInput
 from locutus.api.user_prefs import UserPrefOntoFilters
 from locutus.model.lookups import FTDOntologyLookup
@@ -115,6 +122,12 @@ def create_app(config_filename=None):
     # Sessions
     session_manager = SessionManager(app)
 
+    # Revoked API tokens are kept for incident review, then removed by Mongo.
+    # 0 keeps them forever. The audit log keeps who revoked what regardless.
+    persistence().ensure_revoked_token_ttl(
+        int(os.environ.get("REVOKED_TOKEN_RETENTION_DAYS", "365"))
+    )
+
     api.add_resource(OntologyAPISearch, "/api/ontology_search")
 
     # GET app version
@@ -136,6 +149,7 @@ def create_app(config_filename=None):
     api.add_resource(Me, "/api/user/me")
 
     api.add_resource(ApiTokens, "/api/tokens")
+    api.add_resource(ApiTokenRevokeByValue, "/api/tokens/revoke")
     api.add_resource(ApiTokenItem, "/api/tokens/<string:id>")
     api.add_resource(AdminApiTokenItem, "/api/admin/tokens/<string:id>")
 
@@ -160,6 +174,8 @@ def create_app(config_filename=None):
     api.add_resource(AdminUserEnable, "/api/admin/users/<string:id>/enable")
     api.add_resource(AdminUserPromote, "/api/admin/users/<string:id>/promote")
     api.add_resource(AdminUserDemote, "/api/admin/users/<string:id>/demote")
+    api.add_resource(AdminUserApiTokens, "/api/admin/users/<string:id>/tokens")
+    api.add_resource(AdminAuditEvents, "/api/admin/audit")
 
     api.add_resource(UserPrefOntoFilters, "/api/user/preferences/ontologies")
 

@@ -1,6 +1,6 @@
 """
 Admin-only institution and user management (Auth Requirements spec, M3,
-S3, S4). Neither institutions nor users are part of the M4 owner/access
+S3, S4), and the audit log those user changes are recorded in. Neither institutions nor users are part of the M4 owner/access
 resource model -- every endpoint here is gated by @require_admin (the
 system-level role), not require_read_access/require_write_access.
 """
@@ -15,6 +15,7 @@ from flask_restful import Resource
 
 from locutus.api import default_headers
 from locutus.auth import require_admin
+from locutus.model.audit_event import AuditEvent
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
@@ -26,6 +27,21 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def _invalid_emails(emails: list[str]) -> list[str]:
     return [e for e in emails if not _EMAIL_RE.match(e)]
+
+
+def _reason() -> str | None:
+    body = request.get_json(silent=True) or {}
+    return body.get("reason") or None
+
+
+def _record(action: AuditEvent.Action, user: User) -> None:
+    assert user.id is not None
+    AuditEvent.record(
+        action,
+        actor_id=g.current_user["user_id"],
+        target_user_id=user.id,
+        reason=_reason(),
+    )
 
 
 def _institution_dict_with_members(institution: Institution) -> dict:
@@ -245,6 +261,7 @@ class AdminUserDisable(Resource):
         user.disabled_at = datetime.now(UTC)
         user.disabled_by = g.current_user["user_id"]
         user.save()
+        _record(AuditEvent.Action.UserDisable, user)
         return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
 
 
@@ -258,6 +275,7 @@ class AdminUserEnable(Resource):
         user.disabled_at = None
         user.disabled_by = None
         user.save()
+        _record(AuditEvent.Action.UserEnable, user)
         return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
 
 
@@ -274,6 +292,7 @@ class AdminUserPromote(Resource):
 
         user.role = User.Role.Admin
         user.save()
+        _record(AuditEvent.Action.UserPromote, user)
         return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
 
 
@@ -297,4 +316,36 @@ class AdminUserDemote(Resource):
 
         user.role = User.Role.User
         user.save()
+        _record(AuditEvent.Action.UserDemote, user)
         return json.loads(json_util.dumps(user.to_dict())), 200, default_headers
+
+
+class AdminAuditEvents(Resource):
+    """Who disabled, enabled, promoted, or demoted an account, and who
+    revoked which API tokens. Newest first.
+
+    Query params (all optional): userId (as either actor or target),
+    action (e.g. "token.revoke"), limit (default 100, max 1000).
+    """
+
+    @require_admin
+    def get(self):
+        try:
+            limit = int(request.args.get("limit", 100))
+        except ValueError:
+            return {"message": "limit must be an integer"}, 400, default_headers
+        if not 1 <= limit <= 1000:
+            return {"message": "limit must be 1-1000"}, 400, default_headers
+
+        action = request.args.get("action")
+        if action is not None and action not in AuditEvent.Action:
+            return {"message": f"Unknown action: {action}"}, 400, default_headers
+
+        events = AuditEvent.find(
+            user_id=request.args.get("userId"), action=action, limit=limit
+        )
+        return (
+            [{**e.to_dict(), "at": e.at.isoformat() if e.at else None} for e in events],
+            200,
+            default_headers,
+        )
