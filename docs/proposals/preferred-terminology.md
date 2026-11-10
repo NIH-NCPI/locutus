@@ -1,5 +1,7 @@
 # Preferred Terminology Updates
 
+[Design Overview Preview](https://github.com/NIH-NCPI/locutus/blob/prefer-term-proposal/docs/proposals/preferred-terminology.md)
+
 ## Overview and Goals
 
 When updating locutus to require Curies for all mappings, we overlooked those
@@ -56,6 +58,10 @@ Returns the prefix(es) associated with a preferred prefix or a synonym. While
 each should be unique, it is not impossible to imagine that there are some
 synonyms that not unique to a single vocabulary.
 
+##### GET /api/Terminology/preferred
+
+Returns only terminologies that have is_preferred=True
+
 ### Expanded Terminology Class
 
 Expand Terminology definition to include two new properties:
@@ -78,7 +84,7 @@ permitted as suitable mappings.
 
 ## Front-End Design
 
-Terminology New (load) and Edit Changes:
+### Terminology New (load) and Edit Changes:
 
 - Checkbox "Is Preferable", defaults to False for new
 - Prefix (required if Is Preferable is checked). Fails validation at the
@@ -89,6 +95,12 @@ Terminology New (load) and Edit Changes:
 Prefix can not be changed once it has been saved. So, if the user is editing
 something that was previously defined without one (because it was not "Is
 Preferable") it can be assigned. Otherwise, it should be shown but not editable.
+
+### Selecting for Preferred Terminology
+
+Right now, the front-end lists all available terminologies, which can get long.
+For this update, the FE will switch to use the new /api/Terminology/preferred to
+only show valid preferred terminologies.
 
 ## Open Questions
 
