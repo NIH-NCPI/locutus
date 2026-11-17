@@ -14,7 +14,7 @@ from flask import g, request
 from flask_restful import Resource
 
 from locutus.api import default_headers
-from locutus.auth import require_admin
+from locutus.auth import require_admin, require_auth
 from locutus.model.audit_event import AuditEvent
 from locutus.model.institution import Institution
 from locutus.model.user import User
@@ -115,7 +115,7 @@ class AdminInstitutions(Resource):
 
 
 class AdminInstitution(Resource):
-    @require_admin
+    @require_auth
     def get(self, id: str):
         institution = Institution.get(id)
         if institution is None:
