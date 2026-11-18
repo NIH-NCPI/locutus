@@ -72,7 +72,7 @@ def _institution_dict_with_members(institution: Institution) -> dict:
 
 
 class AdminInstitutions(Resource):
-    @require_admin
+    @require_auth
     def get(self):
         institutions = [_institution_dict_with_members(i) for i in Institution.all()]
         return json.loads(json_util.dumps(institutions)), 200, default_headers
