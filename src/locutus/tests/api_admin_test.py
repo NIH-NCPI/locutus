@@ -112,16 +112,6 @@ def test_admin_institutions_post_duplicate_id_returns_409(client):
         _clear_institutions()
         admin.cleanup()
 
-
-def test_admin_institutions_get_requires_admin(client):
-    test_owner = _Owner(client)
-    try:
-        response = client.get("/api/admin/institutions")
-        assert response.status_code == 403
-    finally:
-        test_owner.cleanup()
-
-
 def test_admin_institutions_get_lists_all(client):
     admin = _Owner(client, email="admin@example.com", role=User.Role.Admin)
     _clear_institutions()

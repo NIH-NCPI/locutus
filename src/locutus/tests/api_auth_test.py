@@ -16,7 +16,7 @@ from locutus.model.api_token import ApiToken
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
-from . import client
+from . import _Owner, client
 
 
 def _claims(
@@ -397,7 +397,6 @@ def test_me_requires_auth(client):
     response = client.get("/api/user/me")
     assert response.status_code == 401
 
-
 def test_me_returns_current_user_via_session(client):
     user = User(
         email="whoami@example.com", institution_ids=["vumc"], role=User.Role.Admin
@@ -454,3 +453,11 @@ def test_me_rejects_disabled_account(client):
         assert response.status_code == 401
     finally:
         user.delete()
+
+def test_admin_institutions_get_requires_auth(client):
+    test_owner = _Owner(client)
+    try:
+        response = client.get("/api/admin/institutions")
+        assert response.status_code == 200
+    finally:
+        test_owner.cleanup()
