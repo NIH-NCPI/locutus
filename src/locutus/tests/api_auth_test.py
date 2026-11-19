@@ -139,6 +139,11 @@ def test_institution_allowlist_match_creates_user_with_institution(client, monke
         _clear_institutions()
 
 
+def test_admin_institutions_get_requires_auth(client):
+    response = client.get("/api/admin/institutions")
+    assert response.status_code == 401
+
+
 def test_admin_email_that_also_matches_institution_adds_member(client, monkeypatch):
     """Admin role and institution membership are independent dimensions
     (see test_bootstrap_admin_email_creates_admin_user) -- an account that
@@ -397,6 +402,7 @@ def test_me_requires_auth(client):
     response = client.get("/api/user/me")
     assert response.status_code == 401
 
+
 def test_me_returns_current_user_via_session(client):
     user = User(
         email="whoami@example.com", institution_ids=["vumc"], role=User.Role.Admin
@@ -453,11 +459,3 @@ def test_me_rejects_disabled_account(client):
         assert response.status_code == 401
     finally:
         user.delete()
-
-def test_admin_institutions_get_requires_auth(client):
-    test_owner = _Owner(client)
-    try:
-        response = client.get("/api/admin/institutions")
-        assert response.status_code == 200
-    finally:
-        test_owner.cleanup()

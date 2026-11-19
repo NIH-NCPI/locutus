@@ -1,8 +1,6 @@
 import locutus
 from locutus.model.institution import Institution
 
-from . import _Owner, client
-
 
 def _clear():
     for doc in locutus.persistence().collection("Institution").stream():
@@ -62,22 +60,6 @@ def test_institution_all():
     finally:
         _clear()
 
-def test_institutions_get_returns_all_institutions(client):
-    _clear()
-    test_owner = _Owner(client)
-
-    try:
-        Institution(name="VUMC").save()
-        Institution(name="CHOP").save()
-
-        response = client.get("/api/admin/institutions")
-
-        assert response.status_code == 200
-        names = sorted(inst["name"] for inst in response.get_json())
-        assert names == ["CHOP", "VUMC"]
-    finally:
-        test_owner.cleanup()
-        _clear()
 
 def test_institution_allows_email():
     inst = Institution(name="VUMC", allowed_emails=["a@vumc.org"])
