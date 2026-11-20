@@ -16,7 +16,7 @@ from locutus.model.api_token import ApiToken
 from locutus.model.institution import Institution
 from locutus.model.user import User
 
-from . import client
+from . import _Owner, client
 
 
 def _claims(
@@ -137,6 +137,11 @@ def test_institution_allowlist_match_creates_user_with_institution(client, monke
     finally:
         _clear_users()
         _clear_institutions()
+
+
+def test_admin_institutions_get_requires_auth(client):
+    response = client.get("/api/admin/institutions")
+    assert response.status_code == 401
 
 
 def test_admin_email_that_also_matches_institution_adds_member(client, monkeypatch):

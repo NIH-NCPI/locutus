@@ -10,7 +10,7 @@ def pytest_sessionstart(session):
     uri = os.environ.get("MONGO_URI", "")
 
     # Logic to check if we are in the safe 'test' database
-    if "test" not in uri.split("/")[-1].split("?"):
+    if "test" not in uri.split("/")[-1].split("?")[0]:
         console = Console()
 
         # 1. Print the styled message directly to the terminal

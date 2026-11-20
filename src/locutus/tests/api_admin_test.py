@@ -13,6 +13,21 @@ def _clear_institutions():
         locutus.persistence().collection("Institution").document(doc.id).delete()
 
 
+def test_admin_institutions_get_allows_any_user(client):
+    _clear_institutions()
+    user = _Owner(client)
+    try:
+        Institution(name="VUMC").save()
+        Institution(name="CHOP").save()
+        response = client.get("/api/admin/institutions")
+        assert response.status_code == 200
+        names = sorted(inst["name"] for inst in response.get_json())
+        assert names == ["CHOP", "VUMC"]
+    finally:
+        user.cleanup()
+        _clear_institutions()
+
+
 def test_admin_institutions_post_requires_auth(client):
     response = client.post(
         "/api/admin/institutions",
@@ -111,15 +126,6 @@ def test_admin_institutions_post_duplicate_id_returns_409(client):
     finally:
         _clear_institutions()
         admin.cleanup()
-
-
-def test_admin_institutions_get_requires_admin(client):
-    test_owner = _Owner(client)
-    try:
-        response = client.get("/api/admin/institutions")
-        assert response.status_code == 403
-    finally:
-        test_owner.cleanup()
 
 
 def test_admin_institutions_get_lists_all(client):
